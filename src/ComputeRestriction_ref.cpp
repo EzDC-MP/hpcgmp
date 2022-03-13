@@ -93,8 +93,8 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
      }
    }
    #elif defined(HPCG_WITH_HIP)
+   #if 0 // TODO: copying input vectors to device..
    printf( " ** Restriction with HIP **\n" );
-   #if 1 // TODO: copying input vectors to device..
    if (hipSuccess != hipMemcpy(d_rfv, rfv, n*sizeof(scalar_type), hipMemcpyHostToDevice)) {
      printf( " Failed to memcpy d_xfv\n" );
    }
@@ -113,13 +113,11 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
    rocsparse_dnvec_descr vecX, vecY;
    rocsparse_create_dnvec_descr(&vecX, n,  (void*)d_rfv, rocsparse_compute_type);
    rocsparse_create_dnvec_descr(&vecY, nc, (void*)d_rcv, rocsparse_compute_type);
-   printf( " restriction : rocsparse_spmv\n" );
    if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
                                                   &one, A.mgData->descrR, vecX, &zero, vecY,
                                                   rocsparse_compute_type, rocsparse_spmv_alg_default,
                                                   &buffer_size, A.mgData->buffer_R)) {
-     printf( " -> Failed \n" );
-     //printf( " Failed rocsparse_spmv\n" );
+     printf( " Failed rocsparse_spmv\n" );
    }
    rocsparse_create_dnvec_descr(&vecX, n, (void*)d_Axfv, rocsparse_compute_type);
    if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
@@ -128,20 +126,19 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
                                                   &buffer_size, A.mgData->buffer_R)) {
      printf( " Failed rocsparse_spmv\n" );
    }
-   #if 1 // TODO: copying input vectors to device..
+   #if 0 // TODO: copying input vectors to host..
    if (hipSuccess != hipMemcpy(rcv, d_rcv, nc*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
      printf( " Failed to memcpy d_xcv\n" );
    }
    #endif
    #endif
-#endif
-  //#else
+  #else
    // host
    #ifndef HPCG_NO_OPENMP
    #pragma omp parallel for
    #endif
    for (local_int_t i=0; i<nc; ++i) rcv[i] = rfv[f2c[i]] - Axfv[f2c[i]];
-  //#endif
+  #endif
 
   return 0;
 }

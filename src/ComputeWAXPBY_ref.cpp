@@ -76,7 +76,7 @@ int ComputeWAXPBY_ref(const local_int_t n,
   scalarY_type * const yv = y.values;
   scalarW_type * const wv = w.values;
 
-  #if defined(HPCG_WITH_HIP)
+  #if 0//defined(HPCG_WITH_HIP)
   printf( " ** WAXPY with HIP **\n" );
   if (hipSuccess != hipMemcpy(y.d_values, yv, n*sizeof(scalarY_type), hipMemcpyHostToDevice)) {
     printf( " Failed to memcpy d_y\n" );
@@ -164,7 +164,7 @@ int ComputeWAXPBY_ref(const local_int_t n,
         printf( " Failed rocblas_ddot\n" );
       }
     }
-    #if 1 // TODO just for debug
+    #if 0 // TODO just for debug
     if (hipSuccess != hipMemcpy(wv, d_wv, n*sizeof(scalarY_type), hipMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_x\n" );
     }

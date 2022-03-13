@@ -71,7 +71,7 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
      }
    }
    #elif defined(HPCG_WITH_HIP)
-   #if 1 // TODO: copying input vectors to device..
+   #if 0 // TODO: copying input vectors to device..
    if (hipSuccess != hipMemcpy(d_xfv, xfv, n*sizeof(scalar_type), hipMemcpyHostToDevice)) {
      printf( " Failed to memcpy d_xfv\n" );
    }
@@ -87,14 +87,11 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
    rocsparse_dnvec_descr vecX, vecY;
    rocsparse_create_dnvec_descr(&vecX, nc, (void*)d_xcv, rocsparse_compute_type);
    rocsparse_create_dnvec_descr(&vecY, n,  (void*)d_xfv, rocsparse_compute_type);
-   rocsparse_status stat = rocsparse_spmv(Af.rocsparseHandle, rocsparse_operation_none,
+   if (rocsparse_status_success != rocsparse_spmv(Af.rocsparseHandle, rocsparse_operation_none,
                                                   &one, Af.mgData->descrP, vecX, &one, vecY,
                                                   rocsparse_compute_type, rocsparse_spmv_alg_default,
-                                                  &buffer_size, Af.mgData->buffer_P);
-   printf( " prologation : rocsparse_spmv(%dx%d), size=%d\n",nc,n,buffer_size );
-   if (rocsparse_status_success != stat) {
-     printf( "  -> Failed with stat=%d\n",stat );
-     //printf( " Failed rocsparse_spmv(%dx%d), stat=%d\n",nc,n,stat );
+                                                  &buffer_size, Af.mgData->buffer_P) {
+     printf( " Failed rocsparse_spmv(%dx%d)\n",nc,n );
    }
    #if 0 // TODO: copying input vectors to device..
    if (hipSuccess != hipMemcpy(xcv, d_xcv, nc*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
@@ -102,14 +99,13 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
    }
    #endif
    #endif
-#endif
-  //#else
+  #else
    #ifndef HPCG_NO_OPENMP
    #pragma omp parallel for
    #endif
    // TODO: Somehow note that this loop can be safely vectorized since f2c has no repeated indices
    for (local_int_t i=0; i<nc; ++i) xfv[f2c[i]] += xcv[i]; // This loop is safe to vectorize
-  //#endif
+  #endif
 
   return 0;
 }

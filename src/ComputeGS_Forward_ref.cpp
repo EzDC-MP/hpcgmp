@@ -32,7 +32,7 @@
 
  #include "ComputeSPMV.hpp"
  #include "ComputeWAXPBY.hpp"
- #if 1//def HPCG_DEBUG
+ #ifdef HPCG_DEBUG
  #include <mpi.h>
  #include "Utils_MPI.hpp"
  #include "hpgmp.hpp"
@@ -75,7 +75,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
   const scalar_type * const rv = r.values;
   scalar_type * const xv = x.values;
-#if defined(HPCG_WITH_HIP)
+#if 0//defined(HPCG_WITH_HIP)
   #if 1 // TODO: copying input vectors to device..
   if (hipSuccess != hipMemcpy(r.d_values, rv, nrow*sizeof(scalar_type), hipMemcpyHostToDevice)) {
     printf( " Failed to memcpy d_r\n" );
@@ -224,7 +224,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
                                                  &buffer_size, A.buffer_L)) {
      printf( " Failed rocsparse_spsv(solve, nrow=%d, %s)\n",nrow,(rocsparse_compute_type == rocsparse_datatype_f32_r ? "single" : "double"));
   }
-  #if 1 // TODO: copying output to host..
+  #if 0 // TODO: copying output to host..
   if (hipSuccess != hipMemcpy(xv, d_xv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_x\n" );
   }
@@ -233,14 +233,13 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
   #ifdef HPCG_DEBUG
   scalar_type * tv = (scalar_type *)malloc(nrow * sizeof(scalar_type));
-  for (int i=0; i<nrow; i++) tv[i] = xv[i];
   // copy x to host for check inside WAXPBY (debug)
   #if defined(HPCG_WITH_CUDA)
-  if (cudaSuccess != cudaMemcpy(xv, d_xv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
+  if (cudaSuccess != cudaMemcpy(tv, d_xv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_b\n" );
   }
   #else
-  if (hipSuccess != hipMemcpy(xv, d_xv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+  if (hipSuccess != hipMemcpy(tv, d_xv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_b\n" );
   }
   #endif

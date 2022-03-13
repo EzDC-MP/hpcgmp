@@ -51,7 +51,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
   scalarA_type * const Av = A.values;
   scalarY_type * const yv = y.values;
 
-  #if defined(HPCG_WITH_HIP)
+  #if 0//defined(HPCG_WITH_HIP)
   printf( " ** GEMV with HIP **\n" );
   if (hipSuccess != hipMemcpy(A.d_values, Av, m*n*sizeof(scalarA_type), hipMemcpyHostToDevice)) {
     printf( " Failed to memcpy d_y\n" );
@@ -140,7 +140,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
         printf( " Failed rocblas_sgemv\n" );
       }
     }
-    #if 1 // TODO just for debug
+    #if 0 // TODO just for debug
     if (hipSuccess != hipMemcpy(yv, d_yv, m*sizeof(scalarY_type), hipMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_y\n" );
     }
@@ -160,7 +160,14 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
       }
     }
     #elif defined(HPCG_WITH_HIP)
-    // TODO
+    if (hipSuccess != hipMemcpy(Av, d_Av, m*n*sizeof(scalarA_type), hipMemcpyDeviceToHost)) {
+      printf( " Failed to memcpy d_y\n" );
+    }
+    if (beta != zero) {
+      if (hipSuccess != hipMemcpy(yv, d_yv, m*sizeof(scalarY_type), hipMemcpyDeviceToHost)) {
+        printf( " Failed to memcpy d_y\n" );
+      }
+    }
     #endif
 
     // GEMV on HOST CPU
@@ -188,7 +195,9 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
       printf( " Failed to memcpy d_y\n" );
     }
     #elif defined(HPCG_WITH_HIP)
-    // TODO
+    if (hipSuccess != hipMemcpy(d_yv, yv, m*sizeof(scalarY_type), hipMemcpyHostToDevice)) {
+      printf( " Failed to memcpy d_y\n" );
+    }
     #endif
   }
 #endif

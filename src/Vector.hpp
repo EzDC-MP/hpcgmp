@@ -35,6 +35,9 @@
 #endif
 
 #include "Geometry.hpp"
+#ifdef HPCG_DEBUG
+#include "hpgmp.hpp"
+#endif
 
 template<class SC = double>
 class Vector {
@@ -100,12 +103,15 @@ inline void ZeroVector(Vector_type & v) {
   local_int_t localLength = v.localLength;
   scalar_type * vv = v.values;
   for (int i=0; i<localLength; ++i) vv[i] = zero;
-#ifdef HPCG_WITH_CUDA
-  scalar_type * d_vv = v.d_values;
-  if (cudaSuccess != cudaMemset(d_vv, zero, localLength*sizeof(scalar_type))) {
+  #ifdef HPCG_WITH_CUDA
+  if (cudaSuccess != cudaMemset(v.d_values, zero, localLength*sizeof(scalar_type))) {
     printf( " CopyVector :: Failed to memcpy d_v\n" );
   }
-#endif
+  #elif defined(HPCG_WITH_HIP)
+  if (hipSuccess != hipMemset(v.d_values, zero, localLength*sizeof(scalar_type))) {
+    printf( " CopyVector :: Failed to memcpy d_v\n" );
+  }
+  #endif
   return;
 }
 /*!
@@ -141,16 +147,28 @@ inline void ScaleVectorValue(Vector_type & v, typename Vector_type::scalar_type 
   } else {
     for (int i=0; i<localLength; ++i) vv[i] *= value;
   }
-#ifdef HPCG_WITH_CUDA
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   scalar_type * d_vv = v.d_values;
   if (std::is_same<scalar_type, double>::value) {
+    #ifdef HPCG_WITH_CUDA
     if (CUBLAS_STATUS_SUCCESS != cublasDscal (v.handle, localLength, (const double*)&value, (double*)d_vv, 1)) {
       printf( " Failed cublasDscal\n" );
     }
+    #elif defined(HPCG_WITH_HIP)
+    if (rocblas_status_success != rocblas_dscal (v.handle, localLength, (const double*)&value, (double*)d_vv, 1)) {
+      printf( " Failed rocblas_dscal\n" );
+    }
+    #endif
   } else if (std::is_same<scalar_type, float>::value) {
+    #ifdef HPCG_WITH_CUDA
     if (CUBLAS_STATUS_SUCCESS != cublasSscal (v.handle, localLength, (const float*)&value, (float*)d_vv, 1)) {
       printf( " Failed cublasSscal\n" );
     }
+    #elif defined(HPCG_WITH_HIP)
+    if (rocblas_status_success != rocblas_sscal (v.handle, localLength, (const float*)&value, (float*)d_vv, 1)) {
+      printf( " Failed rocblas_sscal\n" );
+    }
+    #endif
   }
 #endif
   return;
@@ -182,33 +200,51 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
   assert(w.localLength >= localLength);
   scalar_src * vv = v.values;
   scalar_dst * wv = w.values;
-#if !defined(HPCG_WITH_CUDA) | defined(HPCG_DEBUG)
+#if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
   for (int i=0; i<localLength; ++i) wv[i] = vv[i];
 #endif
 
-#ifdef HPCG_WITH_CUDA
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   if (std::is_same<scalar_src, scalar_dst>::value) {
     #ifdef HPCG_DEBUG
     HPCG_fout << " CopyVector ( Unit-precision )" << std::endl;
     #endif
+    #if defined(HPCG_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(w.d_values, v.d_values, localLength*sizeof(scalar_src), cudaMemcpyDeviceToDevice)) {
       printf( " CopyVector :: Failed to memcpy d_x\n" );
     }
+    #elif defined(HPCG_WITH_HIP)
+    if (hipSuccess != hipMemcpy(w.d_values, v.d_values, localLength*sizeof(scalar_src), hipMemcpyDeviceToDevice)) {
+      printf( " CopyVector :: Failed to memcpy d_x\n" );
+    }
+    #endif
   } else {
     HPCG_fout << " CopyVector :: Mixed-precision not supported" << std::endl;
 
     // Copy input vector to Host
+    #if defined(HPCG_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(vv, v.d_values, localLength*sizeof(scalar_src), cudaMemcpyDeviceToHost)) {
       printf( " CopyVector :: Failed to memcpy d_v\n" );
     }
+    #elif defined(HPCG_WITH_HIP)
+    if (hipSuccess != hipMemcpy(vv, v.d_values, localLength*sizeof(scalar_src), hipMemcpyDeviceToHost)) {
+      printf( " CopyVector :: Failed to memcpy d_v\n" );
+    }
+    #endif
 
     // Copy on Host
     for (int i=0; i<localLength; ++i) wv[i] = vv[i];
 
     // Copy output vector to Device
+    #if defined(HPCG_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(w.d_values, wv, localLength*sizeof(scalar_dst), cudaMemcpyHostToDevice)) {
       printf( " CopyVector :: Failed to memcpy d_w\n" );
     }
+    #elif defined(HPCG_WITH_HIP)
+    if (hipSuccess != hipMemcpy(w.d_values, wv, localLength*sizeof(scalar_dst), hipMemcpyHostToDevice)) {
+      printf( " CopyVector :: Failed to memcpy d_w\n" );
+    }
+    #endif
   }
 #endif
   return;

@@ -73,11 +73,13 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
 
 #ifndef HPCG_NO_MPI
   if (A.geom->size > 1) {
-    #ifdef HPCG_WITH_CUDA
     // Copy local part of X to HOST CPU
+    #ifdef HPCG_WITH_CUDA
     if (cudaSuccess != cudaMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_y\n" );
     }
+    #elif defined(HPCG_WITH_HIP)
+    printf( " HIP memcpy d_y skipped\n" );
     #endif
 
     ExchangeHalo(A, x);
@@ -144,7 +146,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
      }
   }
   #elif defined(HPCG_WITH_HIP)
-  #if 1 // TODO just for debug
+  #if 0 // TODO just for debug
   if (hipSuccess != hipMemcpy(d_xv, xv, ncol*sizeof(scalar_type), hipMemcpyHostToDevice)) {
     printf( " Failed to memcpy d_y\n" );
   }
@@ -166,7 +168,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
                                                  &buffer_size, A.buffer_A)) {
     printf( " Failed rocsparse_spmv\n" );
   }
-  #if 1 // TODO just for debug
+  #if 0 // TODO just for debug
   if (hipSuccess != hipMemcpy(yv, d_yv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_y\n" );
   }
