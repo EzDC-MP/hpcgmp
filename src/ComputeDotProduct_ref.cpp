@@ -37,9 +37,9 @@
 #include <cassert>
 #include "ComputeDotProduct_ref.hpp"
 
-#ifdef HPCG_DEBUG
+//#ifdef HPCG_DEBUG
 #include "hpgmp.hpp"
-#endif
+//#endif
 
 /*!
   Routine to compute the dot product of two vectors where:

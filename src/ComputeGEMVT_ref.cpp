@@ -20,7 +20,16 @@
 #ifndef HPCG_NO_MPI
  #include "Utils_MPI.hpp"
 #endif
+#ifdef HPCG_WITH_CUDA
+ #include <cuda_runtime.h>
+ #include <cublas_v2.h>
+#elif defined(HPCG_WITH_HIP)
+ #include <hip/hip_runtime_api.h>
+ #include <rocblas.h>
+#endif
+
 #include "ComputeGEMVT_ref.hpp"
+#include "hpgmp.hpp"
 
 template<class MultiVector_type, class Vector_type, class SerialDenseMatrix_type>
 int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
@@ -43,7 +52,20 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   scalarX_type * const xv = x.values;
   scalarY_type * const yv = y.values;
 
-#if !defined(HPCG_WITH_CUDA) | defined(HPCG_DEBUG)
+  #if defined(HPCG_WITH_HIP)
+  printf( " ** GEMV with HIP **\n" );
+  if (hipSuccess != hipMemcpy(A.d_values, Av, m*n*sizeof(scalarA_type), hipMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_y\n" );
+  }
+  if (hipSuccess != hipMemcpy(x.d_values, xv,   m*sizeof(scalarX_type), hipMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  if (hipSuccess != hipMemcpy(y.d_values, yv,   n*sizeof(scalarY_type), hipMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_y\n" );
+  }
+  #endif
+
+#if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
   // GEMV on HOST CPU
   if (beta == zero) {
     for (local_int_t i = 0; i < n; i++) yv[i] = zero;
@@ -64,66 +86,60 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   }
 #endif
 
-#ifdef HPCG_WITH_CUDA
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   scalarA_type * const d_Av = A.d_values;
   scalarX_type * const d_xv = x.d_values;
   scalarY_type * const d_yv = y.d_values;
-  if ((std::is_same<scalarX_type, double>::value && std::is_same<scalarY_type, double>::value && std::is_same<scalarA_type, double>::value) ||
-      (std::is_same<scalarX_type, float >::value && std::is_same<scalarY_type, float >::value && std::is_same<scalarA_type, float >::value)) {
 
-    // Perform GEMV on device
-    if (std::is_same<scalarX_type, double>::value) {
-      if (CUBLAS_STATUS_SUCCESS != cublasDgemv(x.handle, CUBLAS_OP_T,
-                                               m, n,
-                                               (double*)&alpha, (double*)d_Av, m,
-                                                                (double*)d_xv, 1,
-                                               (double*)&beta,  (double*)d_yv, 1)){
-        printf( " Failed cublasDgemv\n" );
-      }
-    } else if (std::is_same<scalarX_type, float>::value) {
-      if (CUBLAS_STATUS_SUCCESS != cublasSgemv(x.handle, CUBLAS_OP_T,
-                                               m, n,
-                                               (float*)&alpha, (float*)d_Av, m,
-                                                               (float*)d_xv, 1,
-                                               (float*)&beta,  (float*)d_yv, 1)){
-        printf( " Failed cublasSgemv\n" );
-      }
+  #if defined(HPCG_WITH_CUDA)
+  // Perform GEMV on device
+  if (std::is_same<scalarX_type, double>::value) {
+    if (CUBLAS_STATUS_SUCCESS != cublasDgemv(x.handle, CUBLAS_OP_T,
+                                             m, n,
+                                             (double*)&alpha, (double*)d_Av, m,
+                                                              (double*)d_xv, 1,
+                                             (double*)&beta,  (double*)d_yv, 1)){
+      printf( " Failed cublasDgemv\n" );
     }
-
-    // Copy input serial dense vector to host
-    if (cudaSuccess != cudaMemcpy(yv, d_yv, n*sizeof(scalarX_type), cudaMemcpyHostToDevice)) {
-      printf( " Failed to memcpy d_x\n" );
-    }
-  } else {
-    HPCG_fout << " Mixed-precision GEMV not supported" << std::endl;
-
-    // Copy input matrix A from HOST CPU
-    if (cudaSuccess != cudaMemcpy(Av, d_Av, m*n*sizeof(scalarY_type), cudaMemcpyDeviceToHost)) {
-      printf( " Failed to memcpy d_y\n" );
-    }
-    if (cudaSuccess != cudaMemcpy(xv, d_xv, m*sizeof(scalarX_type), cudaMemcpyHostToDevice)) {
-      printf( " Failed to memcpy d_x\n" );
-    }
-
-    // GEMV on HOST CPU
-    if (beta == zero) {
-      for (local_int_t i = 0; i < n; i++) yv[i] = zero;
-    } else if (beta != one) {
-      for (local_int_t i = 0; i < n; i++) yv[i] *= beta;
-    }
-
-    if (alpha == one) {
-      for (local_int_t j=0; j<n; j++)
-        for (local_int_t i=0; i<m; i++) {
-          yv[j] += Av[i + j*m] * xv[i];
-      }
-    } else {
-      for (local_int_t j=0; j<n; j++)
-        for (local_int_t i=0; i<m; i++) {
-          yv[j] += alpha * Av[i + j*m] * xv[i];
-      }
+  } else if (std::is_same<scalarX_type, float>::value) {
+    if (CUBLAS_STATUS_SUCCESS != cublasSgemv(x.handle, CUBLAS_OP_T,
+                                             m, n,
+                                             (float*)&alpha, (float*)d_Av, m,
+                                                             (float*)d_xv, 1,
+                                             (float*)&beta,  (float*)d_yv, 1)){
+      printf( " Failed cublasSgemv\n" );
     }
   }
+
+  // Copy input serial dense vector to host
+  if (cudaSuccess != cudaMemcpy(yv, d_yv, n*sizeof(scalarX_type), cudaMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #elif defined(HPCG_WITH_HIP)
+  // Perform GEMV on device
+  if (std::is_same<scalarX_type, double>::value) {
+    if (rocblas_status_success != rocblas_dgemv(x.handle, rocblas_operation_transpose,
+                                                m, n,
+                                                (double*)&alpha, (double*)d_Av, m,
+                                                                 (double*)d_xv, 1,
+                                                (double*)&beta,  (double*)d_yv, 1)){
+      printf( " Failed rocblas_dgemv\n" );
+    }
+  } else if (std::is_same<scalarX_type, float>::value) {
+    if (rocblas_status_success != rocblas_sgemv(x.handle, rocblas_operation_transpose,
+                                                m, n,
+                                                (float*)&alpha, (float*)d_Av, m,
+                                                                (float*)d_xv, 1,
+                                                (float*)&beta,  (float*)d_yv, 1)){
+      printf( " Failed rocblas_sgemv\n" );
+    }
+  }
+
+  // Copy input serial dense vector to host
+  if (hipSuccess != hipMemcpy(yv, d_yv, n*sizeof(scalarX_type), hipMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #endif
 #endif
 
 #ifndef HPCG_NO_MPI

@@ -21,12 +21,18 @@
 #ifndef HPCG_NO_MPI
  #include "ExchangeHalo.hpp"
 #endif
-#ifdef HPCG_WITH_CUDA
- #include <cuda_runtime.h>
- #include <cublas_v2.h>
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+ #if defined(HPCG_WITH_CUDA)
+  #include <cuda_runtime.h>
+  #include <cublas_v2.h>
+ #else
+  #include <hip/hip_runtime_api.h>
+  #include <rocblas.h>
+ #endif
+
  #include "ComputeSPMV.hpp"
  #include "ComputeWAXPBY.hpp"
- #ifdef HPCG_DEBUG
+ #if 1//def HPCG_DEBUG
  #include <mpi.h>
  #include "Utils_MPI.hpp"
  #include "hpgmp.hpp"
@@ -69,43 +75,53 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
   const scalar_type * const rv = r.values;
   scalar_type * const xv = x.values;
+#if defined(HPCG_WITH_HIP)
+  #if 1 // TODO: copying input vectors to device..
+  if (hipSuccess != hipMemcpy(r.d_values, rv, nrow*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_r\n" );
+  }
+  if (hipSuccess != hipMemcpy(x.d_values, xv, ncol*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #endif
+#endif
 
 #ifndef HPCG_NO_MPI
-  #ifdef HPCG_WITH_CUDA
+  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   // workspace
   Vector_type b = A.x; // nrow
   scalar_type * const d_bv = b.d_values;
   scalar_type * const d_xv = x.d_values;
 
   // Copy local part of X to HOST CPU
-  if (A.geom->rank==0) printf( " HaloExchange on Host for GS_Forward\n" );
+  #if defined(HPCG_WITH_CUDA)
   if (cudaSuccess != cudaMemcpy(xv, d_xv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_y\n" );
   }
+  #else
+  if (hipSuccess != hipMemcpy(xv, d_xv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_y\n" );
+  }
+  #endif
   #endif
 
   // Exchange Halo on HOST CPU
   ExchangeHalo(A, x);
 
+  // Copy non-local part of X (after Halo Exchange) to device
   #ifdef HPCG_WITH_CUDA
-  // Copy X (after Halo Exchange on host) to device
-  #define HPCG_COMPACT_GS
-  #ifdef HPCG_COMPACT_GS
-  // Copy non-local part of X (after Halo Exchange) into x0 on device
-  //if (cudaSuccess != cudaMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
-  //  printf( " Failed to memcpy d_y\n" );
-  //}
-  #else
-  Vector_type x0 = A.y; // ncol
-  scalar_type * const x0v = x0.values;
-  CopyVector(x, x0); // this also copy on CPU, which is needed only for debug
+  if (cudaSuccess != cudaMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_y\n" );
+  }
+  #elif defined(HPCG_WITH_HIP)
+  if (hipSuccess != hipMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_y\n" );
+  }
   #endif
-
   #ifdef HPCG_DEBUG
   if (A.geom->rank==0) {
     HPCG_fout << A.geom->rank << " : ComputeGS(" << nrow << " x " << ncol << ") start" << std::endl;
   }
-  #endif
   #endif
 #endif
 
@@ -129,12 +145,12 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   }
 #endif
 
-#ifdef HPCG_WITH_CUDA
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   const scalar_type  one ( 1.0);
   const scalar_type mone (-1.0);
 
-  #ifdef HPCG_COMPACT_GS
   // b = r - Ux
+  #if defined(HPCG_WITH_CUDA)
   if (cudaSuccess != cudaMemcpy(d_bv, r.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToDevice)) {
     printf( " Failed to memcpy d_r\n" );
   }
@@ -157,13 +173,28 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
        printf( " Failed cusparseScsrmv\n" );
      }
   }
-  #else
-  // b = r - Ax0
-  ComputeSPMV(A, x0, b);
-  ComputeWAXPBY(nrow, -one, b, one, r, b, A.isWaxpbyOptimized);
+  #elif defined(HPCG_WITH_HIP)
+  if (hipSuccess != hipMemcpy(d_bv, r.d_values, nrow*sizeof(scalar_type), hipMemcpyDeviceToDevice)) {
+    printf( " Failed to memcpy d_r\n" );
+  }
+  rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
+  if (std::is_same<scalar_type, float>::value) {
+    rocsparse_compute_type = rocsparse_datatype_f32_r;
+  }
+  size_t buffer_size = A.buffer_size_U;
+  rocsparse_dnvec_descr vecX, vecY;
+  rocsparse_create_dnvec_descr(&vecX, ncol, (void*)d_xv, rocsparse_compute_type);
+  rocsparse_create_dnvec_descr(&vecY, nrow, (void*)d_bv, rocsparse_compute_type);
+  if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
+                                                 &mone, A.descrU, vecX, &one, vecY,
+                                                 rocsparse_compute_type, rocsparse_spmv_alg_default,
+                                                 &buffer_size, A.buffer_U)) {
+    printf( " Failed rocsparse_spmv\n" );
+  }
   #endif
 
   // x = L^{-1}b
+  #if defined(HPCG_WITH_CUDA)
   if (std::is_same<scalar_type, double>::value) {
      if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrsv_solve(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                                          nrow,
@@ -183,22 +214,37 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
        printf( " Failed cusparseScsrv_solve\n" );
      }
   }
+  #elif defined(HPCG_WITH_HIP)
+  buffer_size = A.buffer_size_L;
+  rocsparse_create_dnvec_descr(&vecX, nrow, (void*)d_bv, rocsparse_compute_type);
+  rocsparse_create_dnvec_descr(&vecY, nrow, (void*)d_xv, rocsparse_compute_type);
+  if (rocsparse_status_success != rocsparse_spsv(A.rocsparseHandle, rocsparse_operation_none,
+                                                 &one, A.descrL, vecX, vecY, rocsparse_compute_type,
+                                                 rocsparse_spsv_alg_default, rocsparse_spsv_stage_compute,
+                                                 &buffer_size, A.buffer_L)) {
+     printf( " Failed rocsparse_spsv(solve, nrow=%d, %s)\n",nrow,(rocsparse_compute_type == rocsparse_datatype_f32_r ? "single" : "double"));
+  }
+  #if 1 // TODO: copying output to host..
+  if (hipSuccess != hipMemcpy(xv, d_xv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #endif
+  #endif
 
   #ifdef HPCG_DEBUG
   scalar_type * tv = (scalar_type *)malloc(nrow * sizeof(scalar_type));
   for (int i=0; i<nrow; i++) tv[i] = xv[i];
   // copy x to host for check inside WAXPBY (debug)
+  #if defined(HPCG_WITH_CUDA)
   if (cudaSuccess != cudaMemcpy(xv, d_xv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_b\n" );
   }
+  #else
+  if (hipSuccess != hipMemcpy(xv, d_xv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_b\n" );
+  }
   #endif
-
-  #ifndef HPCG_COMPACT_GS
-  // x = x + x0
-  ComputeWAXPBY(nrow, one, x, one, x0, x, A.isWaxpbyOptimized);
-  #endif
-
-  #ifdef HPCG_DEBUG
+  
   scalar_type l_enorm = 0.0;
   scalar_type l_xnorm = 0.0;
   scalar_type l_rnorm = 0.0;

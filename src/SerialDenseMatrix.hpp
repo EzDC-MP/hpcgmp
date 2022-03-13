@@ -27,6 +27,9 @@
 #ifdef HPCG_WITH_CUDA
  #include <cuda_runtime.h>
  #include <cublas_v2.h>
+#elif defined(HPCG_WITH_HIP)
+ #include <hip/hip_runtime_api.h>
+ #include <rocblas.h>
 #endif
 
 template<class SC>
@@ -37,7 +40,7 @@ public:
   local_int_t m;        //!< number of rows
   local_int_t n;        //!< number of columns
   SC * values;          //!< array of values
-#ifdef HPCG_WITH_CUDA
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   SC * d_values;        //!< array of values
 #endif
   /*!
@@ -64,6 +67,10 @@ inline void InitializeMatrix(SerialDenseMatrix_type & A, local_int_t m, local_in
   A.values = new scalar_type[m*n];
 #ifdef HPCG_WITH_CUDA
   if (cudaSuccess != cudaMalloc ((void**)&A.d_values, m*n*sizeof(scalar_type))) {
+    printf( " InitializeVector :: Failed to allocate d_values\n" );
+  }
+#elif defined(HPCG_WITH_HIP)
+  if (hipSuccess != hipMalloc ((void**)&A.d_values, m*n*sizeof(scalar_type))) {
     printf( " InitializeVector :: Failed to allocate d_values\n" );
   }
 #endif

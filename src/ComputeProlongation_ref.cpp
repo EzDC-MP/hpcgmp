@@ -45,18 +45,16 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
   local_int_t * f2c = Af.mgData->f2cOperator;
   local_int_t nc = Af.mgData->rc->localLength;
 
-  #ifdef HPCG_WITH_CUDA
+  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+   const scalar_type one (1.0);
    local_int_t n = xf.localLength;
    scalar_type * d_xfv = xf.d_values;
    scalar_type * d_xcv = Af.mgData->xc->d_values;
-   #if 1
-   const scalar_type zero ( 0.0);
-   const scalar_type  one ( 1.0);
-   const scalar_type mone (-1.0);
+   #if defined(HPCG_WITH_CUDA)
    if (std::is_same<scalar_type, double>::value) {
      if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(Af.cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE,
                                                    nc, n, nc,
-                                                   (const double*)&one, Af.mgData->descrA,
+                                                   (const double*)&one, Af.mgData->descrR,
                                                                         (double*)Af.mgData->d_nzvals, Af.mgData->d_row_ptr, Af.mgData->d_col_idx,
                                                                         (double*)d_xcv,
                                                    (const double*)&one, (double*)d_xfv)) {
@@ -65,38 +63,53 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
    } else if (std::is_same<scalar_type, float>::value) {
      if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(Af.cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE,
                                                    nc, n, nc,
-                                                   (const float*)&one, Af.mgData->descrA,
+                                                   (const float*)&one, Af.mgData->descrR,
                                                                        (float*)Af.mgData->d_nzvals, Af.mgData->d_row_ptr, Af.mgData->d_col_idx,
                                                                        (float*)d_xcv,
                                                    (const float*)&one, (float*)d_xfv)) {
        printf( " Failed cusparseScsrmv\n" );
      }
    }
-   #else
-   // Copy the whole compressed vector from Device to Host..
-   if (Af.geom->rank==0) printf( " Prologation on CPU ..\n" );
-   if (cudaSuccess != cudaMemcpy(xfv, d_xfv,  n*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
-     printf( " Failed to memcpy d_x\n" );
+   #elif defined(HPCG_WITH_HIP)
+   #if 1 // TODO: copying input vectors to device..
+   if (hipSuccess != hipMemcpy(d_xfv, xfv, n*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+     printf( " Failed to memcpy d_xfv\n" );
    }
-   if (cudaSuccess != cudaMemcpy(xcv, d_xcv, nc*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
-     printf( " Failed to memcpy d_x\n" );
-   }
-
-   // Prologation on host
-   for (local_int_t i=0; i<nc; ++i) xfv[f2c[i]] += xcv[i]; // This loop is safe to vectorize
-
-   // Copy the whole expanded vector from Host to Device..
-   if (cudaSuccess != cudaMemcpy(d_xfv, xfv, n*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
-     printf( " Failed to memcpy d_x\n" );
+   if (hipSuccess != hipMemcpy(d_xcv, xcv, nc*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+     printf( " Failed to memcpy d_xcv\n" );
    }
    #endif
-  #else
+   rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
+   if (std::is_same<scalar_type, float>::value) {
+     rocsparse_compute_type = rocsparse_datatype_f32_r;
+   }
+   size_t buffer_size = Af.mgData->buffer_size_P;
+   rocsparse_dnvec_descr vecX, vecY;
+   rocsparse_create_dnvec_descr(&vecX, nc, (void*)d_xcv, rocsparse_compute_type);
+   rocsparse_create_dnvec_descr(&vecY, n,  (void*)d_xfv, rocsparse_compute_type);
+   rocsparse_status stat = rocsparse_spmv(Af.rocsparseHandle, rocsparse_operation_none,
+                                                  &one, Af.mgData->descrP, vecX, &one, vecY,
+                                                  rocsparse_compute_type, rocsparse_spmv_alg_default,
+                                                  &buffer_size, Af.mgData->buffer_P);
+   printf( " prologation : rocsparse_spmv(%dx%d), size=%d\n",nc,n,buffer_size );
+   if (rocsparse_status_success != stat) {
+     printf( "  -> Failed with stat=%d\n",stat );
+     //printf( " Failed rocsparse_spmv(%dx%d), stat=%d\n",nc,n,stat );
+   }
+   #if 0 // TODO: copying input vectors to device..
+   if (hipSuccess != hipMemcpy(xcv, d_xcv, nc*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+     printf( " Failed to memcpy d_xcv\n" );
+   }
+   #endif
+   #endif
+#endif
+  //#else
    #ifndef HPCG_NO_OPENMP
    #pragma omp parallel for
    #endif
    // TODO: Somehow note that this loop can be safely vectorized since f2c has no repeated indices
    for (local_int_t i=0; i<nc; ++i) xfv[f2c[i]] += xcv[i]; // This loop is safe to vectorize
-  #endif
+  //#endif
 
   return 0;
 }

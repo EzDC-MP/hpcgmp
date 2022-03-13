@@ -37,8 +37,11 @@ using GlobalToLocalMap = std::unordered_map< global_int_t, local_int_t >;
 #endif
 
 #ifdef HPCG_WITH_CUDA
-#include <cuda_runtime.h>
-#include <cusparse.h>
+ #include <cuda_runtime.h>
+ #include <cusparse.h>
+#elif defined(HPCG_WITH_HIP)
+ #include <hip/hip_runtime_api.h>
+ #include <rocsparse.h>
 #endif
 
 template <class SC = double>
@@ -88,6 +91,11 @@ public:
   #if defined(HPCG_WITH_CUDA)
   cusparseHandle_t cusparseHandle;
   cusparseMatDescr_t descrA;
+  #elif defined(HPCG_WITH_HIP)
+  rocsparse_handle rocsparseHandle;
+  rocsparse_spmat_descr descrA;
+  size_t buffer_size_A;
+  void* buffer_A;
   #endif
 
   // to store the local matrix on device
@@ -100,6 +108,10 @@ public:
   #if defined(HPCG_WITH_CUDA)
   cusparseMatDescr_t descrL;
   cusparseSolveAnalysisInfo_t infoL;
+  #elif defined(HPCG_WITH_HIP)
+  rocsparse_spmat_descr descrL;
+  size_t buffer_size_L;
+  void* buffer_L;
   #endif
   int *d_Lrow_ptr;
   int *d_Lcol_idx;
@@ -108,6 +120,10 @@ public:
   local_int_t nnzU;
   #if defined(HPCG_WITH_CUDA)
   cusparseMatDescr_t descrU;
+  #elif defined(HPCG_WITH_HIP)
+  rocsparse_spmat_descr descrU;
+  size_t buffer_size_U;
+  void* buffer_U;
   #endif
   int *d_Urow_ptr;
   int *d_Ucol_idx;

@@ -26,8 +26,11 @@
 #include "Vector.hpp"
 
 #ifdef HPCG_WITH_CUDA
-#include <cuda_runtime.h>
-#include <cusparse.h>
+ #include <cuda_runtime.h>
+ #include <cusparse.h>
+#elif defined(HPCG_WITH_HIP)
+ #include <hip/hip_runtime_api.h>
+ #include <rocsparse.h>
 #endif
 
 template<class SC>
@@ -45,12 +48,26 @@ public:
    used inside optimized ComputeSPMV().
    */
   void * optimizationData;
-  #ifdef HPCG_WITH_CUDA
+  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   // to store the restrictiion as CRS matrix on device
-  cusparseMatDescr_t descrA;
   int *d_row_ptr;
   int *d_col_idx;
   SC  *d_nzvals;   //!< values of matrix entries
+  #if defined(HPCG_WITH_CUDA)
+  cusparseMatDescr_t descrR;
+  #elif defined(HPCG_WITH_HIP)
+  rocsparse_spmat_descr descrR;
+  size_t buffer_size_R;
+  void* buffer_R;
+
+  // to store transpose
+  rocsparse_spmat_descr descrP;
+  size_t buffer_size_P;
+  void* buffer_P;
+  int *d_tran_row_ptr;
+  int *d_tran_col_idx;
+  SC  *d_tran_nzvals;   //!< values of matrix entries
+  #endif
   #endif
 };
 

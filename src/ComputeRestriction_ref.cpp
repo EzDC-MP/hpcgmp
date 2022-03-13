@@ -48,19 +48,19 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
   local_int_t * f2c = A.mgData->f2cOperator;
   local_int_t nc = A.mgData->rc->localLength;
 
-  #ifdef HPCG_WITH_CUDA
+  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+   const scalar_type zero ( 0.0);
+   const scalar_type  one ( 1.0);
+   const scalar_type mone (-1.0);
    local_int_t n = rf.localLength;
    scalar_type * d_Axfv = A.mgData->Axf->d_values;
    scalar_type * d_rfv  = rf.d_values;
    scalar_type * d_rcv  = A.mgData->rc->d_values;
-   #if 1
-   const scalar_type zero ( 0.0);
-   const scalar_type  one ( 1.0);
-   const scalar_type mone (-1.0);
+   #if defined(HPCG_WITH_CUDA)
    if (std::is_same<scalar_type, double>::value) {
      if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                                    nc, n, nc,
-                                                   (const double*)&one,  A.mgData->descrA,
+                                                   (const double*)&one,  A.mgData->descrR,
                                                                          (double*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
                                                                          (double*)d_rfv,
                                                    (const double*)&zero, (double*)d_rcv)) {
@@ -68,7 +68,7 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
      }
      if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                                    nc, n, nc,
-                                                   (const double*)&mone, A.mgData->descrA,
+                                                   (const double*)&mone, A.mgData->descrR,
                                                                          (double*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
                                                                          (double*)d_Axfv,
                                                    (const double*)&one,  (double*)d_rcv)) {
@@ -77,7 +77,7 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
    } else if (std::is_same<scalar_type, float>::value) {
      if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                                    nc, n, nc,
-                                                   (const float*)&one,  A.mgData->descrA,
+                                                   (const float*)&one,  A.mgData->descrR,
                                                                         (float*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
                                                                         (float*)d_rfv,
                                                    (const float*)&zero, (float*)d_rcv)) {
@@ -85,38 +85,63 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
      }
      if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                                    nc, n, nc,
-                                                   (const float*)&mone, A.mgData->descrA,
+                                                   (const float*)&mone, A.mgData->descrR,
                                                                         (float*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
                                                                         (float*)d_Axfv,
                                                    (const float*)&one,  (float*)d_rcv)) {
        printf( " Failed cusparseScsrmv\n" );
      }
    }
-   #else
-   // Copy the whole prologated vector from Device to Host
-   if (cudaSuccess != cudaMemcpy(rfv, d_rfv, n*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
-     printf( " Failed to memcpy d_rfv\n" );
+   #elif defined(HPCG_WITH_HIP)
+   printf( " ** Restriction with HIP **\n" );
+   #if 1 // TODO: copying input vectors to device..
+   if (hipSuccess != hipMemcpy(d_rfv, rfv, n*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+     printf( " Failed to memcpy d_xfv\n" );
    }
-   if (cudaSuccess != cudaMemcpy(Axfv, d_Axfv, n*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
-     printf( " Failed to memcpy d_Axfv\n" );
+   if (hipSuccess != hipMemcpy(d_Axfv, Axfv, n*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+     printf( " Failed to memcpy d_xcv\n" );
    }
-
-   // Restriction on CPU 
-   if (A.geom->rank==0) printf( " Restriction on CPU\n" );
-   for (local_int_t i=0; i<nc; ++i) rcv[i] = rfv[f2c[i]] - Axfv[f2c[i]];
-
-   // Copy the whole restricted vector from Host to Device
-   if (cudaSuccess != cudaMemcpy(d_rcv, rcv, nc*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
-     printf( " Failed to memcpy d_x\n" );
+   if (hipSuccess != hipMemcpy(d_rcv, rcv, nc*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+     printf( " Failed to memcpy d_xcv\n" );
    }
    #endif
-  #else
+   rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
+   if (std::is_same<scalar_type, float>::value) {
+     rocsparse_compute_type = rocsparse_datatype_f32_r;
+   }
+   size_t buffer_size = A.mgData->buffer_size_R;
+   rocsparse_dnvec_descr vecX, vecY;
+   rocsparse_create_dnvec_descr(&vecX, n,  (void*)d_rfv, rocsparse_compute_type);
+   rocsparse_create_dnvec_descr(&vecY, nc, (void*)d_rcv, rocsparse_compute_type);
+   printf( " restriction : rocsparse_spmv\n" );
+   if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
+                                                  &one, A.mgData->descrR, vecX, &zero, vecY,
+                                                  rocsparse_compute_type, rocsparse_spmv_alg_default,
+                                                  &buffer_size, A.mgData->buffer_R)) {
+     printf( " -> Failed \n" );
+     //printf( " Failed rocsparse_spmv\n" );
+   }
+   rocsparse_create_dnvec_descr(&vecX, n, (void*)d_Axfv, rocsparse_compute_type);
+   if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
+                                                  &mone, A.mgData->descrR, vecX, &one, vecY,
+                                                  rocsparse_compute_type, rocsparse_spmv_alg_default,
+                                                  &buffer_size, A.mgData->buffer_R)) {
+     printf( " Failed rocsparse_spmv\n" );
+   }
+   #if 1 // TODO: copying input vectors to device..
+   if (hipSuccess != hipMemcpy(rcv, d_rcv, nc*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+     printf( " Failed to memcpy d_xcv\n" );
+   }
+   #endif
+   #endif
+#endif
+  //#else
    // host
    #ifndef HPCG_NO_OPENMP
    #pragma omp parallel for
    #endif
    for (local_int_t i=0; i<nc; ++i) rcv[i] = rfv[f2c[i]] - Axfv[f2c[i]];
-  #endif
+  //#endif
 
   return 0;
 }

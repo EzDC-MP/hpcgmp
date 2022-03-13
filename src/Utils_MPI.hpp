@@ -1,9 +1,9 @@
 //This file should contain MPI utils only!!
+
+#ifndef HPGMP_UTILS_HPP
+#define HPGMP_UTILS_HPP
+
 #ifndef HPCG_NO_MPI
-
-#ifndef HPGMP_UTILS_MPI_HPP
-#define HPGMP_UTILS_MPI_HPP
-
 #include <mpi.h>
 
 // MpiTypeTraits (from Teuchos)
@@ -34,7 +34,6 @@ public:
     return MPI_FLOAT;
   }
 };
-
 #endif
 
 #endif // ifndef HPCG_NO_MPI
