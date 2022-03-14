@@ -219,8 +219,9 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
     }
     #endif
   } else {
+    #ifdef HPCG_DEBUG
     HPCG_fout << " CopyVector :: Mixed-precision not supported" << std::endl;
-
+    #endif
     // Copy input vector to Host
     #if defined(HPCG_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(vv, v.d_values, localLength*sizeof(scalar_src), cudaMemcpyDeviceToHost)) {

@@ -71,14 +71,6 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
      }
    }
    #elif defined(HPCG_WITH_HIP)
-   #if 0 // TODO: copying input vectors to device..
-   if (hipSuccess != hipMemcpy(d_xfv, xfv, n*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-     printf( " Failed to memcpy d_xfv\n" );
-   }
-   if (hipSuccess != hipMemcpy(d_xcv, xcv, nc*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-     printf( " Failed to memcpy d_xcv\n" );
-   }
-   #endif
    rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
    if (std::is_same<scalar_type, float>::value) {
      rocsparse_compute_type = rocsparse_datatype_f32_r;
@@ -90,14 +82,9 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
    if (rocsparse_status_success != rocsparse_spmv(Af.rocsparseHandle, rocsparse_operation_none,
                                                   &one, Af.mgData->descrP, vecX, &one, vecY,
                                                   rocsparse_compute_type, rocsparse_spmv_alg_default,
-                                                  &buffer_size, Af.mgData->buffer_P) {
+                                                  &buffer_size, Af.mgData->buffer_P)) {
      printf( " Failed rocsparse_spmv(%dx%d)\n",nc,n );
    }
-   #if 0 // TODO: copying input vectors to device..
-   if (hipSuccess != hipMemcpy(xcv, d_xcv, nc*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
-     printf( " Failed to memcpy d_xcv\n" );
-   }
-   #endif
    #endif
   #else
    #ifndef HPCG_NO_OPENMP

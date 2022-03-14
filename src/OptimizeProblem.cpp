@@ -438,15 +438,12 @@ int OptimizeProblem(SparseMatrix_type & A, CGData_type & data, Vector_type & b, 
         h_col_ind = (int*)malloc( nc    * sizeof(int));
         h_nzvals  = (SC *)malloc( nc    * sizeof(SC));
 
-        int max_col = 0;
         h_row_ptr[0] = 0;
         for (local_int_t i=0; i<nc; ++i) {
           h_col_ind[i] = f2c[i];
-          if (f2c[i] > max_col) max_col = f2c[i];
           h_nzvals[i] = 1.0;
           h_row_ptr[i+1] = i+1;
         }
-        printf( " max_col = %d, nrow = %d\n",max_col,nrow );
 
         // copy CSR(R) to device
         #if defined(HPCG_WITH_CUDA)

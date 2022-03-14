@@ -52,19 +52,6 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   scalarX_type * const xv = x.values;
   scalarY_type * const yv = y.values;
 
-  #if 0//defined(HPCG_WITH_HIP)
-  printf( " ** GEMV with HIP **\n" );
-  if (hipSuccess != hipMemcpy(A.d_values, Av, m*n*sizeof(scalarA_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  if (hipSuccess != hipMemcpy(x.d_values, xv,   m*sizeof(scalarX_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_x\n" );
-  }
-  if (hipSuccess != hipMemcpy(y.d_values, yv,   n*sizeof(scalarY_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  #endif
-
 #if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
   // GEMV on HOST CPU
   if (beta == zero) {

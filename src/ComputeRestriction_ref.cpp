@@ -93,18 +93,6 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
      }
    }
    #elif defined(HPCG_WITH_HIP)
-   #if 0 // TODO: copying input vectors to device..
-   printf( " ** Restriction with HIP **\n" );
-   if (hipSuccess != hipMemcpy(d_rfv, rfv, n*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-     printf( " Failed to memcpy d_xfv\n" );
-   }
-   if (hipSuccess != hipMemcpy(d_Axfv, Axfv, n*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-     printf( " Failed to memcpy d_xcv\n" );
-   }
-   if (hipSuccess != hipMemcpy(d_rcv, rcv, nc*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-     printf( " Failed to memcpy d_xcv\n" );
-   }
-   #endif
    rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
    if (std::is_same<scalar_type, float>::value) {
      rocsparse_compute_type = rocsparse_datatype_f32_r;
@@ -126,11 +114,6 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
                                                   &buffer_size, A.mgData->buffer_R)) {
      printf( " Failed rocsparse_spmv\n" );
    }
-   #if 0 // TODO: copying input vectors to host..
-   if (hipSuccess != hipMemcpy(rcv, d_rcv, nc*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
-     printf( " Failed to memcpy d_xcv\n" );
-   }
-   #endif
    #endif
   #else
    // host

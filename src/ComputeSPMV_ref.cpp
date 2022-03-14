@@ -73,20 +73,22 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
 
 #ifndef HPCG_NO_MPI
   if (A.geom->size > 1) {
-    // Copy local part of X to HOST CPU
     #ifdef HPCG_WITH_CUDA
+    // Copy local part of X to HOST CPU
     if (cudaSuccess != cudaMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_y\n" );
     }
     #elif defined(HPCG_WITH_HIP)
-    printf( " HIP memcpy d_y skipped\n" );
+    if (hipSuccess != hipMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+      printf( " Failed to memcpy d_y\n" );
+    }
     #endif
 
     ExchangeHalo(A, x);
   }
 #endif
 
-#if !defined(HPCG_WITH_CUDA) | defined(HPCG_DEBUG)
+#if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
   #ifndef HPCG_NO_OPENMP
   #pragma omp parallel for
   #endif
@@ -146,11 +148,6 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
      }
   }
   #elif defined(HPCG_WITH_HIP)
-  #if 0 // TODO just for debug
-  if (hipSuccess != hipMemcpy(d_xv, xv, ncol*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  #endif
   rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
   if (std::is_same<scalar_type, float>::value) {
     rocsparse_compute_type = rocsparse_datatype_f32_r;
@@ -159,20 +156,12 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   rocsparse_dnvec_descr vecX, vecY;
   rocsparse_create_dnvec_descr(&vecX, ncol, (void*)d_xv, rocsparse_compute_type);
   rocsparse_create_dnvec_descr(&vecY, nrow, (void*)d_yv, rocsparse_compute_type);
-  if (buffer_size == 0 || A.buffer_A == nullptr) {
-    printf( "( %d x %d ) buffer not allocated, yet ??",nrow,ncol );
-  }
   if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
                                                  &one, A.descrA, vecX, &zero, vecY,
                                                  rocsparse_compute_type, rocsparse_spmv_alg_default,
                                                  &buffer_size, A.buffer_A)) {
     printf( " Failed rocsparse_spmv\n" );
   }
-  #if 0 // TODO just for debug
-  if (hipSuccess != hipMemcpy(yv, d_yv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  #endif
   #endif
   
   #ifdef HPCG_DEBUG

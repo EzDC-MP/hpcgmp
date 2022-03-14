@@ -125,7 +125,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   #endif
 #endif
 
-#if !defined(HPCG_WITH_CUDA) | defined(HPCG_DEBUG)
+#if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
   scalar_type ** matrixDiagonal = A.matrixDiagonal;  // An array of pointers to the diagonal entries A.matrixValues
 
   for (local_int_t i=0; i < nrow; i++) {

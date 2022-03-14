@@ -76,16 +76,6 @@ int ComputeWAXPBY_ref(const local_int_t n,
   scalarY_type * const yv = y.values;
   scalarW_type * const wv = w.values;
 
-  #if 0//defined(HPCG_WITH_HIP)
-  printf( " ** WAXPY with HIP **\n" );
-  if (hipSuccess != hipMemcpy(y.d_values, yv, n*sizeof(scalarY_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  if (hipSuccess != hipMemcpy(x.d_values, xv, n*sizeof(scalarY_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_x\n" );
-  }
-  #endif
-
 #if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
   if (alpha==1.0) {
     #ifndef HPCG_NO_OPENMP
@@ -164,11 +154,6 @@ int ComputeWAXPBY_ref(const local_int_t n,
         printf( " Failed rocblas_ddot\n" );
       }
     }
-    #if 0 // TODO just for debug
-    if (hipSuccess != hipMemcpy(wv, d_wv, n*sizeof(scalarY_type), hipMemcpyDeviceToHost)) {
-      printf( " Failed to memcpy d_x\n" );
-    }
-    #endif
     #endif
 
     #ifdef HPCG_DEBUG
@@ -233,12 +218,12 @@ int ComputeWAXPBY_ref(const local_int_t n,
     }
     #elif defined(HPCG_WITH_HIP)
     // TODO
-    /*if (hipSuccess != hipMemcpy(xv, d_xv, n*sizeof(scalarX_type), hipMemcpyDeviceToHost)) {
+    if (hipSuccess != hipMemcpy(xv, d_xv, n*sizeof(scalarX_type), hipMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_x\n" );
     }
     if (hipSuccess != hipMemcpy(yv, d_yv, n*sizeof(scalarY_type), hipMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_w\n" );
-    }*/
+    }
     #endif
 
     // WAXPBY on Host

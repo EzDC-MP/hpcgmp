@@ -51,19 +51,6 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
   scalarA_type * const Av = A.values;
   scalarY_type * const yv = y.values;
 
-  #if 0//defined(HPCG_WITH_HIP)
-  printf( " ** GEMV with HIP **\n" );
-  if (hipSuccess != hipMemcpy(A.d_values, Av, m*n*sizeof(scalarA_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  if (hipSuccess != hipMemcpy(x.d_values, xv,   n*sizeof(scalarX_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_x\n" );
-  }
-  if (hipSuccess != hipMemcpy(y.d_values, yv,   m*sizeof(scalarY_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  #endif
-
 #if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
   // GEMV on HOST CPU
   if (beta == zero) {
@@ -140,11 +127,6 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
         printf( " Failed rocblas_sgemv\n" );
       }
     }
-    #if 0 // TODO just for debug
-    if (hipSuccess != hipMemcpy(yv, d_yv, m*sizeof(scalarY_type), hipMemcpyDeviceToHost)) {
-      printf( " Failed to memcpy d_y\n" );
-    }
-    #endif
     #endif
   } else {
     HPCG_fout << " Mixed-precision GEMV not supported" << std::endl;

@@ -65,7 +65,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   typedef typename Vector_type::scalar_type scalar_type;
   scalar_type local_result (0.0);
 
-#if !defined(HPCG_WITH_CUDA) | defined(HPCG_DEBUG)
+#if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
   scalar_type * xv = x.values;
   scalar_type * yv = y.values;
   if (yv==xv) {
@@ -103,14 +103,6 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   #elif defined(HPCG_WITH_HIP)
   // Compute dot on AMD GPU
   rocblas_handle handle = x.handle;
-  #if 1 // TODO remove this
-  if (hipSuccess != hipMemcpy(d_x, xv, sizeof(scalar_type) * n, hipMemcpyHostToDevice)) {
-    printf( " Failed hipMemcpy d_x\n" );
-  }
-  if (hipSuccess != hipMemcpy(d_y, yv, sizeof(scalar_type) * n, hipMemcpyHostToDevice)) {
-    printf( " Failed hipMemcpy d_y\n" );
-  }
-  #endif
   if (std::is_same<scalar_type, double>::value) {
     if (rocblas_status_success != rocblas_ddot (handle, n, (double*)d_x, 1, (double*)d_y, 1, (double*)&local_result)) {
       printf( " Failed rocblas_ddot\n" );
