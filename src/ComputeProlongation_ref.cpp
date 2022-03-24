@@ -17,6 +17,7 @@
 
  HPCG routine
  */
+#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)
 
 #ifndef HPCG_NO_OPENMP
 #include <omp.h>
@@ -45,54 +46,11 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
   local_int_t * f2c = Af.mgData->f2cOperator;
   local_int_t nc = Af.mgData->rc->localLength;
 
-  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
-   const scalar_type one (1.0);
-   local_int_t n = xf.localLength;
-   scalar_type * d_xfv = xf.d_values;
-   scalar_type * d_xcv = Af.mgData->xc->d_values;
-   #if defined(HPCG_WITH_CUDA)
-   if (std::is_same<scalar_type, double>::value) {
-     if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(Af.cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE,
-                                                   nc, n, nc,
-                                                   (const double*)&one, Af.mgData->descrR,
-                                                                        (double*)Af.mgData->d_nzvals, Af.mgData->d_row_ptr, Af.mgData->d_col_idx,
-                                                                        (double*)d_xcv,
-                                                   (const double*)&one, (double*)d_xfv)) {
-       printf( " Failed cusparseDcsrmv\n" );
-     }
-   } else if (std::is_same<scalar_type, float>::value) {
-     if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(Af.cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE,
-                                                   nc, n, nc,
-                                                   (const float*)&one, Af.mgData->descrR,
-                                                                       (float*)Af.mgData->d_nzvals, Af.mgData->d_row_ptr, Af.mgData->d_col_idx,
-                                                                       (float*)d_xcv,
-                                                   (const float*)&one, (float*)d_xfv)) {
-       printf( " Failed cusparseScsrmv\n" );
-     }
-   }
-   #elif defined(HPCG_WITH_HIP)
-   rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
-   if (std::is_same<scalar_type, float>::value) {
-     rocsparse_compute_type = rocsparse_datatype_f32_r;
-   }
-   size_t buffer_size = Af.mgData->buffer_size_P;
-   rocsparse_dnvec_descr vecX, vecY;
-   rocsparse_create_dnvec_descr(&vecX, nc, (void*)d_xcv, rocsparse_compute_type);
-   rocsparse_create_dnvec_descr(&vecY, n,  (void*)d_xfv, rocsparse_compute_type);
-   if (rocsparse_status_success != rocsparse_spmv(Af.rocsparseHandle, rocsparse_operation_none,
-                                                  &one, Af.mgData->descrP, vecX, &one, vecY,
-                                                  rocsparse_compute_type, rocsparse_spmv_alg_default,
-                                                  &buffer_size, Af.mgData->buffer_P)) {
-     printf( " Failed rocsparse_spmv(%dx%d)\n",nc,n );
-   }
-   #endif
-  #else
-   #ifndef HPCG_NO_OPENMP
-   #pragma omp parallel for
-   #endif
-   // TODO: Somehow note that this loop can be safely vectorized since f2c has no repeated indices
-   for (local_int_t i=0; i<nc; ++i) xfv[f2c[i]] += xcv[i]; // This loop is safe to vectorize
+  #ifndef HPCG_NO_OPENMP
+  #pragma omp parallel for
   #endif
+  // TODO: Somehow note that this loop can be safely vectorized since f2c has no repeated indices
+  for (local_int_t i=0; i<nc; ++i) xfv[f2c[i]] += xcv[i]; // This loop is safe to vectorize
 
   return 0;
 }
@@ -107,3 +65,5 @@ int ComputeProlongation_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix
 
 template
 int ComputeProlongation_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&);
+
+#endif

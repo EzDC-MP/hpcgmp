@@ -54,10 +54,19 @@ HPCG_DEPS = src/ComputeResidual.o \
 	    src/GenerateNonsymProblem.o \
 	    src/GenerateNonsymProblem_v1_ref.o \
 	    src/GenerateNonsymCoarseProblem.o \
+            \
+	    src/ComputeDotProduct_gpu.o \
+	    src/ComputeGEMV_gpu.o \
+	    src/ComputeGEMVT_gpu.o \
+	    src/ComputeSPMV_gpu.o \
+	    src/ComputeWAXPBY_gpu.o \
+	    src/ComputeGS_Forward_gpu.o \
+	    src/ComputeProlongation_gpu.o \
+	    src/ComputeRestriction_gpu.o \
 
 # These header files are included in many source files, so we recompile every file if one or more of these header is modified.
 PRIMARY_HEADERS = HPCG_SRC_PATH/src/Geometry.hpp HPCG_SRC_PATH/src/SparseMatrix.hpp HPCG_SRC_PATH/src/Vector.hpp HPCG_SRC_PATH/src/MultiVector.hpp \
-                  HPCG_SRC_PATH/src/CGData.hpp HPCG_SRC_PATH/src/MGData.hpp HPCG_SRC_PATH/src/hpgmp.hpp
+                  HPCG_SRC_PATH/src/SerialDenseMatrix.hpp HPCG_SRC_PATH/src/CGData.hpp HPCG_SRC_PATH/src/MGData.hpp HPCG_SRC_PATH/src/hpgmp.hpp
 
 all: bin/xhpgmp bin/xhpgmp_time
 
@@ -129,6 +138,9 @@ src/ComputeDotProduct.o: HPCG_SRC_PATH/src/ComputeDotProduct.cpp HPCG_SRC_PATH/s
 src/ComputeDotProduct_ref.o: HPCG_SRC_PATH/src/ComputeDotProduct_ref.cpp HPCG_SRC_PATH/src/ComputeDotProduct_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeDotProduct_gpu.o: HPCG_SRC_PATH/src/ComputeDotProduct_gpu.cpp HPCG_SRC_PATH/src/ComputeDotProduct_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/finalize.o: HPCG_SRC_PATH/src/finalize.cpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
@@ -147,6 +159,9 @@ src/ComputeSPMV.o: HPCG_SRC_PATH/src/ComputeSPMV.cpp HPCG_SRC_PATH/src/ComputeSP
 src/ComputeSPMV_ref.o: HPCG_SRC_PATH/src/ComputeSPMV_ref.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeSPMV_gpu.o: HPCG_SRC_PATH/src/ComputeSPMV_gpu.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeSYMGS.o: HPCG_SRC_PATH/src/ComputeSYMGS.cpp HPCG_SRC_PATH/src/ComputeSYMGS.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
@@ -159,6 +174,9 @@ src/ComputeWAXPBY.o: HPCG_SRC_PATH/src/ComputeWAXPBY.cpp HPCG_SRC_PATH/src/Compu
 src/ComputeWAXPBY_ref.o: HPCG_SRC_PATH/src/ComputeWAXPBY_ref.cpp HPCG_SRC_PATH/src/ComputeWAXPBY_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeWAXPBY_gpu.o: HPCG_SRC_PATH/src/ComputeWAXPBY_gpu.cpp HPCG_SRC_PATH/src/ComputeWAXPBY_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeMG_ref.o: HPCG_SRC_PATH/src/ComputeMG_ref.cpp HPCG_SRC_PATH/src/ComputeMG_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
@@ -168,7 +186,13 @@ src/ComputeMG.o: HPCG_SRC_PATH/src/ComputeMG.cpp HPCG_SRC_PATH/src/ComputeMG.hpp
 src/ComputeProlongation_ref.o: HPCG_SRC_PATH/src/ComputeProlongation_ref.cpp HPCG_SRC_PATH/src/ComputeProlongation_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeProlongation_gpu.o: HPCG_SRC_PATH/src/ComputeProlongation_gpu.cpp HPCG_SRC_PATH/src/ComputeProlongation_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeRestriction_ref.o: HPCG_SRC_PATH/src/ComputeRestriction_ref.cpp HPCG_SRC_PATH/src/ComputeRestriction_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/ComputeRestriction_gpu.o: HPCG_SRC_PATH/src/ComputeRestriction_gpu.cpp HPCG_SRC_PATH/src/ComputeRestriction_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/CheckAspectRatio.o: HPCG_SRC_PATH/src/CheckAspectRatio.cpp HPCG_SRC_PATH/src/CheckAspectRatio.hpp $(PRIMARY_HEADERS)
@@ -193,6 +217,9 @@ src/ComputeGS_Forward.o: HPCG_SRC_PATH/src/ComputeGS_Forward.cpp HPCG_SRC_PATH/s
 src/ComputeGS_Forward_ref.o: HPCG_SRC_PATH/src/ComputeGS_Forward_ref.cpp HPCG_SRC_PATH/src/ComputeGS_Forward_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeGS_Forward_gpu.o: HPCG_SRC_PATH/src/ComputeGS_Forward_gpu.cpp HPCG_SRC_PATH/src/ComputeGS_Forward_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeTRSM.o: HPCG_SRC_PATH/src/ComputeTRSM.cpp HPCG_SRC_PATH/src/ComputeTRSM.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
@@ -202,10 +229,16 @@ src/ComputeGEMV.o: HPCG_SRC_PATH/src/ComputeGEMV.cpp HPCG_SRC_PATH/src/ComputeGE
 src/ComputeGEMV_ref.o: HPCG_SRC_PATH/src/ComputeGEMV_ref.cpp HPCG_SRC_PATH/src/ComputeGEMV_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeGEMV_gpu.o: HPCG_SRC_PATH/src/ComputeGEMV_gpu.cpp HPCG_SRC_PATH/src/ComputeGEMV_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeGEMVT.o: HPCG_SRC_PATH/src/ComputeGEMVT.cpp HPCG_SRC_PATH/src/ComputeGEMVT.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/ComputeGEMVT_ref.o: HPCG_SRC_PATH/src/ComputeGEMVT_ref.cpp HPCG_SRC_PATH/src/ComputeGEMVT_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/ComputeGEMVT_gpu.o: HPCG_SRC_PATH/src/ComputeGEMVT_gpu.cpp HPCG_SRC_PATH/src/ComputeGEMVT_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/SetupProblem.o: HPCG_SRC_PATH/src/SetupProblem.cpp HPCG_SRC_PATH/src/SetupProblem.hpp $(PRIMARY_HEADERS)
