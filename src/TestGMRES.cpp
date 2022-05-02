@@ -33,9 +33,9 @@ using std::endl;
 #include "hpgmp.hpp"
 
 #include "TestGMRES.hpp"
+#include "mytimer.hpp"
 #include "GMRES.hpp"
 #include "GMRES_IR.hpp"
-#include "mytimer.hpp"
 
 /*!
   Test the correctness of the Preconditined CG implementation by using a system matrix with a dominant diagonal.
@@ -45,7 +45,6 @@ using std::endl;
   @param[in]    data the data structure with all necessary CG vectors preallocated
   @param[in]    b    The known right hand side vector
   @param[inout] x    On entry: the initial guess; on exit: the new approximate solution
-  @param[out]   testcg_data the data structure with the results of the test including pass/fail information
 
   @return Returns zero on success and a non-zero value otherwise.
 
@@ -53,17 +52,15 @@ using std::endl;
  */
 
 
-template<class SparseMatrix_type, class SparseMatrix_type2, class CGData_type, class CGData_type2, class Vector_type, class TestCGData_type>
-int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, CGData_type & data, CGData_type2 & data_lo, Vector_type & b, Vector_type & x,
-              TestCGData_type & testcg_data, bool test_diagonal_exaggeration, bool test_noprecond) {
+template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESData_type, class GMRESData_type2, class Vector_type, class TestGMRESData_type>
+int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type & data, GMRESData_type2 & data_lo,
+              Vector_type & b, Vector_type & x, bool test_diagonal_exaggeration, bool test_noprecond, TestGMRESData_type & test_data) {
 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
   typedef typename SparseMatrix_type2::scalar_type scalar_type2;
   typedef Vector<scalar_type2> Vector_type2;
 
   // Use this array for collecting timing information
-  double flops;
-  std::vector< double > times(8,0.0);
   // Temporary storage for holding original diagonal and RHS
   Vector_type origDiagA, exaggeratedDiagA, origB;
   Vector_type2 origDiagA2, exagDiagA2;
@@ -108,67 +105,68 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, CGData_type & da
   scalar_type normr0 (0.0);
   int restart_length = 30;
   int maxIters = 5000;
-  int numberOfCgCalls = 2;
+  int numberOfGmresCalls = 2;
+  bool verbose = true;
   scalar_type tolerance = 1.0e-12; // Set tolerance to reasonable value for grossly scaled diagonal terms
-  testcg_data.expected_niters_no_prec = 12; // For the unpreconditioned CG call, we should take about 10 iterations, permit 12
-  testcg_data.expected_niters_prec = 2;   // For the preconditioned case, we should take about 1 iteration, permit 2
-  testcg_data.niters_max_no_prec = 0;
-  testcg_data.niters_max_prec = 0;
+
+  int num_times = 7;
+  int num_flops = 4;
+  test_data.times = (double*)malloc(num_times * sizeof(double));
+  test_data.flops = (double*)malloc(num_flops * sizeof(double));
+  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
+  for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
   for (int k=(test_noprecond ? 0 : 1); k<2; ++k)
   { // This loop tests both unpreconditioned and preconditioned runs
-    int expected_niters = testcg_data.expected_niters_no_prec;
-    if (k==1) expected_niters = testcg_data.expected_niters_prec;
-    for (int i=0; i< numberOfCgCalls; ++i) {
+    for (int i=0; i< numberOfGmresCalls; ++i) {
       ZeroVector(x); // Zero out x
 
+      double flops = test_data.flops[0];
       double time_tic = mytimer();
-      int ierr = GMRES(A, data, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, &times[0], &flops, k==1);
+      int ierr = GMRES(A, data, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, k==1, verbose, test_data);
       double time_solve = mytimer() - time_tic;
+      flops = test_data.flops[0] - flops;
       if (ierr) HPCG_fout << "Error in call to GMRES: " << ierr << ".\n" << endl;
-      if (niters <= expected_niters) {
-        ++testcg_data.count_pass;
-      } else {
-        ++testcg_data.count_fail;
-      }
-      if (k==0 && niters > testcg_data.niters_max_no_prec) testcg_data.niters_max_no_prec = niters; // Keep track of largest iter count
-      if (k==1 && niters > testcg_data.niters_max_prec)    testcg_data.niters_max_prec = niters;    // Same for preconditioned run
       if (A.geom->rank==0) {
         HPCG_fout << "Calling GMRES (all double) for testing: " << endl;
         HPCG_fout << "Call [" << i << "] Number of GMRES Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
-        HPCG_fout << " Expected " << expected_niters << " iterations.  Performed " << niters << "." << endl;
         HPCG_fout << " Time     " << time_solve << " seconds." << endl;
         HPCG_fout << " Gflop/s  " << flops/1000000000.0 << "/" << time_solve << " = " << (flops/1000000000.0)/time_solve 
                   << " (n = " << A.totalNumberOfRows << ")" << endl;
         HPCG_fout << " Time/itr " << time_solve / niters << endl;
+        if (normr <= tolerance) {
+          HPCG_fout << " ** PASS ** " << endl;
+        } else {
+          HPCG_fout << " ** FAIL ** " << endl;
+        }
       }
     }
   }
 
 #if 1
+  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
+  for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
   for (int k=(test_noprecond ? 0 : 1); k<2; ++k)
   { // This loop tests both unpreconditioned and preconditioned runs
-    int expected_niters = testcg_data.expected_niters_no_prec;
-    if (k==1) expected_niters = testcg_data.expected_niters_prec;
-    for (int i=0; i< numberOfCgCalls; ++i) {
+    for (int i=0; i< numberOfGmresCalls; ++i) {
       ZeroVector(x); // Zero out x
+
+      double flops = test_data.flops[0];
       double time_tic = mytimer();
-      int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, &times[0], &flops, k);
+      int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, k, verbose, test_data);
       double time_solve = mytimer() - time_tic;
+      flops = test_data.flops[0] - flops;
       if (ierr) HPCG_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
-      if (niters <= expected_niters) {
-        ++testcg_data.count_pass;
-      } else {
-        ++testcg_data.count_fail;
-      }
-      if (k==0 && niters > testcg_data.niters_max_no_prec) testcg_data.niters_max_no_prec = niters; // Keep track of largest iter count
-      if (k==1 && niters > testcg_data.niters_max_prec)    testcg_data.niters_max_prec = niters;    // Same for preconditioned run
       if (A.geom->rank==0) {
         HPCG_fout << "Call [" << i << "] Number of GMRES-IR Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
-        HPCG_fout << " Expected " << expected_niters << " iterations.  Performed " << niters << "." << endl;
         HPCG_fout << " Time     " << time_solve << " seconds." << endl;
         HPCG_fout << " Gflop/s  " << flops/1000000000.0 << "/" << time_solve << " = " << (flops/1000000000.0)/time_solve 
                   << " (n = " << A.totalNumberOfRows << ")" << endl;
         HPCG_fout << " Time/itr " << time_solve / niters << endl;
+        if (normr <= tolerance) {
+          HPCG_fout << " ** PASS ** " << endl;
+        } else {
+          HPCG_fout << " ** FAIL ** " << endl;
+        }
       }
     }
   }
@@ -183,15 +181,14 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, CGData_type & da
   DeleteVector(origDiagA2);
   DeleteVector(exagDiagA2);
   DeleteVector(origB);
-  testcg_data.normr = normr;
 
   return 0;
 }
 
-template<class SparseMatrix_type, class CGData_type, class Vector_type, class TestCGData_type>
-int TestGMRES(SparseMatrix_type & A, CGData_type & data, Vector_type & b, Vector_type & x, TestCGData_type & testcg_data,
-              bool test_diagonal_exaggeration, bool test_noprecond) {
-  return TestGMRES(A, A, data, data, b, x, testcg_data, test_diagonal_exaggeration, test_noprecond);
+template<class SparseMatrix_type, class GMRESData_type, class Vector_type, class TestGMRESData_type>
+int TestGMRES(SparseMatrix_type & A, GMRESData_type & data, Vector_type & b, Vector_type & x,
+              bool test_diagonal_exaggeration, bool test_noprecond, TestGMRESData_type & test_data) {
+  return TestGMRES(A, A, data, data, b, x, test_diagonal_exaggeration, test_noprecond, test_data);
 }
 
 
@@ -201,26 +198,26 @@ int TestGMRES(SparseMatrix_type & A, CGData_type & data, Vector_type & b, Vector
 
 // uniform
 template
-int TestGMRES< SparseMatrix<double>, CGData<double>, Vector<double>, TestCGData<double> >
-  (SparseMatrix<double>&, CGData<double>&, Vector<double>&, Vector<double>&, TestCGData<double>&, bool, bool);
+int TestGMRES< SparseMatrix<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
+  (SparseMatrix<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
 
 template
-int TestGMRES< SparseMatrix<float>, CGData<float>, Vector<float>, TestCGData<float> >
-  (SparseMatrix<float>&, CGData<float>&, Vector<float>&, Vector<float>&, TestCGData<float>&, bool, bool);
+int TestGMRES< SparseMatrix<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
+  (SparseMatrix<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, bool, bool, TestGMRESData<float>&);
 
 
 
 // uniform version
 template
-int TestGMRES< SparseMatrix<double>, SparseMatrix<double>, CGData<double>, CGData<double>, Vector<double>, TestCGData<double> >
-  (SparseMatrix<double>&, SparseMatrix<double>&, CGData<double>&, CGData<double>&, Vector<double>&, Vector<double>&, TestCGData<double>&, bool, bool);
+int TestGMRES< SparseMatrix<double>, SparseMatrix<double>, GMRESData<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
+  (SparseMatrix<double>&, SparseMatrix<double>&, GMRESData<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
 
 template
-int TestGMRES< SparseMatrix<float>, SparseMatrix<float>, CGData<float>, CGData<float>, Vector<float>, TestCGData<float> >
-  (SparseMatrix<float>&, SparseMatrix<float>&, CGData<float>&, CGData<float>&, Vector<float>&, Vector<float>&, TestCGData<float>&, bool, bool);
+int TestGMRES< SparseMatrix<float>, SparseMatrix<float>, GMRESData<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
+  (SparseMatrix<float>&, SparseMatrix<float>&, GMRESData<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, bool, bool, TestGMRESData<float>&);
 
 // mixed version
 template
-int TestGMRES< SparseMatrix<double>, SparseMatrix<float>, CGData<double>, CGData<float>, Vector<double>, TestCGData<double> >
-  (SparseMatrix<double>&, SparseMatrix<float>&, CGData<double>&, CGData<float>&, Vector<double>&, Vector<double>&, TestCGData<double>&, bool, bool);
+int TestGMRES< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRESData<float>, Vector<double>, TestGMRESData<double> >
+  (SparseMatrix<double>&, SparseMatrix<float>&, GMRESData<double>&, GMRESData<float>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
 

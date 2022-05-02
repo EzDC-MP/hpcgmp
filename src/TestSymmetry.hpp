@@ -23,7 +23,7 @@
 
 #include "hpgmp.hpp"
 #include "SparseMatrix.hpp"
-#include "CGData.hpp"
+#include "GMRESData.hpp"
 
 template<class SC>
 class TestSymmetryData {

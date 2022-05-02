@@ -59,11 +59,11 @@
 
   @see GMRES_ref()
 */
-template<class SparseMatrix_type, class CGData_type, class Vector_type>
-int GMRES(const SparseMatrix_type & A, CGData_type & data, const Vector_type & b, Vector_type & x,
+template<class SparseMatrix_type, class GMRESData_type, class Vector_type, class TestGMRESData_type>
+int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type & b, Vector_type & x,
           const int restart_length, const int max_iter, const typename SparseMatrix_type::scalar_type tolerance,
           int & niters, typename SparseMatrix_type::scalar_type & normr,  typename SparseMatrix_type::scalar_type & normr0,
-          double * times, double * flops, bool doPreconditioning) {
+          bool doPreconditioning, bool verbose, TestGMRESData_type & test_data) {
  
   typedef typename SparseMatrix_type::scalar_type scalar_type;
   typedef MultiVector<scalar_type> MultiVector_type;
@@ -106,7 +106,6 @@ int GMRES(const SparseMatrix_type & A, CGData_type & data, const Vector_type & b
 
   if (!doPreconditioning && A.geom->rank==0) HPCG_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
 
-  bool verbose = true;
   int print_freq = 1;
   if (verbose && A.geom->rank==0) {
     HPCG_fout << std::endl << " Running GMRES(" << restart_length
@@ -118,7 +117,7 @@ int GMRES(const SparseMatrix_type & A, CGData_type & data, const Vector_type & b
                            << " ) MPI grid "
                            << std::endl;
   }
-  *flops = 0.0;
+  double flops = 0.0;
   double flops_gmg  = 0.0;
   double flops_spmv = 0.0;
   double flops_orth = 0.0;
@@ -129,13 +128,13 @@ int GMRES(const SparseMatrix_type & A, CGData_type & data, const Vector_type & b
     // p is of length ncols, copy x to p for sparse MV operation
     CopyVector(x, p);
     TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); flops_spmv += (2*A.totalNumberOfNonzeros); // Ap = A*p
-    TICK(); ComputeWAXPBY(nrow, one, b, -one, Ap, r, A.isWaxpbyOptimized); TOCK(t2); *flops += (2*Nrow); // r = b - Ax (x stored in p)
-    TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); *flops += (2*Nrow); TOCK(t1);
+    TICK(); ComputeWAXPBY(nrow, one, b, -one, Ap, r, A.isWaxpbyOptimized); TOCK(t2); flops += (2*Nrow); // r = b - Ax (x stored in p)
+    TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); flops += (2*Nrow); TOCK(t1);
     normr = sqrt(normr);
     GetVector(Q, 0, Qj);
     CopyVector(r, Qj);
     //TICK(); ComputeWAXPBY(nrow, zero, Qj, one/normr, Qj, Qj, A.isWaxpbyOptimized); TOCK(t2);
-    TICK(); ScaleVectorValue(Qj, one/normr); TOCK(t2); *flops += Nrow;
+    TICK(); ScaleVectorValue(Qj, one/normr); TOCK(t2); flops += Nrow;
 
     // Record initial residual for convergence testing
     if (niters == 0) normr0 = normr;
@@ -208,12 +207,12 @@ int GMRES(const SparseMatrix_type & A, CGData_type & data, const Vector_type & b
       TOCK(t6); // Ortho time
       flops_orth += (2*k*Nrow);
       // beta = norm(Qk)
-      TICK(); ComputeDotProduct(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); *flops += (2*Nrow); TOCK(t1);
+      TICK(); ComputeDotProduct(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); flops += (2*Nrow); TOCK(t1);
       beta = sqrt(beta);
 
       // Qk = Qk / beta
       //TICK(); ComputeWAXPBY(nrow, zero, Qk, one/beta, Qk, Qk, A.isWaxpbyOptimized); TOCK(t2);
-      TICK(); ScaleVectorValue(Qk, one/beta); *flops += Nrow; TOCK(t2);
+      TICK(); ScaleVectorValue(Qk, one/beta); flops += Nrow; TOCK(t2);
       SetMatrixValue(H, k, k-1, beta);
 
       // Given's rotation
@@ -263,27 +262,30 @@ int GMRES(const SparseMatrix_type & A, CGData_type & data, const Vector_type & b
     // > update x
     ComputeTRSM(k-1, one, H, t);
     if (doPreconditioning) {
-      ComputeGEMV(nrow, k-1, one, Q, t, zero, r, A.isGemvOptimized); *flops += (2*Nrow*(k-1)); // r = Q*t
+      ComputeGEMV(nrow, k-1, one, Q, t, zero, r, A.isGemvOptimized); flops += (2*Nrow*(k-1)); // r = Q*t
       TICK();
       ComputeMG(A, r, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros);      // z = M*r
       TOCK(t5); // Preconditioner apply time
-      TICK(); ComputeWAXPBY(nrow, one, x, one, z, x, A.isWaxpbyOptimized); TOCK(t2); *flops += (2*Nrow); // x += z
+      TICK(); ComputeWAXPBY(nrow, one, x, one, z, x, A.isWaxpbyOptimized); TOCK(t2); flops += (2*Nrow); // x += z
     } else {
-      ComputeGEMV (nrow, k-1, one, Q, t, one, x, A.isGemvOptimized); *flops += (2*Nrow*(k-1)); // x += Q*t
+      ComputeGEMV (nrow, k-1, one, Q, t, one, x, A.isGemvOptimized); flops += (2*Nrow*(k-1)); // x += Q*t
     }
   } // end of outer-loop
 
 
   // Store times
-  times[1] += t1; // dot-product time
-  times[2] += t2; // WAXPBY time
-  times[3] += t3; // SPMV time
-  times[4] += t4; // AllReduce time
-  times[5] += t5; // preconditioner apply time
+  if (test_data.times != NULL) {
+    test_data.times[0] += mytimer() - t_begin;  // Total time. All done...
+    test_data.times[1] += t1; // dot-product time
+    test_data.times[2] += t2; // WAXPBY time
+    test_data.times[3] += t6; // Ortho
+    test_data.times[4] += t3; // SPMV time
+    test_data.times[5] += t4; // AllReduce time
+    test_data.times[6] += t5; // preconditioner apply time
+  }
 //#ifndef HPCG_NO_MPI
 //  times[6] += t6; // exchange halo time
 //#endif
-  times[0] += mytimer() - t_begin;  // Total time. All done...
   if (verbose && A.geom->rank==0) {
     HPCG_fout << " > nnz(A)  : " << A.totalNumberOfNonzeros << std::endl;
     HPCG_fout << " > nnz(MG) : " << A.totalNumberOfMGNonzeros << " (" << numSpMVs_MG << ")" << std::endl;
@@ -295,10 +297,12 @@ int GMRES(const SparseMatrix_type & A, CGData_type & data, const Vector_type & b
                               << (flops_orth / 1000000000.0) / t6 << " Gflop/s" << std::endl;
     HPCG_fout << std::endl;
   }
-  *flops += flops_gmg;
-  *flops += flops_spmv;
-  *flops += flops_orth;
-
+  if (test_data.flops != NULL) {
+    test_data.flops[0] += flops + flops_gmg + flops_spmv + flops_orth;
+    test_data.flops[1] += flops_gmg;
+    test_data.flops[2] += flops_spmv;
+    test_data.flops[3] += flops_orth;
+  }
   DeleteDenseMatrix(H);
   DeleteDenseMatrix(h);
   DeleteDenseMatrix(t);
@@ -315,11 +319,11 @@ int GMRES(const SparseMatrix_type & A, CGData_type & data, const Vector_type & b
  * --------------- */
 
 template
-int GMRES< SparseMatrix<double>, CGData<double>, Vector<double> >
-  (SparseMatrix<double> const&, CGData<double>&, Vector<double> const&, Vector<double>&,
-   const int, const int, double, int&, double&, double&, double*, double*, bool);
+int GMRES< SparseMatrix<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
+  (SparseMatrix<double> const&, GMRESData<double>&, Vector<double> const&, Vector<double>&,
+   const int, const int, double, int&, double&, double&, bool, bool, TestGMRESData<double>&);
 
 template
-int GMRES< SparseMatrix<float>, CGData<float>, Vector<float> >
-  (SparseMatrix<float> const&, CGData<float>&, Vector<float> const&, Vector<float>&,
-   const int, const int, float, int&, float&, float&, double*, double*, bool);
+int GMRES< SparseMatrix<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
+  (SparseMatrix<float> const&, GMRESData<float>&, Vector<float> const&, Vector<float>&,
+   const int, const int, float, int&, float&, float&, bool, bool, TestGMRESData<float>&);

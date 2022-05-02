@@ -42,8 +42,8 @@
   @see GenerateGeometry
   @see GenerateProblem
 */
-template<class SparseMatrix_type, class CGData_type, class Vector_type>
-int OptimizeProblem(SparseMatrix_type & A, CGData_type & data, Vector_type & b, Vector_type & x, Vector_type & xexact) {
+template<class SparseMatrix_type, class GMRESData_type, class Vector_type>
+int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & b, Vector_type & x, Vector_type & xexact) {
 
   // This function can be used to completely transform any part of the data structures.
   // Right now it does nothing, so compiling with a check for unused variables results in complaints
@@ -604,16 +604,16 @@ double OptimizeProblemMemoryUse(const SparseMatrix_type & A) {
  * --------------- */
 
 template
-int OptimizeProblem< SparseMatrix<double>, CGData<double>, Vector<double> >
-  (SparseMatrix<double>&, CGData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
+int OptimizeProblem< SparseMatrix<double>, GMRESData<double>, Vector<double> >
+  (SparseMatrix<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 
 template
 double OptimizeProblemMemoryUse< SparseMatrix<double> >
   (SparseMatrix<double> const&);
 
 template
-int OptimizeProblem< SparseMatrix<float>, CGData<float>, Vector<float> >
-  (SparseMatrix<float>&, CGData<float>&, Vector<float>&, Vector<float>&, Vector<float>&);
+int OptimizeProblem< SparseMatrix<float>, GMRESData<float>, Vector<float> >
+  (SparseMatrix<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, Vector<float>&);
 
 template
 double OptimizeProblemMemoryUse< SparseMatrix<float> >
@@ -621,6 +621,6 @@ double OptimizeProblemMemoryUse< SparseMatrix<float> >
 
 // mixed-precision
 template
-int OptimizeProblem< SparseMatrix<float>, CGData<double>, Vector<double> >
-  (SparseMatrix<float>&, CGData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
+int OptimizeProblem< SparseMatrix<float>, GMRESData<double>, Vector<double> >
+  (SparseMatrix<float>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 

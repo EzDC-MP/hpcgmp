@@ -51,7 +51,7 @@ using std::endl;
 #include "Geometry.hpp"
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
-#include "CGData.hpp"
+#include "GMRESData.hpp"
 #include "TestNorms.hpp"
 
 #include "TestGMRES.hpp"
@@ -60,15 +60,14 @@ typedef double scalar_type;
 //typedef float  scalar_type;
 typedef Vector<scalar_type> Vector_type;
 typedef SparseMatrix<scalar_type> SparseMatrix_type;
-typedef CGData<scalar_type> CGData_type;
-typedef TestCGData<scalar_type> TestCGData_type;
+typedef GMRESData<scalar_type> GMRESData_type;
 typedef TestNormsData<scalar_type> TestNormsData_type;
+typedef TestGMRESData<scalar_type> TestGMRESData_type;
 
 typedef float scalar_type2;
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
-typedef CGData<scalar_type2> CGData_type2;
-typedef TestCGData<scalar_type2> TestCGData_type2;
+typedef GMRESData<scalar_type2> GMRESData_type2;
 typedef TestNormsData<scalar_type2> TestNormsData_type2;
 
 
@@ -143,7 +142,7 @@ int main(int argc, char * argv[]) {
 
   // Setup the problem
   SparseMatrix_type A;
-  CGData_type data;
+  GMRESData_type data;
 
   bool init_vect = true;
   Vector_type b, x, xexact;
@@ -203,18 +202,15 @@ int main(int argc, char * argv[]) {
   //////////////////////////////
   // Validation Testing Phase //
   //////////////////////////////
-
-  TestCGData_type testcg_data;
-  testcg_data.count_pass = testcg_data.count_fail = 0;
-
   bool test_diagonal_exaggeration = false;
   bool test_noprecond = false;
+  TestGMRESData_type test_data;
 
 #ifdef HPCG_DEBUG
   t1 = mytimer();
   if (rank==0) HPCG_fout << endl << "Running Uniform-precision Test" << endl;
 #endif
-  TestGMRES(A, data, b, x, testcg_data, test_diagonal_exaggeration, test_noprecond);
+  TestGMRES(A, data, b, x, test_diagonal_exaggeration, test_noprecond, test_data);
 #ifdef HPCG_DEBUG
   if (rank==0) HPCG_fout << "Total validation (uniform-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
 #endif
@@ -222,7 +218,7 @@ int main(int argc, char * argv[]) {
   setup_time = mytimer();
   init_vect = false;
   SparseMatrix_type2 A2;
-  CGData_type2 data2;
+  GMRESData_type2 data2;
   SetupProblem(numberOfMgLevels, A2, geom, data2, &b, &x, &xexact, init_vect);
   setup_time = mytimer() - setup_time; // Capture total time of setup
 
@@ -230,7 +226,6 @@ int main(int argc, char * argv[]) {
   OptimizeProblem(A2, data, b, x, xexact);
   t7 = mytimer() - t7;
 
-  testcg_data.count_pass = testcg_data.count_fail = 0;
   if (A.geom->rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
@@ -240,7 +235,7 @@ int main(int argc, char * argv[]) {
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
-  TestGMRES(A, A2, data, data2, b, x, testcg_data, test_diagonal_exaggeration, test_noprecond);
+  TestGMRES(A, A2, data, data2, b, x, test_diagonal_exaggeration, test_noprecond, test_data);
 #ifdef HPCG_DEBUG
   if (rank==0) HPCG_fout << "Total validation (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
 #endif
@@ -253,8 +248,8 @@ int main(int argc, char * argv[]) {
   DeleteVector(xexact);
   DeleteVector(x_overlap);
   DeleteVector(b_computed);
-  DeleteCGData(data);
-  DeleteCGData(data2);
+  DeleteGMRESData(data);
+  DeleteGMRESData(data2);
 
   // Finish up
   HPCG_Finalize();

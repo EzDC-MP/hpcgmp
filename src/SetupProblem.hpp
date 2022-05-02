@@ -29,7 +29,7 @@
 #include <omp.h>
 #endif
 
-#include "CGData.hpp"
+#include "GMRESData.hpp"
 #include "Geometry.hpp"
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
@@ -50,7 +50,7 @@
   @see GenerateGeometry
 */
 
-template<class SparseMatrix_type, class CGData_type, class Vector_type>
-void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, CGData_type & data, Vector_type * b, Vector_type * x, Vector_type * xexact, bool init_vect);
+template<class SparseMatrix_type, class GMRESData_type, class Vector_type>
+void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, GMRESData_type & data, Vector_type * b, Vector_type * x, Vector_type * xexact, bool init_vect);
 
 #endif

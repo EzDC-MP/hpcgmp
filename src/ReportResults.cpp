@@ -40,19 +40,16 @@ using std::endl;
   @param[in] geom The description of the problem's geometry.
   @param[in] A    The known system matrix
   @param[in] numberOfMgLevels Number of levels in multigrid V cycle
-  @param[in] numberOfCgSets Number of CG runs performed
   @param[in] niters Number of preconditioned CG iterations performed to lower the residual below a threshold
   @param[in] times  Vector of cumulative timings for each of the phases of a preconditioned CG iteration
-  @param[in] testcg_data    the data structure with the results of the CG-correctness test including pass/fail information
-  @param[in] testnorms_data the data structure with the results of the CG norm test including pass/fail information
+  @param[in] test_data    the data structure with the results of the CG-correctness test including pass/fail information
   @param[in] global_failure indicates whether a failure occurred during the correctness tests of CG
 
   @see YAML_Doc
 */
-template<class SparseMatrix_type, class TestCGData_type, class TestNormsData_type>
-void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, int numberOfCgSets, int refMaxIters,int optMaxIters, double times[],
-                   const TestCGData_type & testcg_data, const TestNormsData_type & testnorms_data,
-                   int global_failure, bool quickPath) {
+template<class SparseMatrix_type, class TestGMRESData_type>
+void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double times[],
+                   const TestGMRESData_type & test_data, int global_failure, bool quickPath) {
 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
   typedef Vector<scalar_type> Vector_type;
@@ -77,68 +74,38 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, int number
 
     // ======================== FLOP count model =======================================
 
-    double fNumberOfCgSets = numberOfCgSets;
-    double fniters = fNumberOfCgSets * (double) optMaxIters;
     double fnrow = A.totalNumberOfRows;
     double fnnz = A.totalNumberOfNonzeros;
 
     // Op counts come from implementation of CG in CG.cpp (include 1 extra for the CG preamble ops)
-    double fnops_ddot = (3.0*fniters+fNumberOfCgSets)*2.0*fnrow; // 3 ddots with nrow adds and nrow mults
-    double fnops_waxpby = (3.0*fniters+fNumberOfCgSets)*2.0*fnrow; // 3 WAXPBYs with nrow adds and nrow mults
-    double fnops_sparsemv = (fniters+fNumberOfCgSets)*2.0*fnnz; // 1 SpMV with nnz adds and nnz mults
+    double fnops_ddot   = 0.0;
+    double fnops_waxpby = 0.0;
+    double fnops_sparsemv = 0.0;
     // Op counts from the multigrid preconditioners
     double fnops_precond = 0.0;
-    const SparseMatrix_type * Af = &A;
-    for (int i=1; i<numberOfMgLevels; ++i) {
-      double fnnz_Af = Af->totalNumberOfNonzeros;
-      double fnumberOfPresmootherSteps = Af->mgData->numberOfPresmootherSteps;
-      double fnumberOfPostsmootherSteps = Af->mgData->numberOfPostsmootherSteps;
-      fnops_precond += fnumberOfPresmootherSteps*fniters*4.0*fnnz_Af; // number of presmoother flops
-      fnops_precond += fniters*2.0*fnnz_Af; // cost of fine grid residual calculation
-      fnops_precond += fnumberOfPostsmootherSteps*fniters*4.0*fnnz_Af;  // number of postsmoother flops
-      Af = Af->Ac; // Go to next coarse level
-    }
-
-    fnops_precond += fniters*4.0*((double) Af->totalNumberOfNonzeros); // One symmetric GS sweep at the coarsest level
-    double fnops = fnops_ddot+fnops_waxpby+fnops_sparsemv+fnops_precond;
-    double frefnops = fnops * ((double) refMaxIters)/((double) optMaxIters);
+    double fnops = 0.0;    //fnops_ddot+fnops_waxpby+fnops_sparsemv+fnops_precond;
 
     // ======================== Memory bandwidth model =======================================
 
     // Read/Write counts come from implementation of CG in CG.cpp (include 1 extra for the CG preamble ops)
-    double fnreads_ddot = (3.0*fniters+fNumberOfCgSets)*2.0*fnrow*sizeof(double); // 3 ddots with 2 nrow reads
-    double fnwrites_ddot = (3.0*fniters+fNumberOfCgSets)*sizeof(double); // 3 ddots with 1 write
-    double fnreads_waxpby = (3.0*fniters+fNumberOfCgSets)*2.0*fnrow*sizeof(double); // 3 WAXPBYs with nrow adds and nrow mults
-    double fnwrites_waxpby = (3.0*fniters+fNumberOfCgSets)*fnrow*sizeof(double); // 3 WAXPBYs with nrow adds and nrow mults
-    double fnreads_sparsemv = (fniters+fNumberOfCgSets)*(fnnz*(sizeof(double)+sizeof(local_int_t)) + fnrow*sizeof(double));// 1 SpMV with nnz reads of values, nnz reads indices,
+    double fnreads_ddot = 0.0;
+    double fnwrites_ddot = 0.0;
+    double fnreads_waxpby = 0.0;
+    double fnwrites_waxpby = 0.0;
+    double fnreads_sparsemv = 0.0;
     // plus nrow reads of x
-    double fnwrites_sparsemv = (fniters+fNumberOfCgSets)*fnrow*sizeof(double); // 1 SpMV nrow writes
+    double fnwrites_sparsemv = 0.0;
     // Op counts from the multigrid preconditioners
     double fnreads_precond = 0.0;
     double fnwrites_precond = 0.0;
-    Af = &A;
-    for (int i=1; i<numberOfMgLevels; ++i) {
-      double fnnz_Af = Af->totalNumberOfNonzeros;
-      double fnrow_Af = Af->totalNumberOfRows;
-      double fnumberOfPresmootherSteps = Af->mgData->numberOfPresmootherSteps;
-      double fnumberOfPostsmootherSteps = Af->mgData->numberOfPostsmootherSteps;
-      fnreads_precond += fnumberOfPresmootherSteps*fniters*(2.0*fnnz_Af*(sizeof(double)+sizeof(local_int_t)) + fnrow_Af*sizeof(double)); // number of presmoother reads
-      fnwrites_precond += fnumberOfPresmootherSteps*fniters*fnrow_Af*sizeof(double); // number of presmoother writes
-      fnreads_precond += fniters*(fnnz_Af*(sizeof(double)+sizeof(local_int_t)) + fnrow_Af*sizeof(double)); // Number of reads for fine grid residual calculation
-      fnwrites_precond += fniters*fnnz_Af*sizeof(double); // Number of writes for fine grid residual calculation
-      fnreads_precond += fnumberOfPostsmootherSteps*fniters*(2.0*fnnz_Af*(sizeof(double)+sizeof(local_int_t)) + fnrow_Af*sizeof(double));  // number of postsmoother reads
-      fnwrites_precond += fnumberOfPostsmootherSteps*fniters*fnnz_Af*sizeof(double);  // number of postsmoother writes
-      Af = Af->Ac; // Go to next coarse level
-    }
 
+    const SparseMatrix_type * Af = &A;
     double fnnz_Af = Af->totalNumberOfNonzeros;
     double fnrow_Af = Af->totalNumberOfRows;
-    fnreads_precond += fniters*(2.0*fnnz_Af*(sizeof(double)+sizeof(local_int_t)) + fnrow_Af*sizeof(double));; // One symmetric GS sweep at the coarsest level
-    fnwrites_precond += fniters*fnrow_Af*sizeof(double); // One symmetric GS sweep at the coarsest level
     double fnreads = fnreads_ddot+fnreads_waxpby+fnreads_sparsemv+fnreads_precond;
     double fnwrites = fnwrites_ddot+fnwrites_waxpby+fnwrites_sparsemv+fnwrites_precond;
-    double frefnreads = fnreads * ((double) refMaxIters)/((double) optMaxIters);
-    double frefnwrites = fnwrites * ((double) refMaxIters)/((double) optMaxIters);
+    double frefnreads = 0.0;
+    double frefnwrites = 0.0;
 
 
     // ======================== Memory usage model =======================================
@@ -149,7 +116,6 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, int number
     double size = ((double) A.geom->size); // Needed for estimating size of halo
 
     double fnbytes = ((double) sizeof(Geometry));      // Geometry struct in main.cpp
-    fnbytes += ((double) sizeof(double)*fNumberOfCgSets); // testnorms_data in main.cpp
 
     // Model for GenerateProblem_ref.cpp
     fnbytes += fnrow*sizeof(char);      // array nonzerosInRow
@@ -162,10 +128,13 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, int number
     fnbytes += fnrow*numberOfNonzerosPerRow*((double) sizeof(global_int_t)); // mtxIndG[1..nrows]
     fnbytes += fnrow*((double) 3*sizeof(double)); // x, b, xexact
 
-    // Model for CGData.hpp
+    // Model for GMRESData.hpp
     double fncol = ((global_int_t) A.localNumberOfColumns) * size; // Estimate of the global number of columns using the value from rank 0
     fnbytes += fnrow*((double) 2*sizeof(double)); // r, Ap
     fnbytes += fncol*((double) 2*sizeof(double)); // z, p
+    // Krylov basis vectors
+    int restart_length = test_data.restart_length;
+    fnbytes += fnrow*((double) (restart_length+1)*sizeof(double)); // r, Ap
 
     std::vector<double> fnbytesPerLevel(numberOfMgLevels); // Count byte usage per level (level 0 is main CG level)
     fnbytesPerLevel[0] = fnbytes;
@@ -280,19 +249,6 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, int number
       doc.get("Memory Use Information")->get("Coarse Grids")->add("Memory used",fnbytesPerLevel[i]/1000000000.0);
     }
 
-    doc.add("########## V&V Testing Summary  ##########","");
-    doc.add("Spectral Convergence Tests","");
-    if (testcg_data.count_fail==0)
-      doc.get("Spectral Convergence Tests")->add("Result", "PASSED");
-    else
-      doc.get("Spectral Convergence Tests")->add("Result", "FAILED");
-    doc.get("Spectral Convergence Tests")->add("Unpreconditioned","");
-    doc.get("Spectral Convergence Tests")->get("Unpreconditioned")->add("Maximum iteration count", testcg_data.niters_max_no_prec);
-    doc.get("Spectral Convergence Tests")->get("Unpreconditioned")->add("Expected iteration count", testcg_data.expected_niters_no_prec);
-    doc.get("Spectral Convergence Tests")->add("Preconditioned","");
-    doc.get("Spectral Convergence Tests")->get("Preconditioned")->add("Maximum iteration count", testcg_data.niters_max_prec);
-    doc.get("Spectral Convergence Tests")->get("Preconditioned")->add("Expected iteration count", testcg_data.expected_niters_prec);
-
     /*const char DepartureFromSymmetry[] = "Departure from Symmetry |x'Ay-y'Ax|/(2*||x||*||A||*||y||)/epsilon";
     doc.add(DepartureFromSymmetry,"");
     if (testsymmetry_data.count_fail==0)
@@ -308,75 +264,51 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, int number
       doc.get("Iteration Count Information")->add("Result", "PASSED");
     else
       doc.get("Iteration Count Information")->add("Result", "FAILED");
-    doc.get("Iteration Count Information")->add("Reference CG iterations per set", refMaxIters);
-    doc.get("Iteration Count Information")->add("Optimized CG iterations per set", optMaxIters);
-    doc.get("Iteration Count Information")->add("Total number of reference iterations", refMaxIters*numberOfCgSets);
-    doc.get("Iteration Count Information")->add("Total number of optimized iterations", optMaxIters*numberOfCgSets);
-
-    doc.add("########## Reproducibility Summary  ##########","");
-    doc.add("Reproducibility Information","");
-    if (testnorms_data.pass)
-      doc.get("Reproducibility Information")->add("Result", "PASSED");
-    else
-      doc.get("Reproducibility Information")->add("Result", "FAILED");
-    doc.get("Reproducibility Information")->add("Scaled residual mean", testnorms_data.mean);
-    doc.get("Reproducibility Information")->add("Scaled residual variance", testnorms_data.variance);
+    int refMaxIters = 0; 
+    int optMaxIters = 0; 
+    doc.get("Iteration Count Information")->add("Total number of reference iterations", refMaxIters);
+    doc.get("Iteration Count Information")->add("Total number of optimized iterations", optMaxIters);
 
     doc.add("########## Performance Summary (times in sec) ##########","");
 
     doc.add("Benchmark Time Summary","");
     doc.get("Benchmark Time Summary")->add("Optimization phase",times[7]);
-    doc.get("Benchmark Time Summary")->add("DDOT",times[1]);
-    doc.get("Benchmark Time Summary")->add("WAXPBY",times[2]);
-    doc.get("Benchmark Time Summary")->add("SpMV",times[3]);
-    doc.get("Benchmark Time Summary")->add("MG",times[5]);
-    doc.get("Benchmark Time Summary")->add("Total",times[0]);
+    doc.get("Benchmark Time Summary")->add("DDOT",  test_data.times[1]);
+    doc.get("Benchmark Time Summary")->add("WAXPBY",test_data.times[2]);
+    doc.get("Benchmark Time Summary")->add("SpMV",  test_data.times[4]);
+    doc.get("Benchmark Time Summary")->add("MG",    test_data.times[5]);
+    doc.get("Benchmark Time Summary")->add("Total", test_data.times[0]);
 
     doc.add("Floating Point Operations Summary","");
-    doc.get("Floating Point Operations Summary")->add("Raw DDOT",fnops_ddot);
-    doc.get("Floating Point Operations Summary")->add("Raw WAXPBY",fnops_waxpby);
-    doc.get("Floating Point Operations Summary")->add("Raw SpMV",fnops_sparsemv);
-    doc.get("Floating Point Operations Summary")->add("Raw MG",fnops_precond);
-    doc.get("Floating Point Operations Summary")->add("Total",fnops);
-    doc.get("Floating Point Operations Summary")->add("Total with convergence overhead",frefnops);
+    doc.get("Floating Point Operations Summary")->add("Raw Ortho",test_data.flops[3]);
+    doc.get("Floating Point Operations Summary")->add("Raw SpMV", test_data.flops[2]);
+    doc.get("Floating Point Operations Summary")->add("Raw MG",   test_data.flops[1]);
+    doc.get("Floating Point Operations Summary")->add("Total",    test_data.flops[0]);
 
+#if 0
     doc.add("GB/s Summary","");
     doc.get("GB/s Summary")->add("Raw Read B/W",fnreads/times[0]/1.0E9);
     doc.get("GB/s Summary")->add("Raw Write B/W",fnwrites/times[0]/1.0E9);
     doc.get("GB/s Summary")->add("Raw Total B/W",(fnreads+fnwrites)/(times[0])/1.0E9);
-    doc.get("GB/s Summary")->add("Total with convergence and optimization phase overhead",(frefnreads+frefnwrites)/(times[0]+fNumberOfCgSets*(times[7]/10.0+times[9]/10.0))/1.0E9);
-
+    doc.get("GB/s Summary")->add("Total with convergence and optimization phase overhead",(frefnreads+frefnwrites)/(times[0]+(times[7]/10.0+times[9]/10.0))/1.0E9);
+#endif
 
     doc.add("GFLOP/s Summary","");
-    doc.get("GFLOP/s Summary")->add("Raw DDOT",fnops_ddot/times[1]/1.0E9);
-    doc.get("GFLOP/s Summary")->add("Raw WAXPBY",fnops_waxpby/times[2]/1.0E9);
-    doc.get("GFLOP/s Summary")->add("Raw SpMV",fnops_sparsemv/(times[3])/1.0E9);
-    doc.get("GFLOP/s Summary")->add("Raw MG",fnops_precond/(times[5])/1.0E9);
-    doc.get("GFLOP/s Summary")->add("Raw Total",fnops/times[0]/1.0E9);
-    doc.get("GFLOP/s Summary")->add("Total with convergence overhead",frefnops/times[0]/1.0E9);
+    doc.get("GFLOP/s Summary")->add("Raw Orho", test_data.flops[3]/test_data.times[3]/1.0E9);
+    doc.get("GFLOP/s Summary")->add("Raw SpMV", test_data.flops[2]/test_data.times[4]/1.0E9);
+    doc.get("GFLOP/s Summary")->add("Raw MG",   test_data.flops[1]/test_data.times[5]/1.0E9);
+    doc.get("GFLOP/s Summary")->add("Raw Total",test_data.flops[0]/test_data.times[0]/1.0E9);
     // This final GFLOP/s rating includes the overhead of problem setup and optimizing the data structures vs ten sets of 50 iterations of CG
-    double totalGflops = frefnops/(times[0]+fNumberOfCgSets*(times[7]/10.0+times[9]/10.0))/1.0E9;
-    double totalGflops24 = frefnops/(times[0]+fNumberOfCgSets*times[7]/10.0)/1.0E9;
-    doc.get("GFLOP/s Summary")->add("Total with convergence and optimization phase overhead",totalGflops);
+    double totalGflops   = test_data.flops[0]/test_data.times[0]/1.0E9;
 
     doc.add("User Optimization Overheads","");
     doc.get("User Optimization Overheads")->add("Optimization phase time (sec)", (times[7]));
     doc.get("User Optimization Overheads")->add("Optimization phase time vs reference SpMV+MG time", times[7]/times[8]);
 
-#ifndef HPCG_NO_MPI
-    doc.add("DDOT Timing Variations","");
-    doc.get("DDOT Timing Variations")->add("Min DDOT MPI_Allreduce time",t4min);
-    doc.get("DDOT Timing Variations")->add("Max DDOT MPI_Allreduce time",t4max);
-    doc.get("DDOT Timing Variations")->add("Avg DDOT MPI_Allreduce time",t4avg);
-
-    //doc.get("Sparse Operations Overheads")->add("Halo exchange time (sec)", (times[6]));
-    //doc.get("Sparse Operations Overheads")->add("Halo exchange as percentage of SpMV time", (times[6])/totalSparseMVTime*100.0);
-#endif
     doc.add("Final Summary","");
-    bool isValidRun = (testcg_data.count_fail==0) && (testnorms_data.pass) && (!global_failure);//&& (testsymmetry_data.count_fail==0) 
+    bool isValidRun = (test_data.count_fail==0) && (!global_failure);//&& (testsymmetry_data.count_fail==0) 
     if (isValidRun) {
-      doc.get("Final Summary")->add("HPCG result is VALID with a GFLOP/s rating of", totalGflops);
-      doc.get("Final Summary")->add("HPCG 2.4 rating for historical reasons is", totalGflops24);
+      doc.get("Final Summary")->add("HPGMP result is VALID with a GFLOP/s rating of", totalGflops);
       if (!A.isDotProductOptimized) {
         doc.get("Final Summary")->add("Reference version of ComputeDotProduct used","Performance results are most likely suboptimal");
       }
@@ -421,11 +353,14 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, int number
 /* --------------- *
  * specializations *
  * --------------- */
+//template<class SparseMatrix_type, class TestGMRESData_type>
+//void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double times[],
+//                   const TestGMRESData_type & test_data, int global_failure, bool quickPath) {
 
 template
-void ReportResults< SparseMatrix<double>, TestCGData<double>, TestNormsData<double> >
-  (SparseMatrix<double> const&, int, int, int, int, double*, TestCGData<double> const&, TestNormsData<double> const&, int, bool);
+void ReportResults< SparseMatrix<double>, TestGMRESData<double> >
+  (const SparseMatrix<double>&, int, double*, const TestGMRESData<double>&, int, bool);
 
 template
-void ReportResults< SparseMatrix<float>, TestCGData<float>, TestNormsData<float> >
-  (SparseMatrix<float> const&, int, int, int, int, double*, TestCGData<float> const&, TestNormsData<float> const&, int, bool);
+void ReportResults< SparseMatrix<float>, TestGMRESData<float> >
+  (const SparseMatrix<float>&, int, double*, const TestGMRESData<float>&, int, bool);

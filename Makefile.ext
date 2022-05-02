@@ -6,7 +6,7 @@ setup_file = setup/Make.$(arch)
 include $(setup_file)
 
 
-HPCG_DEPS = src/ComputeResidual.o \
+HPGMP_DEPS = src/ComputeResidual.o \
 	    src/ExchangeHalo.o \
 	    src/GenerateGeometry.o \
 	    src/CheckProblem.o \
@@ -41,6 +41,7 @@ HPCG_DEPS = src/ComputeResidual.o \
 	    src/finalize.o \
             \
 	    src/TestGMRES.o \
+	    src/BenchGMRES.o \
 	    src/GMRES.o \
 	    src/GMRES_IR.o \
 	    src/ComputeGS_Forward.o \
@@ -66,15 +67,15 @@ HPCG_DEPS = src/ComputeResidual.o \
 
 # These header files are included in many source files, so we recompile every file if one or more of these header is modified.
 PRIMARY_HEADERS = HPCG_SRC_PATH/src/Geometry.hpp HPCG_SRC_PATH/src/SparseMatrix.hpp HPCG_SRC_PATH/src/Vector.hpp HPCG_SRC_PATH/src/MultiVector.hpp \
-                  HPCG_SRC_PATH/src/SerialDenseMatrix.hpp HPCG_SRC_PATH/src/CGData.hpp HPCG_SRC_PATH/src/MGData.hpp HPCG_SRC_PATH/src/hpgmp.hpp
+                  HPCG_SRC_PATH/src/SerialDenseMatrix.hpp HPCG_SRC_PATH/src/GMRESData.hpp HPCG_SRC_PATH/src/MGData.hpp HPCG_SRC_PATH/src/hpgmp.hpp
 
 all: bin/xhpgmp bin/xhpgmp_time
 
-bin/xhpgmp: src/main_hpgmp.o $(HPCG_DEPS)
-	$(LINKER) $(LINKFLAGS) src/main_hpgmp.o $(HPCG_DEPS) $(HPCG_LIBS) -o bin/xhpgmp
+bin/xhpgmp: src/main_hpgmp.o $(HPGMP_DEPS)
+	$(LINKER) $(LINKFLAGS) src/main_hpgmp.o $(HPGMP_DEPS) $(HPCG_LIBS) -o bin/xhpgmp
 
-bin/xhpgmp_time: src/main_time.o $(HPCG_DEPS)
-	$(LINKER) $(LINKFLAGS) src/main_time.o $(HPCG_DEPS) $(HPCG_LIBS) -o bin/xhpgmp_time
+bin/xhpgmp_time: src/main_time.o $(HPGMP_DEPS)
+	$(LINKER) $(LINKFLAGS) src/main_time.o $(HPGMP_DEPS) $(HPCG_LIBS) -o bin/xhpgmp_time
 
 clean:
 	rm -f src/*.o bin/xhpgmp bin/xhpgmp_time
@@ -209,6 +210,9 @@ src/GMRES_IR.o: HPCG_SRC_PATH/src/GMRES_IR.cpp HPCG_SRC_PATH/src/GMRES_IR.hpp $(
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/TestGMRES.o: HPCG_SRC_PATH/src/TestGMRES.cpp HPCG_SRC_PATH/src/TestGMRES.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/BenchGMRES.o: HPCG_SRC_PATH/src/BenchGMRES.cpp HPCG_SRC_PATH/src/BenchGMRES.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/ComputeGS_Forward.o: HPCG_SRC_PATH/src/ComputeGS_Forward.cpp HPCG_SRC_PATH/src/ComputeGS_Forward.hpp $(PRIMARY_HEADERS)

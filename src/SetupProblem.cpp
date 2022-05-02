@@ -32,8 +32,8 @@
   @see GenerateGeometry
 */
 
-template<class SparseMatrix_type, class CGData_type, class Vector_type>
-void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, CGData_type & data, Vector_type * b, Vector_type * x, Vector_type * xexact, bool init_vect) {
+template<class SparseMatrix_type, class GMRESData_type, class Vector_type>
+void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, GMRESData_type & data, Vector_type * b, Vector_type * x, Vector_type * xexact, bool init_vect) {
 
   InitializeSparseMatrix(A, geom);
 
@@ -66,7 +66,7 @@ void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, 
   }
   #endif */
 
-  InitializeSparseCGData(A, data);
+  InitializeSparseGMRESData(A, data);
 }
 
 
@@ -76,16 +76,16 @@ void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, 
 
 // uniform
 template
-void SetupProblem< SparseMatrix<double>, CGData<double>, class Vector<double> >
- (int numberOfMgLevels, SparseMatrix<double> & A, Geometry * geom, CGData<double> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact, bool init_vect);
+void SetupProblem< SparseMatrix<double>, GMRESData<double>, class Vector<double> >
+ (int numberOfMgLevels, SparseMatrix<double> & A, Geometry * geom, GMRESData<double> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact, bool init_vect);
 
 template
-void SetupProblem< SparseMatrix<float>, CGData<float>, class Vector<float> >
- (int numberOfMgLevels, SparseMatrix<float> & A, Geometry * geom, CGData<float> & data, Vector<float> * b, Vector<float> * x, Vector<float> * xexact, bool init_vect);
+void SetupProblem< SparseMatrix<float>, GMRESData<float>, class Vector<float> >
+ (int numberOfMgLevels, SparseMatrix<float> & A, Geometry * geom, GMRESData<float> & data, Vector<float> * b, Vector<float> * x, Vector<float> * xexact, bool init_vect);
 
 
 // mixed
 template
-void SetupProblem< SparseMatrix<float>, CGData<float>, class Vector<double> >
- (int numberOfMgLevels, SparseMatrix<float> & A, Geometry * geom, CGData<float> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact, bool init_vect);
+void SetupProblem< SparseMatrix<float>, GMRESData<float>, class Vector<double> >
+ (int numberOfMgLevels, SparseMatrix<float> & A, Geometry * geom, GMRESData<float> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact, bool init_vect);
 

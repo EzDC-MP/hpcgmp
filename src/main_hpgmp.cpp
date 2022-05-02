@@ -53,24 +53,23 @@ using std::endl;
 #include "Geometry.hpp"
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
-#include "CGData.hpp"
+#include "GMRESData.hpp"
 #include "TestNorms.hpp"
 
 #include "GMRES.hpp"
-#include "TestGMRES.hpp"
+#include "BenchGMRES.hpp"
 
 typedef double scalar_type;
 typedef Vector<scalar_type> Vector_type;
 typedef SparseMatrix<scalar_type> SparseMatrix_type;
-typedef CGData<scalar_type> CGData_type;
-typedef TestCGData<scalar_type> TestCGData_type;
+typedef GMRESData<scalar_type> GMRESData_type;
+typedef TestGMRESData<scalar_type> TestGMRESData_type;
 typedef TestNormsData<scalar_type> TestNormsData_type;
 
 typedef float scalar_type2;
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
-typedef CGData<scalar_type2> CGData_type2;
-typedef TestCGData<scalar_type2> TestCGData_type2;
+typedef GMRESData<scalar_type2> GMRESData_type2;
 typedef TestNormsData<scalar_type2> TestNormsData_type2;
 
 
@@ -145,7 +144,7 @@ int main(int argc, char * argv[]) {
 
   // Setup the problem
   SparseMatrix_type A;
-  CGData_type data;//TODO What is this for?
+  GMRESData_type data;//TODO What is this for?
 
   bool init_vect = true;
   Vector_type b, x, xexact;
@@ -203,17 +202,19 @@ int main(int argc, char * argv[]) {
 #endif
 
 
-  ///////////////////////////////
-  // Reference GMRES Timing Phase //
-  ///////////////////////////////
+  TestGMRESData_type test_data;
+  test_data.times = NULL;
+  test_data.flops = NULL;
 
+  ////////////////////////////////////////////////////////////////////////////////////
+  // Validation Phase: make sure optimized version converges to specified tolerance //
+  ////////////////////////////////////////////////////////////////////////////////////
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
   int global_failure = 0; // assume all is well: no failures
 
   int niters = 0;
-  int totalNiters_ref = 0;
   scalar_type normr = 0.0;
   scalar_type normr0 = 0.0;
   int restart_length = 50;
@@ -221,17 +222,13 @@ int main(int argc, char * argv[]) {
   numberOfCalls = 1; // Only need to run the residual reduction analysis once
 
   // Compute the residual reduction for the natural ordering and reference kernels
-  double flops = 0.0;
   std::vector< double > ref_times(9,0.0);
-  scalar_type tolerance = 0.0; // Set tolerance to zero to make all runs do maxIters iterations
-  int err_count = 0;
-  for (int i=0; i< numberOfCalls; ++i) {
+  scalar_type tolerance = 1e-9;
+  {
     ZeroVector(x);
-    ierr = GMRES(A, data, b, x, restart_length, refMaxIters, tolerance, niters, normr, normr0, &ref_times[0], &flops, true);
-    if (ierr) ++err_count; // count the number of errors in GMRES.
-    totalNiters_ref += niters;
+    ierr = GMRES(A, data, b, x, restart_length, refMaxIters, tolerance, niters, normr, normr0, true, false, test_data);
   }
-  if (rank == 0 && err_count) HPCG_fout << err_count << " error(s) in call(s) to reference GMRES." << endl;
+  if (rank == 0 && normr > tolerance) HPCG_fout << " GMRES did not converege: normr = " << normr << "(tol = " << tolerance << ")" << endl;
   scalar_type refTolerance = normr / normr0;
 
   // Call user-tunable set up function.
@@ -248,39 +245,12 @@ int main(int argc, char * argv[]) {
 #endif
 
 
-  //////////////////////////////
-  // Validation Testing Phase //
-  //////////////////////////////
-  TestCGData_type testcg_data;
-  //
-//Don't need this anymore.  both double and MP GMRES currently tested in next call. 
-/*
-#ifdef HPCG_DEBUG
-  t1 = mytimer();
-  if (rank==0) HPCG_fout << endl << "Running Uniform-precision Test" << endl;
-#endif
-  testcg_data.count_pass = testcg_data.count_fail = 0;
-  TestGMRES(A, data, b, x, testcg_data);
-
-  //TODO: Replace with a test of non-symm MG Gauss-Seidel smooother.  Pass data as arg to ReportResults.
-  //TestSymmetryData_type testsymmetry_data;
-  //TestSymmetry(A, b, xexact, testsymmetry_data);
-
-#ifdef HPCG_DEBUG
-  if (rank==0) HPCG_fout << "Total validation (TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
-#endif
-
-#ifdef HPCG_DEBUG
-  t1 = mytimer();
-#endif
-*/ 
-
-/////////////////////////////////////////
-// Mixed precision test phase from Ichi:
-// ////////////////////////////////////
+  //////////////////////////////////////////////////////////
+  // Benchmark phase: run optimized version for benchmark //
+  //////////////////////////////////////////////////////////
   init_vect = false;
   SparseMatrix_type2 A2;
-  CGData_type2 data2;
+  GMRESData_type2 data2;
   SetupProblem(numberOfMgLevels, A2, geom, data2, &b, &x, &xexact, init_vect);
   setup_time = mytimer() - setup_time; // Capture total time of setup
 
@@ -288,18 +258,16 @@ int main(int argc, char * argv[]) {
   OptimizeProblem(A2, data, b, x, xexact);
   t7 = mytimer() - t7;
 
-  testcg_data.count_pass = testcg_data.count_fail = 0;
+  test_data.count_pass = test_data.count_fail = 0;
   if (A.geom->rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
   }
 
-  bool test_diagonal_exaggeration = true;
-  bool test_noprecond = true;
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
-  TestGMRES(A, A2, data, data2, b, x, testcg_data, test_diagonal_exaggeration, test_noprecond);
+  BenchGMRES(A, A2, data, data2, b, x, test_data);
 #ifdef HPCG_DEBUG
   if (rank==0) HPCG_fout << "Total validation (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
 #endif
@@ -307,33 +275,22 @@ int main(int argc, char * argv[]) {
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
-  //////////////////////////////
-  // Optimized CG Setup Phase //
-  //////////////////////////////
-  int optMaxIters = 10*refMaxIters;
-  ///////////////////////////////
-  // Optimized CG Timing Phase //
-  ///////////////////////////////
-  int numberOfCgSets = 1; //TODO change this. 
   
-  TestNormsData_type testnorms_data;
-
   ////////////////////
   // Report Results //
   ////////////////////
 
   // Report results to YAML file
-  ReportResults(A, numberOfMgLevels, numberOfCgSets, refMaxIters, optMaxIters, &times[0], testcg_data, testnorms_data, global_failure, quickPath);
+  ReportResults(A, numberOfMgLevels, &times[0], test_data, global_failure, quickPath);
 
   // Clean up
   DeleteMatrix(A); // This delete will recursively delete all coarse grid data
-  DeleteCGData(data);
+  DeleteGMRESData(data);
   DeleteVector(x);
   DeleteVector(b);
   DeleteVector(xexact);
   DeleteVector(x_overlap);
   DeleteVector(b_computed);
-  //delete [] testnorms_data.values;
 
   // Finish up
   HPCG_Finalize();
