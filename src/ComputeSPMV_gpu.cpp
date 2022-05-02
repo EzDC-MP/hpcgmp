@@ -66,9 +66,17 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   assert(y.localLength>=A.localNumberOfRows);
   typedef typename SparseMatrix_type::scalar_type scalar_type;
 
+  const scalar_type one  (1.0);
+  const scalar_type zero (0.0);
+  const local_int_t ncol = A.localNumberOfColumns;
+  const global_int_t nnz = A.localNumberOfNonzeros;
+
   const local_int_t nrow = A.localNumberOfRows;
   scalar_type * const xv = x.values;
   scalar_type * const yv = y.values;
+
+  scalar_type * const d_xv = x.d_values;
+  scalar_type * const d_yv = y.d_values;
 
 #ifndef HPCG_NO_MPI
   if (A.geom->size > 1) {
@@ -113,14 +121,6 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
     yv[i] = sum;
   }
 #endif
-
-  const scalar_type one  (1.0);
-  const scalar_type zero (0.0);
-  const local_int_t ncol = A.localNumberOfColumns;
-  const global_int_t nnz = A.localNumberOfNonzeros;
-
-  scalar_type * const d_xv = x.d_values;
-  scalar_type * const d_yv = y.d_values;
 
   #if defined(HPCG_WITH_CUDA)
   if (std::is_same<scalar_type, double>::value) {

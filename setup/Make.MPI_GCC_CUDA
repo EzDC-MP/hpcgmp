@@ -102,13 +102,15 @@ HPCG_LIBS     = -L${CUDA_DIR}/lib64 -lcublas -lcusparse -lcudart -lcudadevrt
 # -DHPCG_DEBUG       	Define to enable debugging output
 # -DHPCG_DETAILED_DEBUG Define to enable very detailed debugging output
 #
+# -DHPCG_USE_FENCE      Synch CUDA kernel for timing
+#
 # By default HPCG will:
 #    *) Build with MPI enabled.
 #    *) Build with OpenMP enabled.
 #    *) Not generate debugging output.
 #
 HPCG_OPTS     = -DHPCG_WITH_CUDA -DHPCG_DEBUG
-HPCG_OPTS     = -DHPCG_WITH_CUDA
+HPCG_OPTS     = -DHPCG_WITH_CUDA -DHPCG_USE_FENCE
 #
 # ----------------------------------------------------------------------
 #

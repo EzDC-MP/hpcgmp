@@ -205,7 +205,7 @@ int ComputeWAXPBY_ref(const local_int_t n,
     free(tv);
     #endif
   } else {
-    HPCG_fout << " Mixed-precision WAXPBY not supported" << std::endl;
+    HPCG_vout << " Mixed-precision WAXPBY not supported" << std::endl;
 
     // copy Input vectors to Host
     #if defined(HPCG_WITH_CUDA)

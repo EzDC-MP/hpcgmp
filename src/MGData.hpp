@@ -84,8 +84,8 @@ inline void InitializeMGData(local_int_t * f2cOperator,
                              typename MGData_type::Vector_type * xc,
                              typename MGData_type::Vector_type * Axf,
                              MGData_type & data) {
-  data.numberOfPresmootherSteps = 2;
-  data.numberOfPostsmootherSteps = 2;
+  data.numberOfPresmootherSteps = 1;
+  data.numberOfPostsmootherSteps = 1;
   data.f2cOperator = f2cOperator; // Space for injection operator
   data.rc = rc;
   data.xc = xc;

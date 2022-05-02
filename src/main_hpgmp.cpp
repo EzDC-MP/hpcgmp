@@ -164,7 +164,8 @@ int main(int argc, char * argv[]) {
   t7 = mytimer() - t7;
   times[7] = t7;
 
-  if (A.geom->rank==0) {
+  bool verbose = false;
+  if (verbose && A.geom->rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
   }
@@ -217,8 +218,8 @@ int main(int argc, char * argv[]) {
   int niters = 0;
   scalar_type normr = 0.0;
   scalar_type normr0 = 0.0;
-  int restart_length = 50;
-  int refMaxIters = 50;
+  int restart_length = 30;
+  int refMaxIters = 3000;
   numberOfCalls = 1; // Only need to run the residual reduction analysis once
 
   // Compute the residual reduction for the natural ordering and reference kernels
@@ -226,7 +227,7 @@ int main(int argc, char * argv[]) {
   scalar_type tolerance = 1e-9;
   {
     ZeroVector(x);
-    ierr = GMRES(A, data, b, x, restart_length, refMaxIters, tolerance, niters, normr, normr0, true, false, test_data);
+    ierr = GMRES(A, data, b, x, restart_length, refMaxIters, tolerance, niters, normr, normr0, true, verbose, test_data);
   }
   if (rank == 0 && normr > tolerance) HPCG_fout << " GMRES did not converege: normr = " << normr << "(tol = " << tolerance << ")" << endl;
   scalar_type refTolerance = normr / normr0;
@@ -259,7 +260,7 @@ int main(int argc, char * argv[]) {
   t7 = mytimer() - t7;
 
   test_data.count_pass = test_data.count_fail = 0;
-  if (A.geom->rank==0) {
+  if (verbose && A.geom->rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
   }
@@ -267,7 +268,7 @@ int main(int argc, char * argv[]) {
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
-  BenchGMRES(A, A2, data, data2, b, x, test_data);
+  BenchGMRES(A, A2, data, data2, b, x, test_data, tolerance, verbose);
 #ifdef HPCG_DEBUG
   if (rank==0) HPCG_fout << "Total validation (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
 #endif

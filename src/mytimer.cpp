@@ -53,3 +53,17 @@ double mytimer(void) {
 }
 
 #endif
+
+#if defined(HPCG_USE_FENCE)
+ #if defined(HPCG_WITH_CUDA)
+  #include <cuda_runtime.h>
+  #include "cublas_v2.h"
+  void fence() {
+    cudaDeviceSynchronize();
+  }
+ #endif
+#else
+ void fence() {}
+#endif
+
+

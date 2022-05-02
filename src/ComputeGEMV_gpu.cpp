@@ -129,7 +129,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
     }
     #endif
   } else {
-    HPCG_fout << " Mixed-precision GEMV not supported" << std::endl;
+    HPCG_vout << " Mixed-precision GEMV not supported" << std::endl;
 
     // Copy input matrix A from HOST CPU
     #if defined(HPCG_WITH_CUDA)

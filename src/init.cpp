@@ -39,6 +39,7 @@ const char* NULLDEVICE="/dev/null";
 #include "ReadHpcgDat.hpp"
 
 std::ofstream HPCG_fout; //!< output file stream for logging activities during HPCG run
+std::ofstream HPCG_vout; //!< output file stream for verbose logging activities during HPCG run
 
 static int
 startswith(const char * s, const char * prefix) {
@@ -154,6 +155,11 @@ HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params) {
 
   if (0 == params.comm_rank) {
     HPCG_fout.open(fname);
+    #if defined(HPCG_DETAILED_PRINT)
+    HPCG_vout.open(fname);
+    #else
+    HPCG_vout.open(NULLDEVICE);
+    #endif
   } else {
 #if defined(HPCG_DEBUG) || defined(HPCG_DETAILED_DEBUG)
     sprintf( fname, "hpgmp%04d%02d%02dT%02d%02d%02d_%d.txt",

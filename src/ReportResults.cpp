@@ -260,24 +260,23 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
 
     doc.add("########## Iterations Summary  ##########","");
     doc.add("Iteration Count Information","");
-    if (!global_failure)
-      doc.get("Iteration Count Information")->add("Result", "PASSED");
-    else
-      doc.get("Iteration Count Information")->add("Result", "FAILED");
-    int refMaxIters = 0; 
-    int optMaxIters = 0; 
-    doc.get("Iteration Count Information")->add("Total number of reference iterations", refMaxIters);
-    doc.get("Iteration Count Information")->add("Total number of optimized iterations", optMaxIters);
+    doc.get("Iteration Count Information")->add("Iteration results with # of PASSES", test_data.count_pass);
+    doc.get("Iteration Count Information")->add("Iteration results with # of FAILS",  test_data.count_fail);
+    int refMaxIters = test_data.ref_iters; 
+    int optMaxIters = test_data.niters_max;
+    doc.get("Iteration Count Information")->add("Number of reference iterations", refMaxIters);
+    doc.get("Iteration Count Information")->add("Max number of optimized iterations", optMaxIters);
 
     doc.add("########## Performance Summary (times in sec) ##########","");
 
     doc.add("Benchmark Time Summary","");
     doc.get("Benchmark Time Summary")->add("Optimization phase",times[7]);
-    doc.get("Benchmark Time Summary")->add("DDOT",  test_data.times[1]);
-    doc.get("Benchmark Time Summary")->add("WAXPBY",test_data.times[2]);
-    doc.get("Benchmark Time Summary")->add("SpMV",  test_data.times[4]);
-    doc.get("Benchmark Time Summary")->add("MG",    test_data.times[5]);
-    doc.get("Benchmark Time Summary")->add("Total", test_data.times[0]);
+    doc.get("Benchmark Time Summary")->add("Ortho",  test_data.times[3]);
+    doc.get("Benchmark Time Summary")->add(" DDOT",  test_data.times[1]);
+    doc.get("Benchmark Time Summary")->add(" WAXPBY",test_data.times[2]);
+    doc.get("Benchmark Time Summary")->add("SpMV",   test_data.times[4]);
+    doc.get("Benchmark Time Summary")->add("MG",     test_data.times[6]);
+    doc.get("Benchmark Time Summary")->add("Total",  test_data.times[0]);
 
     doc.add("Floating Point Operations Summary","");
     doc.get("Floating Point Operations Summary")->add("Raw Ortho",test_data.flops[3]);
@@ -296,10 +295,11 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
     doc.add("GFLOP/s Summary","");
     doc.get("GFLOP/s Summary")->add("Raw Orho", test_data.flops[3]/test_data.times[3]/1.0E9);
     doc.get("GFLOP/s Summary")->add("Raw SpMV", test_data.flops[2]/test_data.times[4]/1.0E9);
-    doc.get("GFLOP/s Summary")->add("Raw MG",   test_data.flops[1]/test_data.times[5]/1.0E9);
+    doc.get("GFLOP/s Summary")->add("Raw MG",   test_data.flops[1]/test_data.times[6]/1.0E9);
     doc.get("GFLOP/s Summary")->add("Raw Total",test_data.flops[0]/test_data.times[0]/1.0E9);
     // This final GFLOP/s rating includes the overhead of problem setup and optimizing the data structures vs ten sets of 50 iterations of CG
-    double totalGflops   = test_data.flops[0]/test_data.times[0]/1.0E9;
+    double totalGflops = (test_data.numOfCalls * test_data.refTotalFlops)/test_data.times[0]/1.0E9;
+    doc.get("GFLOP/s Summary")->add("Total (using FLOPs from reference run)",totalGflops);
 
     doc.add("User Optimization Overheads","");
     doc.get("User Optimization Overheads")->add("Optimization phase time (sec)", (times[7]));
@@ -324,11 +324,11 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
       if (!A.isWaxpbyOptimized) {
         doc.get("Final Summary")->add("Reference version of ComputeWAXPBY used","Performance results are most likely suboptimal");
       }
-      if (times[0]>=minOfficialTime) {
+      if (test_data.times[0]>=minOfficialTime) {
         doc.get("Final Summary")->add("Please upload results from the YAML file contents to","http://hpcg-benchmark.org");
       }
       else {
-        doc.get("Final Summary")->add("Results are valid but execution time (sec) is",times[0]);
+        doc.get("Final Summary")->add("Results are valid but execution time (sec) is",test_data.times[0]);
         if (quickPath) {
           doc.get("Final Summary")->add("You have selected the QuickPath option", "Results are official for legacy installed systems with confirmation from the HPCG Benchmark leaders.");
           doc.get("Final Summary")->add("After confirmation please upload results from the YAML file contents to","http://hpcg-benchmark.org");
