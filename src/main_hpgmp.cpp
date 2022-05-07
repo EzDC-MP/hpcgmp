@@ -56,7 +56,7 @@ using std::endl;
 #include "GMRESData.hpp"
 #include "TestNorms.hpp"
 
-#include "GMRES.hpp"
+#include "ValidGMRES.hpp"
 #include "BenchGMRES.hpp"
 
 typedef double scalar_type;
@@ -164,7 +164,7 @@ int main(int argc, char * argv[]) {
   t7 = mytimer() - t7;
   times[7] = t7;
 
-  bool verbose = false;
+  bool verbose = true; ///false;
   if (verbose && A.geom->rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
@@ -207,31 +207,14 @@ int main(int argc, char * argv[]) {
   test_data.times = NULL;
   test_data.flops = NULL;
 
-  ////////////////////////////////////////////////////////////////////////////////////
-  // Validation Phase: make sure optimized version converges to specified tolerance //
-  ////////////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  // Validation Phase: make sure optimized version converges to specified //
+  //////////////////////////////////////////////////////////////////////////
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
-  int global_failure = 0; // assume all is well: no failures
 
-  int niters = 0;
-  scalar_type normr = 0.0;
-  scalar_type normr0 = 0.0;
-  int restart_length = 30;
-  int refMaxIters = 3000;
-  numberOfCalls = 1; // Only need to run the residual reduction analysis once
-
-  // Compute the residual reduction for the natural ordering and reference kernels
-  std::vector< double > ref_times(9,0.0);
-  scalar_type tolerance = 1e-9;
-  {
-    ZeroVector(x);
-    ierr = GMRES(A, data, b, x, restart_length, refMaxIters, tolerance, niters, normr, normr0, true, verbose, test_data);
-  }
-  if (rank == 0 && normr > tolerance) HPCG_fout << " GMRES did not converege: normr = " << normr << "(tol = " << tolerance << ")" << endl;
-  scalar_type refTolerance = normr / normr0;
-
+  //////////////////////////////////////////////////////////
   // Call user-tunable set up function.
   t7 = mytimer();
   OptimizeProblem(A, data, b, x, xexact);
@@ -241,14 +224,8 @@ int main(int argc, char * argv[]) {
   if (rank==0) HPCG_fout << "Total problem setup time in main (sec) = " << mytimer() - t1 << endl;
 #endif
 
-#ifdef HPCG_DETAILED_DEBUG
-  if (geom->size == 1) WriteProblem(*geom, A, b, x, xexact);
-#endif
-
-
   //////////////////////////////////////////////////////////
-  // Benchmark phase: run optimized version for benchmark //
-  //////////////////////////////////////////////////////////
+  // Setup single-precision A 
   init_vect = false;
   SparseMatrix_type2 A2;
   GMRESData_type2 data2;
@@ -259,23 +236,34 @@ int main(int argc, char * argv[]) {
   OptimizeProblem(A2, data, b, x, xexact);
   t7 = mytimer() - t7;
 
-  test_data.count_pass = test_data.count_fail = 0;
   if (verbose && A.geom->rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
   }
 
+  //////////////////////
+  // Validation phase //
+  //////////////////////
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
-  BenchGMRES(A, A2, data, data2, b, x, test_data, tolerance, verbose);
+  int global_failure = ValidGMRES(A, A2, data, data2, b, x, test_data, verbose);
 #ifdef HPCG_DEBUG
   if (rank==0) HPCG_fout << "Total validation (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
 #endif
 
+
+  /////////////////////
+  // Benchmark phase //
+  /////////////////////
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
+  BenchGMRES(A, A2, data, data2, b, x, test_data, verbose);
+#ifdef HPCG_DEBUG
+  if (rank==0) HPCG_fout << "Total benchmark (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
+#endif
+
   
   ////////////////////
   // Report Results //

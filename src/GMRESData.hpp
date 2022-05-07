@@ -73,20 +73,19 @@ inline void DeleteGMRESData(GMRESData_type & data) {
 template<class SC>
 class TestGMRESData {
 public:
-  int ref_iters;        //!< number of reference iterations
-  double refTotalFlops; //!< Total number of flops from reference run
+  int restart_length;   //!< restart length
   SC tolerance;         //!< tolerance = reference residual norm 
 
-  int numOfCalls;     //!< number of calls
-  int restart_length; //!< restart length
-  int count_pass;     //!< number of succesful tests
-  int count_fail;     //!< number of succesful tests
-  int niters_max;     //!< max number of iterations
-  int *niters;        //!< number of iterations
-  double *times;      //!< total, dot, axpy, ortho, spmv, reduce, precond
-  double *flops;      //!< total, gmg, spmv, ortho
-  SC *normr0;         //!< initial residual norm
-  SC *normr;          //!< residual norm achieved during test CG iterations
+  // from validation step
+  int refNumIters;      //!< number of reference iterations
+  int optNumIters;      //!< number of optimized iterations
+
+  // from benchmark step
+  int numOfCalls;       //!< number of calls
+  double optTotalFlops; //
+  double optTotalTime;  //
+  double *flops;        //!< total, dot, axpy, ortho, spmv, reduce, precond
+  double *times;        //!< total, dot, axpy, ortho, spmv, reduce, precond
 };
 
 #endif // CGDATA_HPP

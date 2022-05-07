@@ -260,16 +260,14 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
 
     doc.add("########## Iterations Summary  ##########","");
     doc.add("Iteration Count Information","");
-    doc.get("Iteration Count Information")->add("Iteration results with # of PASSES", test_data.count_pass);
-    doc.get("Iteration Count Information")->add("Iteration results with # of FAILS",  test_data.count_fail);
-    int refMaxIters = test_data.ref_iters; 
-    int optMaxIters = test_data.niters_max;
-    doc.get("Iteration Count Information")->add("Number of reference iterations", refMaxIters);
-    doc.get("Iteration Count Information")->add("Max number of optimized iterations", optMaxIters);
+    doc.get("Iteration Count Information")->add("Number of reference iterations (validation)", test_data.refNumIters);
+    doc.get("Iteration Count Information")->add("Number of optimized iterations (validation)", test_data.optNumIters);
 
     doc.add("########## Performance Summary (times in sec) ##########","");
 
     doc.add("Benchmark Time Summary","");
+    //doc.get("Iteration Count Information")->add("Iteration results with # of PASSES", test_data.count_pass);
+    //doc.get("Iteration Count Information")->add("Iteration results with # of FAILS",  test_data.count_fail);
     doc.get("Benchmark Time Summary")->add("Optimization phase",times[7]);
     doc.get("Benchmark Time Summary")->add("Ortho",  test_data.times[3]);
     doc.get("Benchmark Time Summary")->add(" DDOT",  test_data.times[1]);
@@ -298,15 +296,19 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
     doc.get("GFLOP/s Summary")->add("Raw MG",   test_data.flops[1]/test_data.times[6]/1.0E9);
     doc.get("GFLOP/s Summary")->add("Raw Total",test_data.flops[0]/test_data.times[0]/1.0E9);
     // This final GFLOP/s rating includes the overhead of problem setup and optimizing the data structures vs ten sets of 50 iterations of CG
-    double totalGflops = (test_data.numOfCalls * test_data.refTotalFlops)/test_data.times[0]/1.0E9;
-    doc.get("GFLOP/s Summary")->add("Total (using FLOPs from reference run)",totalGflops);
+    double penalGflops = ((double)test_data.optNumIters) / ((double)test_data.refNumIters);
+    if (penalGflops < 1.0) {
+      penalGflops = 1.0;
+    }
+    double totalGflops = (test_data.flops[0]/test_data.times[0]/1.0E9) / penalGflops;
+    doc.get("GFLOP/s Summary")->add("Total for benchmark",totalGflops);
 
     doc.add("User Optimization Overheads","");
     doc.get("User Optimization Overheads")->add("Optimization phase time (sec)", (times[7]));
     doc.get("User Optimization Overheads")->add("Optimization phase time vs reference SpMV+MG time", times[7]/times[8]);
 
     doc.add("Final Summary","");
-    bool isValidRun = (test_data.count_fail==0) && (!global_failure);//&& (testsymmetry_data.count_fail==0) 
+    bool isValidRun = (!global_failure);//&& (testsymmetry_data.count_fail==0) 
     if (isValidRun) {
       doc.get("Final Summary")->add("HPGMP result is VALID with a GFLOP/s rating of", totalGflops);
       if (!A.isDotProductOptimized) {

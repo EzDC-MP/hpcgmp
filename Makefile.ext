@@ -41,6 +41,7 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/finalize.o \
             \
 	    src/TestGMRES.o \
+	    src/ValidGMRES.o \
 	    src/BenchGMRES.o \
 	    src/GMRES.o \
 	    src/GMRES_IR.o \
@@ -210,6 +211,9 @@ src/GMRES_IR.o: HPCG_SRC_PATH/src/GMRES_IR.cpp HPCG_SRC_PATH/src/GMRES_IR.hpp $(
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/TestGMRES.o: HPCG_SRC_PATH/src/TestGMRES.cpp HPCG_SRC_PATH/src/TestGMRES.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/ValidGMRES.o: HPCG_SRC_PATH/src/ValidGMRES.cpp HPCG_SRC_PATH/src/ValidGMRES.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/BenchGMRES.o: HPCG_SRC_PATH/src/BenchGMRES.cpp HPCG_SRC_PATH/src/BenchGMRES.hpp $(PRIMARY_HEADERS)

@@ -55,7 +55,7 @@ using std::endl;
 
 template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESSData_type, class GMRESSData_type2, class Vector_type, class TestGMRESSData_type>
 int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type & data, GMRESSData_type2 & data_lo, Vector_type & b, Vector_type & x,
-               TestGMRESSData_type & test_data, double tolerance, bool verbose) {
+               TestGMRESSData_type & test_data, bool verbose) {
 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
   typedef typename SparseMatrix_type2::scalar_type scalar_type2;
@@ -70,15 +70,12 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
   int niters = 0;
   scalar_type normr (0.0);
   scalar_type normr0 (0.0);
-  int restart_length = 30;
   int maxIters = 300;
-  // Use non-zero tolerance (one used for validation) to avoid iterating aftere convergence
-  // (using tol=zero with a small number of MPI leads to GMRES continue iterating after convergence.
-  //  optimized GMRES for Phase 2 converges a fewer number of iterations to converge, awarding it
-  //  using extra flops from reference implementation)
-  //scalar_type tolerance = 0.0;
+  scalar_type tolerance = 0.0;
+  int restart_length = test_data.restart_length;
   bool precond = true;
 
+  #if 0
   int num_flops = 4;
   test_data.flops = (double*)malloc(num_flops * sizeof(double));
   for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
@@ -99,25 +96,19 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
       HPCG_fout << " (n = " << A.totalNumberOfRows << ")" << endl;
       HPCG_fout << " Time/itr " << time_solve / niters << endl;
     }
-    test_data.ref_iters = niters;
-    test_data.tolerance = normr;
   }
+  #endif
 
   // Phase 2: benchmark
-  // Run optimized GMRES (here, we are calling GMRES_IR), using the residual norm obtained by reference GMRES at Phase 1
-  tolerance = normr;
+  // Run optimized GMRES (here, we are calling GMRES_IR) for a fixed number of iterations
   int numberOfGmresCalls = 10;
-  test_data.normr0 = (scalar_type*)malloc(numberOfGmresCalls * sizeof(scalar_type));
-  test_data.normr  = (scalar_type*)malloc(numberOfGmresCalls * sizeof(scalar_type));
-  test_data.niters = (int*)malloc(numberOfGmresCalls * sizeof(int));
-  test_data.niters_max = 0;
-  test_data.count_pass = 0;
-  test_data.count_fail = 0;
-
+  double time_solve = 0.0;
+  int num_flops = 4;
   int num_times = 7;
+  test_data.flops = (double*)malloc(num_flops * sizeof(double));
   test_data.times = (double*)malloc(num_times * sizeof(double));
-  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
   for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
+  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
   {
     for (int i=0; i< numberOfGmresCalls; ++i) {
       ZeroVector(x); // Zero out x
@@ -125,19 +116,9 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
       double flops = test_data.flops[0];
       double time_tic = mytimer();
       int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
-      double time_solve = mytimer() - time_tic;
-      flops = test_data.flops[0] - flops;
+      time_solve += (mytimer() - time_tic);
 
-      test_data.normr0[i] = normr0;
-      test_data.normr[i] = normr;
-      test_data.niters[i] = niters;
       if (ierr) HPCG_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
-      if (normr/normr0 <= tolerance) {
-        ++test_data.count_pass;
-      } else {
-        ++test_data.count_fail;
-      }
-      if (niters > test_data.niters_max) test_data.niters_max = niters;
       if (verbose && A.geom->rank==0) {
         HPCG_fout << "Call [" << i << "] Number of GMRES-IR Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
         HPCG_fout << " Time     " << time_solve << " seconds." << endl;
@@ -146,6 +127,8 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
         HPCG_fout << " Time/itr " << time_solve / niters << endl;
       }
     }
+    test_data.optTotalFlops = test_data.flops[0];
+    test_data.optTotalTime = time_solve;
     test_data.numOfCalls = numberOfGmresCalls;
   }
 
@@ -154,8 +137,8 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
 }
 
 template<class SparseMatrix_type, class GMRESSData_type, class Vector_type, class TestGMRESSData_type>
-int BenchGMRES(SparseMatrix_type & A, GMRESSData_type & data, Vector_type & b, Vector_type & x, TestGMRESSData_type & test_data, double tolerance, bool verbose) {
-  return BenchGMRES(A, A, data, data, b, x, test_data, tolerance, verbose);
+int BenchGMRES(SparseMatrix_type & A, GMRESSData_type & data, Vector_type & b, Vector_type & x, TestGMRESSData_type & test_data, bool verbose) {
+  return BenchGMRES(A, A, data, data, b, x, test_data, verbose);
 }
 
 
@@ -166,25 +149,25 @@ int BenchGMRES(SparseMatrix_type & A, GMRESSData_type & data, Vector_type & b, V
 // uniform
 template
 int BenchGMRES< SparseMatrix<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, double, bool);
+  (SparseMatrix<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool);
 
 template
 int BenchGMRES< SparseMatrix<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
-  (SparseMatrix<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, TestGMRESData<float>&, double, bool);
+  (SparseMatrix<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, TestGMRESData<float>&, bool);
 
 
 
 // uniform version
 template
 int BenchGMRES< SparseMatrix<double>, SparseMatrix<double>, GMRESData<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, SparseMatrix<double>&, GMRESData<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, double, bool);
+  (SparseMatrix<double>&, SparseMatrix<double>&, GMRESData<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool);
 
 template
 int BenchGMRES< SparseMatrix<float>, SparseMatrix<float>, GMRESData<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
-  (SparseMatrix<float>&, SparseMatrix<float>&, GMRESData<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, TestGMRESData<float>&, double, bool);
+  (SparseMatrix<float>&, SparseMatrix<float>&, GMRESData<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, TestGMRESData<float>&, bool);
 
 // mixed version
 template
 int BenchGMRES< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRESData<float>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, SparseMatrix<float>&, GMRESData<double>&, GMRESData<float>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, double, bool);
+  (SparseMatrix<double>&, SparseMatrix<float>&, GMRESData<double>&, GMRESData<float>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool);
 

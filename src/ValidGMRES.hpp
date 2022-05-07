@@ -13,13 +13,13 @@
 //@HEADER
 
 /*!
- @file BenchGMRES.hpp
+ @file ValidGMRES.hpp
 
  HPGMRES data structure
  */
 
-#ifndef BENCHGMRES_HPP
-#define BENCHGMRES_HPP
+#ifndef VALIDGMRES_HPP
+#define VALIDGMRES_HPP
 
 #include "hpgmp.hpp"
 #include "SparseMatrix.hpp"
@@ -27,11 +27,11 @@
 #include "GMRESData.hpp"
 
 template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESData_type, class GMRESData_type2, class Vector_type, class TestGMRESData_type>
-extern int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type & data, GMRESData_type2 & data_lo, Vector_type & b, Vector_type & x,
+extern int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type & data, GMRESData_type2 & data_lo, Vector_type & b, Vector_type & x,
                       TestGMRESData_type & testcg_data, bool verbose);
 
 template<class SparseMatrix_type, class GMRESData_type, class Vector_type, class TestGMRESData_type>
-extern int BenchGMRES(SparseMatrix_type & A, GMRESData_type & data, Vector_type & b, Vector_type & x, TestGMRESData_type & testcg_data, bool verbose);
+extern int ValidGMRES(SparseMatrix_type & A, GMRESData_type & data, Vector_type & b, Vector_type & x, TestGMRESData_type & testcg_data, bool verbose);
 
 #endif  // BENCHGMRES_HPP
 

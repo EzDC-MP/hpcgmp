@@ -70,14 +70,26 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
   double t_begin = mytimer();  // Start timing right away
   double t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0;
 
+  local_int_t nrow = A.localNumberOfRows;
+  local_int_t Nrow = A.totalNumberOfRows;
+  int print_freq = 1;
+  if (verbose && A.geom->rank==0) {
+    HPCG_fout << std::endl << " Running GMRES(" << restart_length
+                           << ") with max-iters = " << max_iter
+                           << ", tol = " << tolerance
+                           << " and restart = " << restart_length
+                           << (doPreconditioning ? " with precond" : " without precond")
+                           << ", nrow = " << nrow 
+                           << " on ( " << A.geom->npx << " x " << A.geom->npy << " x " << A.geom->npz
+                           << " ) MPI grid "
+                           << std::endl;
+  }
   normr = 0.0;
   scalar_type rtz = zero, oldrtz = zero, alpha = zero, beta = zero, pAp = zero;
 
 //#ifndef HPCG_NO_MPI
 //  double t6 = 0.0;
 //#endif
-  local_int_t nrow = A.localNumberOfRows;
-  local_int_t Nrow = A.totalNumberOfRows;
   Vector_type & r = data.r; // Residual vector
   Vector_type & z = data.z; // Preconditioned residual vector
   Vector_type & p = data.p; // Direction vector (in MPI mode ncol>=nrow)
@@ -102,17 +114,6 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
 
   if (!doPreconditioning && A.geom->rank==0) HPCG_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
 
-  int print_freq = 1;
-  if (verbose && A.geom->rank==0) {
-    HPCG_fout << std::endl << " Running GMRES(" << restart_length
-                           << ") with max-iters = " << max_iter
-                           << " and tol = " << tolerance
-                           << (doPreconditioning ? " with precond " : " without precond ")
-                           << ", nrow = " << nrow 
-                           << " on ( " << A.geom->npx << " x " << A.geom->npy << " x " << A.geom->npz
-                           << " ) MPI grid "
-                           << std::endl;
-  }
   double flops = 0.0;
   double flops_gmg  = 0.0;
   double flops_spmv = 0.0;

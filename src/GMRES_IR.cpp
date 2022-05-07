@@ -120,8 +120,9 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   if (verbose && A.geom->rank==0) {
     HPCG_fout << std::endl << " Running GMRES_IR(" << restart_length
                            << ") with max-iters = " << max_iter
-                           << " and tol = " << tolerance
-                           << (doPreconditioning ? " with precond " : " without precond ")
+                           << ", tol = " << tolerance
+                           << " and restart = " << restart_length
+                           << (doPreconditioning ? " with precond" : " without precond")
                            << ", nrow = " << nrow << std::endl;
   }
   double flops = 0.0;
