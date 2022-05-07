@@ -261,7 +261,9 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
     doc.add("########## Iterations Summary  ##########","");
     doc.add("Iteration Count Information","");
     doc.get("Iteration Count Information")->add("Number of reference iterations (validation)", test_data.refNumIters);
+    doc.get("Iteration Count Information")->add("Residdual norm from reference iterations (validation)", test_data.refResNorm/test_data.refResNorm0);
     doc.get("Iteration Count Information")->add("Number of optimized iterations (validation)", test_data.optNumIters);
+    doc.get("Iteration Count Information")->add("Residdual norm from optimized iterations (validation)", test_data.optResNorm/test_data.optResNorm0);
 
     doc.add("########## Performance Summary (times in sec) ##########","");
 

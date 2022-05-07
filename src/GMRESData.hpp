@@ -77,7 +77,11 @@ public:
   SC tolerance;         //!< tolerance = reference residual norm 
 
   // from validation step
+  double refResNorm0;   //
+  double refResNorm;    //
   int refNumIters;      //!< number of reference iterations
+  double optResNorm0;   //
+  double optResNorm;    //
   int optNumIters;      //!< number of optimized iterations
 
   // from benchmark step

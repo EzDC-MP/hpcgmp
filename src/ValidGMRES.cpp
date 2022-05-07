@@ -69,8 +69,7 @@ int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
   test_data.tolerance = tolerance;
   test_data.restart_length = restart_length;
 
-  //if (A.geom->rank == 0 && verbose) 
-  {
+  if (A.geom->rank == 0 && verbose) {
     HPCG_fout << endl << " >> In Validate GMRES( tol = " << tolerance << " and restart = " << restart_length << ") <<" << endl;
   }
 
@@ -83,6 +82,8 @@ int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
     ZeroVector(x);
     int ierr = GMRES(A, data, b, x, restart_length, MaxIters, tolerance, refNumIters, refResNorm, refResNorm0, true, verbose, test_data);
     test_data.refNumIters = refNumIters;
+    test_data.refResNorm = refResNorm;
+    test_data.refResNorm0 = refResNorm0;
   }
   if (A.geom->rank == 0 && refResNorm/refResNorm0 > tolerance) {
     HPCG_fout << " ref GMRES did not converege: normr = " << refResNorm/refResNorm0 << "(tol = " << tolerance << ")" << endl;
@@ -98,10 +99,14 @@ int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
     ZeroVector(x);
     int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, MaxIters, tolerance, optNumIters, optResNorm, optResNorm0, true, verbose, test_data);
     test_data.optNumIters = optNumIters;
+    test_data.optResNorm = optResNorm;
+    test_data.optResNorm0 = optResNorm0;
   }
-  if (A.geom->rank == 0 && optResNorm/optResNorm0 > tolerance) {
+  if (optResNorm/optResNorm0 > tolerance) {
     fail = 1;
-    HPCG_fout << " opt GMRES did not converege: normr = " << optResNorm/optResNorm0 << "(tol = " << tolerance << ")" << endl;
+    if (A.geom->rank == 0) {
+      HPCG_fout << " opt GMRES did not converege: normr = " << optResNorm/optResNorm0 << "(tol = " << tolerance << ")" << endl;
+    }
   }
 
   return fail;
