@@ -82,6 +82,8 @@ public:
 
   // from benchmark step
   int numOfCalls;       //!< number of calls
+  double refTotalFlops; //
+  double refTotalTime;  //
   double optTotalFlops; //
   double optTotalTime;  //
   double *flops;        //!< total, dot, axpy, ortho, spmv, reduce, precond

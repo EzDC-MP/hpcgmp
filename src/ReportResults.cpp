@@ -291,6 +291,9 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
 #endif
 
     doc.add("GFLOP/s Summary","");
+    if (test_data.refTotalTime > 0.0) {
+      doc.get("GFLOP/s Summary")->add("Total (reference)",test_data.refTotalFlops/test_data.refTotalTime/1.0E9);
+    }
     doc.get("GFLOP/s Summary")->add("Raw Orho", test_data.flops[3]/test_data.times[3]/1.0E9);
     doc.get("GFLOP/s Summary")->add("Raw SpMV", test_data.flops[2]/test_data.times[4]/1.0E9);
     doc.get("GFLOP/s Summary")->add("Raw MG",   test_data.flops[1]/test_data.times[6]/1.0E9);

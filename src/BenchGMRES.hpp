@@ -28,10 +28,10 @@
 
 template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESData_type, class GMRESData_type2, class Vector_type, class TestGMRESData_type>
 extern int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type & data, GMRESData_type2 & data_lo, Vector_type & b, Vector_type & x,
-                      TestGMRESData_type & testcg_data, bool verbose);
+                      TestGMRESData_type & testcg_data, bool runReference, bool verbose);
 
 template<class SparseMatrix_type, class GMRESData_type, class Vector_type, class TestGMRESData_type>
-extern int BenchGMRES(SparseMatrix_type & A, GMRESData_type & data, Vector_type & b, Vector_type & x, TestGMRESData_type & testcg_data, bool verbose);
+extern int BenchGMRES(SparseMatrix_type & A, GMRESData_type & data, Vector_type & b, Vector_type & x, TestGMRESData_type & testcg_data, bool runReference, bool verbose);
 
 #endif  // BENCHGMRES_HPP
 

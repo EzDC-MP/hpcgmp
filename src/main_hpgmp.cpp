@@ -164,7 +164,7 @@ int main(int argc, char * argv[]) {
   t7 = mytimer() - t7;
   times[7] = t7;
 
-  bool verbose = true; ///false;
+  bool verbose = false;
   if (verbose && A.geom->rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
@@ -256,10 +256,11 @@ int main(int argc, char * argv[]) {
   /////////////////////
   // Benchmark phase //
   /////////////////////
+  bool runReference = true;
 #ifdef HPCG_DEBUG
   t1 = mytimer();
 #endif
-  BenchGMRES(A, A2, data, data2, b, x, test_data, verbose);
+  BenchGMRES(A, A2, data, data2, b, x, test_data, runReference, verbose);
 #ifdef HPCG_DEBUG
   if (rank==0) HPCG_fout << "Total benchmark (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
 #endif
