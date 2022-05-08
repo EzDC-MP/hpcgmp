@@ -28,9 +28,6 @@
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
-#ifdef HPCG_DETAILED_DEBUG
-using std::cin;
-#endif
 using std::endl;
 
 #include <vector>
@@ -54,23 +51,22 @@ using std::endl;
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
 #include "GMRESData.hpp"
-#include "TestNorms.hpp"
 
+#include "GMRESData.hpp"
 #include "ValidGMRES.hpp"
 #include "BenchGMRES.hpp"
 
 typedef double scalar_type;
+typedef TestGMRESData<scalar_type> TestGMRESData_type;
+
 typedef Vector<scalar_type> Vector_type;
 typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
-typedef TestGMRESData<scalar_type> TestGMRESData_type;
-typedef TestNormsData<scalar_type> TestNormsData_type;
 
 typedef float scalar_type2;
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
 typedef GMRESData<scalar_type2> GMRESData_type2;
-typedef TestNormsData<scalar_type2> TestNormsData_type2;
 
 
 /*!
@@ -87,101 +83,86 @@ int main(int argc, char * argv[]) {
 #ifndef HPCG_NO_MPI
   MPI_Init(&argc, &argv);
 #endif
+  int numRanks;
+  int myRank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
 
-  HPCG_Params params;
+  //////////////////////////
+  // Create Communicators //
+  //////////////////////////
+  MPI_Comm valid_comm = MPI_COMM_WORLD;
 
-  HPCG_Init(&argc, &argv, params);
+  int color = 0;
+  int sizeValidComm = 4;
+  if (sizeValidComm > numRanks) {
+    #if 1
+    sizeValidComm = numRanks;
+    #else
+    asseert(1);
+    #endif
+  }
+
+  if (myRank < sizeValidComm) {
+    color = 1;
+  }
+  MPI_Comm_split(MPI_COMM_WORLD, color, myRank, &valid_comm);
 
   // Check if QuickPath option is enabled.
   // If the running time is set to zero, we minimize all paths through the program
   bool quickPath = 1; //TODO: Change back to the following after=(params.runningTime==0);
+  int numberOfMgLevels = 4; // Number of levels including first
 
-  int size = params.comm_size, rank = params.comm_rank; // Number of MPI processes, My process ID
+  HPCG_Params params;
 
-#ifdef HPCG_DETAILED_DEBUG
-  if (size < 100 && rank==0) HPCG_fout << "Process "<<rank<<" of "<<size<<" is alive with " << params.numThreads << " threads." <<endl;
 
-  if (rank==0) {
-    char c;
-    std::cout << "Press key to continue"<< std::endl;
-    std::cin.get(c);
-  }
-#ifndef HPCG_NO_MPI
-  MPI_Barrier(MPI_COMM_WORLD);
-#endif
-#endif
+  // Use this array for collecting timing information
+  bool verbose = false;
+  std::vector< double > times(10,0.0);
 
-  local_int_t nx,ny,nz;
-  nx = (local_int_t)params.nx;
-  ny = (local_int_t)params.ny;
-  nz = (local_int_t)params.nz;
   int ierr = 0;  // Used to check return codes on function calls
+  TestGMRESData_type test_data;
+  test_data.times = NULL;
+  test_data.flops = NULL;
 
-  ierr = CheckAspectRatio(0.125, nx, ny, nz, "local problem", rank==0);
-  if (ierr)
-    return ierr;
 
   /////////////////////////
   // Problem setup Phase //
   /////////////////////////
-
-#ifdef HPCG_DEBUG
-  double t1 = mytimer();
-#endif
-
-  // Construct the geometry and linear system
   Geometry * geom = new Geometry;
-  GenerateGeometry(size, rank, params.numThreads, params.pz, params.zl, params.zu, nx, ny, nz, params.npx, params.npy, params.npz, geom);
 
-  ierr = CheckAspectRatio(0.125, geom->npx, geom->npy, geom->npz, "process grid", rank==0);
-  if (ierr)
-    return ierr;
-
-  // Use this array for collecting timing information
-  std::vector< double > times(10,0.0);
-
-  double setup_time = mytimer();
-
-  // Setup the problem
   SparseMatrix_type A;
-  GMRESData_type data;//TODO What is this for?
+  GMRESData_type data;
 
-  bool init_vect = true;
+  SparseMatrix_type2 A2;
+  GMRESData_type2 data2;
+
   Vector_type b, x, xexact;
+  SetupProblem(argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, geom, A, data, A2, data2, b, x, test_data);
 
-  int numberOfMgLevels = 4; // Number of levels including first
-  SetupProblem(numberOfMgLevels, A, geom, data, &b, &x, &xexact, init_vect);
+  //////////////////////////////////////////////////////////////////////////
+  // Validation Phase: make sure optimized version converges to specified //
+  //////////////////////////////////////////////////////////////////////////
 
-  setup_time = mytimer() - setup_time; // Capture total time of setup
-  times[9] = setup_time; // Save it for reporting
+  //////////////////////
+  // Validation phase //
+  //////////////////////
+  int global_failure = 0;
+  ValidGMRES(A, A2, data, data2, b, x, test_data, verbose);
 
-  //TODO: This is the spot where HPCG runs check problem.  Do we need CheckProblem?
-  //Probably need to check multigird (and Traingular solve?) here. 
-
-  // Call user-tunable set up function.
-  double t7 = mytimer();
-  OptimizeProblem(A, data, b, x, xexact);
-  t7 = mytimer() - t7;
-  times[7] = t7;
-
-  bool verbose = false;
-  if (verbose && A.geom->rank==0) {
-    HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
-    HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
-  }
 
   ////////////////////////////////////
   // Reference SpMV+MG Timing Phase //
   ////////////////////////////////////
-
   // Call Reference SpMV and MG. Compute Optimization time as ratio of times in these routines
+  MPI_Comm bench_comm = MPI_COMM_WORLD;
 
   local_int_t nrow = A.localNumberOfRows;
   local_int_t ncol = A.localNumberOfColumns;
 
   Vector_type x_overlap, b_computed;
-  InitializeVector(x_overlap, ncol); // Overlapped copy of x vector
-  InitializeVector(b_computed, nrow); // Computed RHS vector
+  InitializeVector(x_overlap, ncol, bench_comm);  // Overlapped copy of x vector
+  InitializeVector(b_computed, nrow, bench_comm); // Computed RHS vector
 
 
   // Record execution time of reference SpMV and MG kernels for reporting times
@@ -198,72 +179,13 @@ int main(int argc, char * argv[]) {
     if (ierr) HPCG_fout << "Error in call to MG: " << ierr << ".\n" << endl;
   }
   times[8] = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
-#ifdef HPCG_DEBUG
-  if (rank==0) HPCG_fout << "Total SpMV+MG timing phase execution time in main (sec) = " << mytimer() - t1 << endl;
-#endif
-
-
-  TestGMRESData_type test_data;
-  test_data.times = NULL;
-  test_data.flops = NULL;
-
-  //////////////////////////////////////////////////////////////////////////
-  // Validation Phase: make sure optimized version converges to specified //
-  //////////////////////////////////////////////////////////////////////////
-#ifdef HPCG_DEBUG
-  t1 = mytimer();
-#endif
-
-  //////////////////////////////////////////////////////////
-  // Call user-tunable set up function.
-  t7 = mytimer();
-  OptimizeProblem(A, data, b, x, xexact);
-  t7 = mytimer() - t7;
-  times[7] = t7;
-#ifdef HPCG_DEBUG
-  if (rank==0) HPCG_fout << "Total problem setup time in main (sec) = " << mytimer() - t1 << endl;
-#endif
-
-  //////////////////////////////////////////////////////////
-  // Setup single-precision A 
-  init_vect = false;
-  SparseMatrix_type2 A2;
-  GMRESData_type2 data2;
-  SetupProblem(numberOfMgLevels, A2, geom, data2, &b, &x, &xexact, init_vect);
-  setup_time = mytimer() - setup_time; // Capture total time of setup
-
-  t7 = mytimer();
-  OptimizeProblem(A2, data, b, x, xexact);
-  t7 = mytimer() - t7;
-
-  if (verbose && A.geom->rank==0) {
-    HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
-    HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
-  }
-
-  //////////////////////
-  // Validation phase //
-  //////////////////////
-#ifdef HPCG_DEBUG
-  t1 = mytimer();
-#endif
-  int global_failure = ValidGMRES(A, A2, data, data2, b, x, test_data, verbose);
-#ifdef HPCG_DEBUG
-  if (rank==0) HPCG_fout << "Total validation (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
-#endif
 
 
   /////////////////////
   // Benchmark phase //
   /////////////////////
   bool runReference = true;
-#ifdef HPCG_DEBUG
-  t1 = mytimer();
-#endif
   BenchGMRES(A, A2, data, data2, b, x, test_data, runReference, verbose);
-#ifdef HPCG_DEBUG
-  if (rank==0) HPCG_fout << "Total benchmark (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
-#endif
 
   
   ////////////////////
@@ -271,7 +193,7 @@ int main(int argc, char * argv[]) {
   ////////////////////
 
   // Report results to YAML file
-  ReportResults(A, numberOfMgLevels, &times[0], test_data, global_failure, quickPath);
+  ReportResults(A, numberOfMgLevels, test_data, global_failure, quickPath);
 
   // Clean up
   DeleteMatrix(A); // This delete will recursively delete all coarse grid data

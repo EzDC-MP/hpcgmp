@@ -317,8 +317,8 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       free(h_Unzvals);
 
       // for debuging, TODO: remove these
-      InitializeVector(curLevelMatrix->x, nrow);
-      InitializeVector(curLevelMatrix->y, ncol);
+      InitializeVector(curLevelMatrix->x, nrow, curLevelMatrix->comm);
+      InitializeVector(curLevelMatrix->y, ncol, curLevelMatrix->comm);
  
       #if defined(HPCG_WITH_CUDA)
       // -------------------------

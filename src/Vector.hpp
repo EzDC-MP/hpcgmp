@@ -25,6 +25,9 @@
 #include <cassert>
 #include <cstdlib>
 
+#ifndef HPCG_NO_MPI
+ #include <mpi.h>
+#endif
 #ifdef HPCG_WITH_CUDA
  #include <cuda_runtime.h>
  #include <cublas_v2.h>
@@ -45,6 +48,9 @@ public:
   typedef SC scalar_type;
   local_int_t localLength;  //!< length of local portion of the vector
   SC * values;     //!< array of values
+
+  // communicator
+  comm_type comm;
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   SC * d_values;   //!< array of values
   #if defined(HPCG_WITH_CUDA)
@@ -67,10 +73,11 @@ public:
   @param[in] localLength Length of local portion of input vector
  */
 template<class Vector_type>
-inline void InitializeVector(Vector_type & v, local_int_t localLength) {
+inline void InitializeVector(Vector_type & v, local_int_t localLength, comm_type comm) {
   typedef typename Vector_type::scalar_type scalar_type;
   v.localLength = localLength;
   v.values = new scalar_type[localLength];
+  v.comm = comm;
   #if defined(HPCG_WITH_CUDA)
   if (CUBLAS_STATUS_SUCCESS != cublasCreate(&v.handle)) {
     printf( " InitializeVector :: Failed to create Handle\n" );

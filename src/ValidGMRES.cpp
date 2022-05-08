@@ -62,6 +62,22 @@ int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
   typedef Vector<scalar_type2> Vector_type2;
 
 
+#if 0
+  //////////////////////////////////////////////////////////
+  // Setup problem
+  Geometry * geom = new Geometry;
+
+  SparseMatrix_type A;
+  GMRESData_type data;
+
+  SparseMatrix_type2 A2;
+  GMRESData_type2 data2;
+
+  Vector_type b, x, xexact;
+  SetupProblem(argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, geom, A, data, A2, data2, b, x, test_data);
+#endif
+
+
   int restart_length = 30;
   int MaxIters = 3000;
   scalar_type tolerance = 1e-9;

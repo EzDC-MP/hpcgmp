@@ -35,6 +35,10 @@ using std::endl;
 #include "BenchGMRES.hpp"
 #include "GMRES.hpp"
 #include "GMRES_IR.hpp"
+
+#include "ComputeSPMV_ref.hpp"
+#include "ComputeMG_ref.hpp"
+
 #include "mytimer.hpp"
 
 /*!
@@ -61,10 +65,34 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
   typedef typename SparseMatrix_type2::scalar_type scalar_type2;
   typedef Vector<scalar_type2> Vector_type2;
 
-  // Use this array for collecting timing information
-  std::vector< double > times(8,0.0);
 
-  // Phase 1: setup
+  // =====================================================================
+  {
+    local_int_t nrow = A.localNumberOfRows;
+    local_int_t ncol = A.localNumberOfColumns;
+
+    Vector_type x_overlap, b_computed;
+    InitializeVector(x_overlap, ncol, A.comm);  // Overlapped copy of x vector
+    InitializeVector(b_computed, nrow, A.comm); // Computed RHS vector
+
+    // Record execution time of reference SpMV and MG kernels for reporting times
+    // First load vector with random values
+    FillRandomVector(x_overlap);
+
+    int ierr = 0;
+    int numberOfCalls = 10;
+    double t_begin = mytimer();
+    for (int i=0; i< numberOfCalls; ++i) {
+      ierr = ComputeSPMV_ref(A, x_overlap, b_computed); // b_computed = A*x_overlap
+      if (ierr) HPCG_fout << "Error in call to SpMV: " << ierr << ".\n" << endl;
+      ierr = ComputeMG_ref(A, b_computed, x_overlap); // b_computed = Minv*y_overlap
+      if (ierr) HPCG_fout << "Error in call to MG: " << ierr << ".\n" << endl;
+    }
+    //times[8] = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
+    test_data.SpmvMgTime = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
+  }
+
+  // =====================================================================
   // Run reference GMRES implementation for a fixed number of iterations
   // and record the obtained residual norm
   int niters = 0;
@@ -104,7 +132,7 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
     test_data.refTotalTime  = 0.0;
   }
 
-  // Phase 2: benchmark
+  // =====================================================================
   // Run optimized GMRES (here, we are calling GMRES_IR) for a fixed number of iterations
   int num_times = 7;
   test_data.times = (double*)malloc(num_times * sizeof(double));

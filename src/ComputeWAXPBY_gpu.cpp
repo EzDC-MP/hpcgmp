@@ -182,10 +182,10 @@ int ComputeWAXPBY_ref(const local_int_t n,
     scalarY_type ynorm = 0.0;
     #ifndef HPCG_NO_MPI
     MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarW_type>::getType ();
-    MPI_Allreduce(&l_enorm, &enorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(&l_wnorm, &wnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(&l_xnorm, &xnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(&l_ynorm, &ynorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&l_enorm, &enorm, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
+    MPI_Allreduce(&l_wnorm, &wnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
+    MPI_Allreduce(&l_xnorm, &xnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
+    MPI_Allreduce(&l_ynorm, &ynorm, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
     #else
     enorm = l_enorm;
     wnorm = l_wnorm;
@@ -197,7 +197,7 @@ int ComputeWAXPBY_ref(const local_int_t n,
     xnorm = sqrt(xnorm);
     ynorm = sqrt(ynorm);
     int rank = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_rank(x.comm, &rank);
     if (rank == 0) {
       HPCG_fout << rank << " : WAXPBY(" << n << "): error = " << enorm << " (alpha=" << alpha << ", beta=" << beta
 	        << ", x=" << xnorm << ", y=" << ynorm << ", w=" << wnorm << ")" << std::endl;

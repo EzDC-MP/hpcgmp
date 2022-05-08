@@ -83,7 +83,7 @@ int ComputeResidual(const local_int_t n, const Vector_type & v1, const Vector_ty
   // Use MPI's reduce function to collect all partial sums
   scalar_type global_residual = 0;
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
-  MPI_Allreduce(&local_residual, &global_residual, 1, MPI_SCALAR_TYPE, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Allreduce(&local_residual, &global_residual, 1, MPI_SCALAR_TYPE, MPI_MAX, v1.comm);
   residual = global_residual;
 #else
   residual = local_residual;

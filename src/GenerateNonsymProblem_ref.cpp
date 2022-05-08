@@ -90,9 +90,9 @@ void GenerateNonsymProblem_ref(SparseMatrix_type & A, Vector_type * b, Vector_ty
   vector_scalar_type * xv = 0;
   vector_scalar_type * xexactv = 0;
   if (init_vect) {
-    InitializeVector(*b, localNumberOfRows);
-    InitializeVector(*x, localNumberOfRows);
-    InitializeVector(*xexact, localNumberOfRows);
+    InitializeVector(*b, localNumberOfRows, A.comm);
+    InitializeVector(*x, localNumberOfRows, A.comm);
+    InitializeVector(*xexact, localNumberOfRows, A.comm);
     bv = b->values; // Only compute exact solution if requested
     xv = x->values; // Only compute exact solution if requested
     xexactv = xexact->values; // Only compute exact solution if requested
@@ -224,10 +224,10 @@ void GenerateNonsymProblem_ref(SparseMatrix_type & A, Vector_type * b, Vector_ty
 #ifndef HPCG_NO_MPI
   // Use MPI's reduce function to sum all nonzeros
 #ifdef HPCG_NO_LONG_LONG
-  MPI_Allreduce(&localNumberOfNonzeros, &totalNumberOfNonzeros, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&localNumberOfNonzeros, &totalNumberOfNonzeros, 1, MPI_INT, MPI_SUM, A.comm);
 #else
   long long lnnz = localNumberOfNonzeros, gnnz = 0; // convert to 64 bit for MPI call
-  MPI_Allreduce(&lnnz, &gnnz, 1, MPI_LONG_LONG_INT, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&lnnz, &gnnz, 1, MPI_LONG_LONG_INT, MPI_SUM, A.comm);
   totalNumberOfNonzeros = gnnz; // Copy back
 #endif
 #else

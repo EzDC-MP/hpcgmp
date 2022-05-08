@@ -110,17 +110,15 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
   double t0 = mytimer();
   scalar_type global_result (0.0);
-  MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM,
-                MPI_COMM_WORLD);
+  MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
   result = global_result;
   time_allreduce += mytimer() - t0;
 
   #if defined(HPCG_WITH_CUDA) & defined(HPCG_DEBUG)
   scalar_type global_tmp (0.0);
-  MPI_Allreduce(&local_tmp, &global_tmp, 1, MPI_SCALAR_TYPE, MPI_SUM,
-                MPI_COMM_WORLD);
+  MPI_Allreduce(&local_tmp, &global_tmp, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
   int rank = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_rank(x.comm, &rank);
   if (rank == 0) {
     HPCG_fout << rank << " : DotProduct(" << n << "): error = " << global_tmp-global_result << " (dot=" << global_result << ")" << std::endl;
   }

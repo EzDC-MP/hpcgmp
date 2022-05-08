@@ -13,44 +13,18 @@
 //@HEADER
 
 /*!
- @file SetupProblem.cpp
+ @file GenerateProblem.cpp
 
  HPCG routine
  */
 
 #ifndef SETUP_PROBLEM_HPP
 #define SETUP_PROBLEM_HPP
+#include "SetupProblem.hpp"
 
-#ifndef HPCG_NO_MPI
-#include <mpi.h>
-#endif
-
-#ifndef HPCG_NO_OPENMP
-#include <omp.h>
-#endif
-
-#include "GMRESData.hpp"
-#include "Geometry.hpp"
-#include "SparseMatrix.hpp"
-#include "Vector.hpp"
-#include "GenerateNonsymProblem.hpp"
-#include "GenerateNonsymCoarseProblem.hpp"
-#include "SetupHalo.hpp"
-
-
-
-/*!
-  Routine to generate a sparse matrix, right hand side, initial guess, and exact solution.
-
-  @param[in]  A        The generated system matrix
-  @param[inout] b      The newly allocated and generated right hand side vector (if b!=0 on entry)
-  @param[inout] x      The newly allocated solution vector with entries set to 0.0 (if x!=0 on entry)
-  @param[inout] xexact The newly allocated solution vector with entries set to the exact solution (if the xexact!=0 non-zero on entry)
-
-  @see GenerateGeometry
-*/
-
-template<class SparseMatrix_type, class GMRESData_type, class Vector_type>
-void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, GMRESData_type & data, Vector_type * b, Vector_type * x, Vector_type * xexact, bool init_vect);
+template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESData_type, class GMRESData_type2, class Vector_type, class TestGMRESData_type>
+void SetupProblem(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, Geometry * geom,
+                  SparseMatrix_type & A, GMRESData_type & data, SparseMatrix_type2 & A2, GMRESData_type2 & data2,
+                  Vector_type & b, Vector_type & x, TestGMRESData_type & test_data);
 
 #endif

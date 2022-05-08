@@ -103,7 +103,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   InitializeMatrix(t,  restart_length+1, 1);
   InitializeMatrix(cs, restart_length+1, 1);
   InitializeMatrix(ss, restart_length+1, 1);
-  InitializeMultiVector(Q, nrow, restart_length+1);
+  InitializeMultiVector(Q, nrow, restart_length+1, A.comm);
 
   // vectors in scalar_type (higher)
   const scalar_type one_hi  (1.0);

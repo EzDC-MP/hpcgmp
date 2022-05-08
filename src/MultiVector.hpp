@@ -39,6 +39,9 @@ public:
   local_int_t n;            //!< number of vectors
   local_int_t localLength;  //!< length of local portion of the vector
   SC * values;              //!< array of values
+
+  // communicator
+  comm_type comm;
   #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   SC * d_values;   //!< array of values
   #if defined(HPCG_WITH_CUDA)
@@ -62,13 +65,14 @@ public:
   @param[in] n           Number of columns
  */
 template<class MultiVector_type>
-inline void InitializeMultiVector(MultiVector_type & V, local_int_t localLength, local_int_t n) {
+inline void InitializeMultiVector(MultiVector_type & V, local_int_t localLength, local_int_t n, comm_type comm) {
 
   typedef typename MultiVector_type::scalar_type scalar_type;
 
   V.localLength = localLength;
   V.n = n;
   V.values = new scalar_type[localLength * n];
+  V.comm = comm;
   #if defined(HPCG_WITH_CUDA)
   if (CUBLAS_STATUS_SUCCESS != cublasCreate(&V.handle)) {
     printf( " InitializeVector :: Failed to create Handle\n" );
@@ -114,6 +118,7 @@ inline void GetMultiVector(MultiVector_type & V, local_int_t j1, local_int_t j2,
   Vj.n = j2-j1+1;
   Vj.localLength = V.localLength;
   Vj.values = &V.values[V.localLength*j1];
+  Vj.comm = V.comm;
   #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   Vj.d_values = &V.d_values[V.localLength*j1];
   Vj.handle = V.handle;
@@ -128,6 +133,7 @@ template<class MultiVector_type, class Vector_type>
 inline void GetVector(MultiVector_type & V, local_int_t j, Vector_type & vj) {
   vj.localLength = V.localLength;
   vj.values = &V.values[V.localLength*j];
+  vj.comm = V.comm;
   #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   vj.d_values = &V.d_values[V.localLength*j];
   vj.handle = V.handle;

@@ -75,8 +75,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
   double t0 = mytimer();
   scalar_type global_result (0.0);
-  MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM,
-                MPI_COMM_WORLD);
+  MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
   result = global_result;
   time_allreduce += mytimer() - t0;
 #else

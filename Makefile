@@ -10,7 +10,7 @@ HPCG_DEPS = src/ComputeResidual.o \
          src/ExchangeHalo.o src/GenerateGeometry.o \
          src/CheckProblem.o \
 	 src/OptimizeProblem.o src/ReadHpcgDat.o src/ReportResults.o \
-	 src/SetupHalo.o src/SetupHalo_ref.o src/TestSymmetry.o src/TestNorms.o src/WriteProblem.o \
+	 src/SetupHalo.o src/SetupHalo_ref.o src/WriteProblem.o \
          src/YAML_Doc.o src/YAML_Element.o \
          src/ComputeDotProduct.o src/ComputeDotProduct_ref.o \
          src/finalize.o src/init.o src/mytimer.o \
@@ -27,7 +27,7 @@ HPCG_DEPS = src/ComputeResidual.o \
          src/ComputeGEMVT.o src/ComputeGEMVT_ref.o \
          src/GMRES.o src/GMRES_IR.o \
          src/ComputeGS_Forward.o src/ComputeGS_Forward_ref.o \
-         src/SetupProblem.o \
+         src/SetupProblem.o src/SetupMatrix.o \
          src/GenerateNonsymProblem.o src/GenerateNonsymProblem_v1_ref.o \
          src/GenerateNonsymCoarseProblem.o 
 

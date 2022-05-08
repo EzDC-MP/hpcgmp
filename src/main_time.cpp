@@ -37,7 +37,7 @@ using std::endl;
 
 #include "hpgmp.hpp"
 
-#include "SetupProblem.hpp"
+#include "SetupMatrix.hpp"
 #include "CheckAspectRatio.hpp"
 #include "GenerateGeometry.hpp"
 #include "CheckProblem.hpp"
@@ -52,23 +52,21 @@ using std::endl;
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
 #include "GMRESData.hpp"
-#include "TestNorms.hpp"
 
 #include "TestGMRES.hpp"
 
 typedef double scalar_type;
 //typedef float  scalar_type;
+typedef TestGMRESData<scalar_type> TestGMRESData_type;
+
 typedef Vector<scalar_type> Vector_type;
 typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
-typedef TestNormsData<scalar_type> TestNormsData_type;
-typedef TestGMRESData<scalar_type> TestGMRESData_type;
 
 typedef float scalar_type2;
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
 typedef GMRESData<scalar_type2> GMRESData_type2;
-typedef TestNormsData<scalar_type2> TestNormsData_type2;
 
 
 /*!
@@ -85,10 +83,13 @@ int main(int argc, char * argv[]) {
 #ifndef HPCG_NO_MPI
   MPI_Init(&argc, &argv);
 #endif
+  MPI_Comm valid_comm = MPI_COMM_WORLD;
+  MPI_Comm bench_comm = MPI_COMM_WORLD;
+
 
   HPCG_Params params;
-
   HPCG_Init(&argc, &argv, params);
+
 
   // Check if QuickPath option is enabled.
   // If the running time is set to zero, we minimize all paths through the program
@@ -148,7 +149,7 @@ int main(int argc, char * argv[]) {
   Vector_type b, x, xexact;
 
   int numberOfMgLevels = 4; // Number of levels including first
-  SetupProblem(numberOfMgLevels, A, geom, data, &b, &x, &xexact, init_vect);
+  SetupMatrix(numberOfMgLevels, A, geom, data, &b, &x, &xexact, init_vect, bench_comm);
 
   setup_time = mytimer() - setup_time; // Capture total time of setup
   times[9] = setup_time; // Save it for reporting
@@ -174,8 +175,8 @@ int main(int argc, char * argv[]) {
   local_int_t ncol = A.localNumberOfColumns;
 
   Vector_type x_overlap, b_computed;
-  InitializeVector(x_overlap, ncol); // Overlapped copy of x vector
-  InitializeVector(b_computed, nrow); // Computed RHS vector
+  InitializeVector(x_overlap, ncol, bench_comm);  // Overlapped copy of x vector
+  InitializeVector(b_computed, nrow, bench_comm); // Computed RHS vector
 
 
   // Record execution time of reference SpMV and MG kernels for reporting times
@@ -219,7 +220,7 @@ int main(int argc, char * argv[]) {
   init_vect = false;
   SparseMatrix_type2 A2;
   GMRESData_type2 data2;
-  SetupProblem(numberOfMgLevels, A2, geom, data2, &b, &x, &xexact, init_vect);
+  SetupMatrix(numberOfMgLevels, A2, geom, data2, &b, &x, &xexact, init_vect, bench_comm);
   setup_time = mytimer() - setup_time; // Capture total time of setup
 
   t7 = mytimer();

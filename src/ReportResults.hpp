@@ -16,11 +16,9 @@
 #define REPORTRESULTS_HPP
 #include "SparseMatrix.hpp"
 #include "TestGMRES.hpp"
-//#include "TestSymmetry.hpp"
-//#include "TestNorms.hpp"
 
 template<class SparseMatrix_type, class TestGMRESData_type>
-void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double times[],
+void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
                    const TestGMRESData_type & testcg_data, int global_failure, bool quickPath);
 
 #endif // REPORTRESULTS_HPP

@@ -69,8 +69,7 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
 #ifndef HPCG_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
-  MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM,
-                MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
 #endif
 
   return 0;

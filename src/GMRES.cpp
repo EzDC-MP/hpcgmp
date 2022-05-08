@@ -110,7 +110,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
   InitializeMatrix(t,  restart_length+1, 1);
   InitializeMatrix(cs, restart_length+1, 1);
   InitializeMatrix(ss, restart_length+1, 1);
-  InitializeMultiVector(Q, nrow, restart_length+1);
+  InitializeMultiVector(Q, nrow, restart_length+1, A.comm);
 
   if (!doPreconditioning && A.geom->rank==0) HPCG_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
 

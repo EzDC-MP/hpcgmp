@@ -46,6 +46,12 @@ struct HPCG_Params_STRUCT {
   HPCG_Params is a shorthand for HPCG_Params_STRUCT
  */
 typedef HPCG_Params_STRUCT HPCG_Params;
+#ifdef HPCG_NO_MPI
+  typedef int comm_type;
+#else
+  #include "mpi.h"
+  typedef MPI_Comm comm_type;
+#endif
 
 extern int HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params);
 extern int HPCG_Finalize(void);

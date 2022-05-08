@@ -187,10 +187,10 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   scalar_type tnorm = 0.0;
   #ifndef HPCG_NO_MPI
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
-  MPI_Allreduce(&l_enorm, &enorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&l_xnorm, &xnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&l_ynorm, &ynorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&l_tnorm, &tnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&l_enorm, &enorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  MPI_Allreduce(&l_xnorm, &xnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  MPI_Allreduce(&l_ynorm, &ynorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  MPI_Allreduce(&l_tnorm, &tnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
   #else
   enorm = l_enorm;
   xnorm = l_xnorm;

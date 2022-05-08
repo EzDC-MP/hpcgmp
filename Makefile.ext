@@ -16,8 +16,6 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/ReportResults.o \
 	    src/SetupHalo.o \
 	    src/SetupHalo_ref.o \
-	    src/TestSymmetry.o \
-	    src/TestNorms.o \
 	    src/WriteProblem.o \
 	    src/YAML_Doc.o \
 	    src/YAML_Element.o \
@@ -52,6 +50,7 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/ComputeGEMV_ref.o \
 	    src/ComputeGEMVT.o \
 	    src/ComputeGEMVT_ref.o \
+	    src/SetupMatrix.o \
 	    src/SetupProblem.o \
 	    src/GenerateNonsymProblem.o \
 	    src/GenerateNonsymProblem_v1_ref.o \
@@ -247,6 +246,9 @@ src/ComputeGEMVT_ref.o: HPCG_SRC_PATH/src/ComputeGEMVT_ref.cpp HPCG_SRC_PATH/src
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/ComputeGEMVT_gpu.o: HPCG_SRC_PATH/src/ComputeGEMVT_gpu.cpp HPCG_SRC_PATH/src/ComputeGEMVT_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/SetupMatrix.o: HPCG_SRC_PATH/src/SetupMatrix.cpp HPCG_SRC_PATH/src/SetupMatrix.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/SetupProblem.o: HPCG_SRC_PATH/src/SetupProblem.cpp HPCG_SRC_PATH/src/SetupProblem.hpp $(PRIMARY_HEADERS)

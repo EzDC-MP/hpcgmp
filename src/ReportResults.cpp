@@ -41,14 +41,13 @@ using std::endl;
   @param[in] A    The known system matrix
   @param[in] numberOfMgLevels Number of levels in multigrid V cycle
   @param[in] niters Number of preconditioned CG iterations performed to lower the residual below a threshold
-  @param[in] times  Vector of cumulative timings for each of the phases of a preconditioned CG iteration
   @param[in] test_data    the data structure with the results of the CG-correctness test including pass/fail information
   @param[in] global_failure indicates whether a failure occurred during the correctness tests of CG
 
   @see YAML_Doc
 */
 template<class SparseMatrix_type, class TestGMRESData_type>
-void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double times[],
+void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
                    const TestGMRESData_type & test_data, int global_failure, bool quickPath) {
 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
@@ -56,17 +55,6 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
   typedef MGData<scalar_type> MGData_type;
 
   double minOfficialTime = 1800; // Any official benchmark result must run at least this many seconds
-
-#ifndef HPCG_NO_MPI
-  double t4 = times[4];
-  double t4min = 0.0;
-  double t4max = 0.0;
-  double t4avg = 0.0;
-  MPI_Allreduce(&t4, &t4min, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-  MPI_Allreduce(&t4, &t4max, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-  MPI_Allreduce(&t4, &t4avg, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  t4avg = t4avg/((double) A.geom->size);
-#endif
 
   if (A.geom->rank==0) { // Only PE 0 needs to compute and report timing results
 
@@ -215,7 +203,7 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
     doc.add("########## Problem Summary  ##########","");
 
     doc.add("Setup Information","");
-    doc.get("Setup Information")->add("Setup Time",times[9]);
+    doc.get("Setup Information")->add("Setup Time",test_data.SetupTime);
 
     doc.add("Linear System Information","");
     doc.get("Linear System Information")->add("Number of Equations",A.totalNumberOfRows);
@@ -268,7 +256,7 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
     doc.add("Benchmark Time Summary","");
     //doc.get("Iteration Count Information")->add("Iteration results with # of PASSES", test_data.count_pass);
     //doc.get("Iteration Count Information")->add("Iteration results with # of FAILS",  test_data.count_fail);
-    doc.get("Benchmark Time Summary")->add("Optimization phase",times[7]);
+    doc.get("Benchmark Time Summary")->add("Optimization phase",test_data.OptimizeTime);
     doc.get("Benchmark Time Summary")->add("Ortho",  test_data.times[3]);
     doc.get("Benchmark Time Summary")->add(" DDOT",  test_data.times[1]);
     doc.get("Benchmark Time Summary")->add(" WAXPBY",test_data.times[2]);
@@ -307,8 +295,8 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
     doc.get("GFLOP/s Summary")->add("Total for benchmark",totalGflops);
 
     doc.add("User Optimization Overheads","");
-    doc.get("User Optimization Overheads")->add("Optimization phase time (sec)", (times[7]));
-    doc.get("User Optimization Overheads")->add("Optimization phase time vs reference SpMV+MG time", times[7]/times[8]);
+    doc.get("User Optimization Overheads")->add("Optimization phase time (sec)", test_data.OptimizeTime);
+    doc.get("User Optimization Overheads")->add("Optimization phase time vs reference SpMV+MG time", test_data.OptimizeTime/test_data.SpmvMgTime);
 
     doc.add("Final Summary","");
     bool isValidRun = (!global_failure);//&& (testsymmetry_data.count_fail==0) 
@@ -364,8 +352,8 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double tim
 
 template
 void ReportResults< SparseMatrix<double>, TestGMRESData<double> >
-  (const SparseMatrix<double>&, int, double*, const TestGMRESData<double>&, int, bool);
+  (const SparseMatrix<double>&, int, const TestGMRESData<double>&, int, bool);
 
 template
 void ReportResults< SparseMatrix<float>, TestGMRESData<float> >
-  (const SparseMatrix<float>&, int, double*, const TestGMRESData<float>&, int, bool);
+  (const SparseMatrix<float>&, int, const TestGMRESData<float>&, int, bool);

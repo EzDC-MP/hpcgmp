@@ -64,11 +64,11 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
   // Temporary storage for holding original diagonal and RHS
   Vector_type origDiagA, exaggeratedDiagA, origB;
   Vector_type2 origDiagA2, exagDiagA2;
-  InitializeVector(origDiagA, A.localNumberOfRows);
-  InitializeVector(origDiagA2, A_lo.localNumberOfRows);
-  InitializeVector(exaggeratedDiagA, A.localNumberOfRows);
-  InitializeVector(exagDiagA2, A_lo.localNumberOfRows);
-  InitializeVector(origB, A.localNumberOfRows);
+  InitializeVector(origDiagA, A.localNumberOfRows, A.comm);
+  InitializeVector(origDiagA2, A_lo.localNumberOfRows, A.comm);
+  InitializeVector(exaggeratedDiagA, A.localNumberOfRows, A.comm);
+  InitializeVector(exagDiagA2, A_lo.localNumberOfRows, A.comm);
+  InitializeVector(origB, A.localNumberOfRows, A.comm);
   CopyMatrixDiagonal(A, origDiagA);
   CopyMatrixDiagonal(A_lo, origDiagA2);
   CopyVector(origDiagA, exaggeratedDiagA);

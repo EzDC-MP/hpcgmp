@@ -18,8 +18,19 @@
  HPCG routine
  */
 
-#include "SetupProblem.hpp"
+#include "hpgmp.hpp"
+#include "GenerateGeometry.hpp"
+#include "Geometry.hpp"
+#include "SparseMatrix.hpp"
+#include "Vector.hpp"
 
+#include "SetupMatrix.hpp"
+#include "SetupProblem.hpp"
+#include "CheckAspectRatio.hpp"
+#include "OptimizeProblem.hpp"
+
+#include "mytimer.hpp"
+using std::endl;
 
 /*!
   Routine to generate a sparse matrix, right hand side, initial guess, and exact solution.
@@ -32,41 +43,57 @@
   @see GenerateGeometry
 */
 
-template<class SparseMatrix_type, class GMRESData_type, class Vector_type>
-void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, GMRESData_type & data, Vector_type * b, Vector_type * x, Vector_type * xexact, bool init_vect) {
+template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESData_type, class GMRESData_type2, class Vector_type, class TestGMRESData_type>
+void SetupProblem(int argc, char ** argv, comm_type comm, int numberOfMgLevels, bool verbose,
+                  Geometry * geom, SparseMatrix_type & A, GMRESData_type & data, SparseMatrix_type2 & A2, GMRESData_type2 & data2,
+                  Vector_type & b, Vector_type & x, TestGMRESData_type & test_data) {
 
-  InitializeSparseMatrix(A, geom);
+  HPCG_Params params;
+  HPCG_Init(&argc, &argv, params);
+  int size = params.comm_size; // Number of MPI processes
+  int rank = params.comm_rank; // My process ID
 
-  GenerateNonsymProblem(A, b, x, xexact, init_vect);
-  SetupHalo(A); //TODO: This is currently called in main... Should it really be called in both places?  Which one? 
+  local_int_t nx = (local_int_t)params.nx;
+  local_int_t ny = (local_int_t)params.ny;
+  local_int_t nz = (local_int_t)params.nz;
 
-  A.localNumberOfMGNonzeros = A.localNumberOfNonzeros;
-  A.totalNumberOfMGNonzeros = A.totalNumberOfNonzeros;
+  //////////////////////////////////////////////////////////
+  // Construct the geometry and linear system
+  GenerateGeometry(size, rank, params.numThreads, params.pz, params.zl, params.zu, nx, ny, nz, params.npx, params.npy, params.npz, geom);
+  int ierr = CheckAspectRatio(0.125, geom->npx, geom->npy, geom->npz, "process grid", rank==0);
 
-  SparseMatrix_type * curLevelMatrix = &A;
-  for (int level = 1; level< numberOfMgLevels; ++level) {
-    GenerateNonsymCoarseProblem(*curLevelMatrix);
-    A.localNumberOfMGNonzeros += curLevelMatrix->Ac->localNumberOfNonzeros;
-    A.totalNumberOfMGNonzeros += curLevelMatrix->Ac->totalNumberOfNonzeros;
-    curLevelMatrix = curLevelMatrix->Ac; // Make the just-constructed coarse grid the next level
+
+  //////////////////////////////////////////////////////////
+  // Setup the problem
+  bool init_vect = true;
+  Vector_type xexact;
+  double setup_time = mytimer();
+  SetupMatrix(numberOfMgLevels, A, geom, data, &b, &x, &xexact, init_vect, MPI_COMM_WORLD);
+
+  // Setup single-precision A 
+  init_vect = false;
+  SetupMatrix(numberOfMgLevels, A2, geom, data2, &b, &x, &xexact, init_vect, MPI_COMM_WORLD);
+  setup_time = mytimer() - setup_time; // Capture total time of setup
+  //times[9] = setup_time; // Save it for reporting
+  test_data.SetupTime = setup_time;
+
+  //////////////////////////////////////////////////////////
+  // Call user-tunable set up function for A
+  double opt_time = mytimer();
+  OptimizeProblem(A, data, b, x, xexact);
+
+  // Call user-tunable set up function for A2
+  OptimizeProblem(A2, data, b, x, xexact);
+  opt_time = mytimer() - opt_time; // Capture total time of setup
+  //times[7] = opt_time;
+  test_data.OptimizeTime = opt_time;
+
+  if (verbose && A.geom->rank==0) {
+    HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
+    HPCG_fout << " Optimize Time     " << opt_time << " seconds." << endl;
   }
 
-//TODO: Reinstate "CheckProblem" for nonsymm version. 
-/*  #ifndef NONSYMM_PROBLEM
-  curLevelMatrix = &A;
-  Vector_type * curb = b;
-  Vector_type * curx = x;
-  Vector_type * curxexact = xexact;
-  for (int level = 0; level< numberOfMgLevels; ++level) {
-     CheckProblem(*curLevelMatrix, curb, curx, curxexact);
-     curLevelMatrix = curLevelMatrix->Ac; // Make the nextcoarse grid the next level
-     curb = 0; // No vectors after the top level
-     curx = 0;
-     curxexact = 0;
-  }
-  #endif */
-
-  InitializeSparseGMRESData(A, data);
+  //DeleteVector(xexact);
 }
 
 
@@ -76,16 +103,13 @@ void SetupProblem(int numberOfMgLevels, SparseMatrix_type & A, Geometry * geom, 
 
 // uniform
 template
-void SetupProblem< SparseMatrix<double>, GMRESData<double>, class Vector<double> >
- (int numberOfMgLevels, SparseMatrix<double> & A, Geometry * geom, GMRESData<double> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact, bool init_vect);
-
-template
-void SetupProblem< SparseMatrix<float>, GMRESData<float>, class Vector<float> >
- (int numberOfMgLevels, SparseMatrix<float> & A, Geometry * geom, GMRESData<float> & data, Vector<float> * b, Vector<float> * x, Vector<float> * xexact, bool init_vect);
-
+void SetupProblem< SparseMatrix<double>, SparseMatrix<double>, GMRESData<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
+ (int, char**, comm_type, int, bool, Geometry*, SparseMatrix<double>&, GMRESData<double>&, SparseMatrix<double>&, GMRESData<double>&,
+  Vector<double>&, Vector<double>&, TestGMRESData<double>&);
 
 // mixed
 template
-void SetupProblem< SparseMatrix<float>, GMRESData<float>, class Vector<double> >
- (int numberOfMgLevels, SparseMatrix<float> & A, Geometry * geom, GMRESData<float> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact, bool init_vect);
+void SetupProblem< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRESData<float>, Vector<double>, TestGMRESData<double> >
+ (int, char**, comm_type, int, bool, Geometry*, SparseMatrix<double>&, GMRESData<double>&, SparseMatrix<float>&, GMRESData<float>&,
+  Vector<double>&, Vector<double>&, TestGMRESData<double>&);
 

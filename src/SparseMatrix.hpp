@@ -36,6 +36,9 @@ typedef std::map< global_int_t, local_int_t > GlobalToLocalMap;
 using GlobalToLocalMap = std::unordered_map< global_int_t, local_int_t >;
 #endif
 
+#ifndef HPCG_NO_MPI
+ #include <mpi.h>
+#endif
 #ifdef HPCG_WITH_CUDA
  #include <cuda_runtime.h>
  #include <cusparse.h>
@@ -77,6 +80,8 @@ public:
   mutable MGData<SC> * mgData; // Pointer to the coarse level data for this fine matrix
   void * optimizationData;  // pointer that can be used to store implementation-specific data
 
+  // communicator
+  comm_type comm;
 #ifndef HPCG_NO_MPI
   local_int_t numberOfExternalValues; //!< number of entries that are external to this process
   int numberOfSendNeighbors; //!< number of neighboring processes that will be send local data
@@ -141,7 +146,7 @@ public:
   @param[in] A the known system matrix
  */
 template<class SparseMatrix_type>
-inline void InitializeSparseMatrix(SparseMatrix_type & A, Geometry * geom) {
+inline void InitializeSparseMatrix(SparseMatrix_type & A, Geometry * geom, comm_type comm) {
   A.title = 0;
   A.geom = geom;
   A.totalNumberOfRows = 0;
@@ -165,6 +170,7 @@ inline void InitializeSparseMatrix(SparseMatrix_type & A, Geometry * geom) {
   A.isWaxpbyOptimized     = true;
   A.isGemvOptimized       = true;
 
+  A.comm = comm;
 #ifndef HPCG_NO_MPI
   A.numberOfExternalValues = 0;
   A.numberOfSendNeighbors = 0;

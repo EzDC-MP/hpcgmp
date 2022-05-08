@@ -44,11 +44,13 @@ template <class SparseMatrix_type, class GMRESData_type>
 inline void InitializeSparseGMRESData(SparseMatrix_type & A, GMRESData_type & data) {
   local_int_t nrow = A.localNumberOfRows;
   local_int_t ncol = A.localNumberOfColumns;
-  InitializeVector(data.r, nrow);
-  InitializeVector(data.z, ncol);
-  InitializeVector(data.p, ncol);
-  InitializeVector(data.w, nrow);
-  InitializeVector(data.Ap, nrow);
+  comm_type comm = A.comm;
+
+  InitializeVector(data.r,  nrow, comm);
+  InitializeVector(data.z,  ncol, comm);
+  InitializeVector(data.p,  ncol, comm);
+  InitializeVector(data.w,  nrow, comm);
+  InitializeVector(data.Ap, nrow, comm);
   return;
 }
 
@@ -79,6 +81,10 @@ public:
   // from validation step
   int refNumIters;      //!< number of reference iterations
   int optNumIters;      //!< number of optimized iterations
+
+  double SetupTime;
+  double OptimizeTime;
+  double SpmvMgTime;
 
   // from benchmark step
   int numOfCalls;       //!< number of calls

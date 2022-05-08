@@ -51,8 +51,8 @@ void ExchangeHalo(const SparseMatrix_type & A, Vector_type & x) {
   scalar_type * const xv = x.values;
 
   int size, rank; // Number of MPI processes, My process ID
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(A.comm, &size);
+  MPI_Comm_rank(A.comm, &rank);
 
   //
   //  first post receives, these are immediate receives
@@ -73,7 +73,7 @@ void ExchangeHalo(const SparseMatrix_type & A, Vector_type & x) {
   // TODO: Thread this loop
   for (int i = 0; i < num_neighbors; i++) {
     local_int_t n_recv = receiveLength[i];
-    MPI_Irecv(x_external, n_recv, MPI_SCALAR_TYPE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD, request+i);
+    MPI_Irecv(x_external, n_recv, MPI_SCALAR_TYPE, neighbors[i], MPI_MY_TAG, A.comm, request+i);
     x_external += n_recv;
   }
 
@@ -92,7 +92,7 @@ void ExchangeHalo(const SparseMatrix_type & A, Vector_type & x) {
   // TODO: Thread this loop
   for (int i = 0; i < num_neighbors; i++) {
     local_int_t n_send = sendLength[i];
-    MPI_Send(sendBuffer, n_send, MPI_SCALAR_TYPE, neighbors[i], MPI_MY_TAG, MPI_COMM_WORLD);
+    MPI_Send(sendBuffer, n_send, MPI_SCALAR_TYPE, neighbors[i], MPI_MY_TAG, A.comm);
     sendBuffer += n_send;
   }
 

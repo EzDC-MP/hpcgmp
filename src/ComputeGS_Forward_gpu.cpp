@@ -246,9 +246,9 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   scalar_type rnorm = 0.0;
   #ifndef HPCG_NO_MPI
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
-  MPI_Allreduce(&l_enorm, &enorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&l_xnorm, &xnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(&l_rnorm, &rnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&l_enorm, &enorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  MPI_Allreduce(&l_xnorm, &xnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  MPI_Allreduce(&l_rnorm, &rnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
   #else
   enorm = l_enorm;
   xnorm = l_xnorm;
@@ -258,7 +258,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   xnorm = sqrt(xnorm);
   rnorm = sqrt(rnorm);
   int rank = 0;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_rank(A.comm, &rank);
   if (rank == 0) {
     HPCG_fout << rank << " : GS_forward(" << nrow << " x " << ncol << "): error = " << enorm << " (x=" << xnorm << ", r=" << rnorm << ")" << std::endl;
   }
