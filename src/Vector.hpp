@@ -31,16 +31,13 @@
 #ifdef HPCG_WITH_CUDA
  #include <cuda_runtime.h>
  #include <cublas_v2.h>
- #include "hpgmp.hpp"
 #elif defined(HPCG_WITH_HIP)
  #include <hip/hip_runtime_api.h>
  #include <rocblas.h>
 #endif
 
-#include "Geometry.hpp"
-#ifdef HPCG_DEBUG
 #include "hpgmp.hpp"
-#endif
+#include "Geometry.hpp"
 
 template<class SC = double>
 class Vector {
