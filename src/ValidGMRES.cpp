@@ -121,9 +121,11 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     test_data.optResNorm0 = optResNorm0;
     test_data.optResNorm  = optResNorm;
   }
-  if (A.geom->rank == 0 && optResNorm/optResNorm0 > tolerance) {
+  if (optResNorm/optResNorm0 > tolerance) {
     fail = 1;
-    HPCG_fout << " opt GMRES did not converege: normr = " << optResNorm << " / " << optResNorm0 << " = " << optResNorm/optResNorm0 << "(tol = " << tolerance << ")" << endl;
+    if (A.geom->rank == 0) {
+      HPCG_fout << " opt GMRES did not converege: normr = " << optResNorm << " / " << optResNorm0 << " = " << optResNorm/optResNorm0 << "(tol = " << tolerance << ")" << endl;
+    }
   }
 
 

@@ -158,7 +158,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
                 << ", " << normr/normr0 << std::endl;
     }
 
-    if (normr/normr0 <= tolerance) {
+    if (normr_hi/normr0_hi <= tolerance) {
       converged = true;
       if (verbose && A.geom->rank==0) HPCG_fout << " > GMRES_IR converged " << std::endl;
     }
