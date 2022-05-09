@@ -80,7 +80,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   SparseMatrix_type2 A_lo;
   GMRESData_type2 data_lo;
 
-  Vector_type b, x, xexact;
+  Vector_type b, x;
   SetupProblem("bench_",argc, argv, comm, numberOfMgLevels, verbose, geom, A, data, A_lo, data_lo, b, x, test_data);
 
 
@@ -194,7 +194,6 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   DeleteGMRESData(data_lo);
   DeleteVector(x);
   DeleteVector(b);
-  DeleteVector(xexact);
 
   return 0;
 }

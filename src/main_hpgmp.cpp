@@ -162,7 +162,7 @@ int main(int argc, char * argv[]) {
     SparseMatrix_type2 A2;
     GMRESData_type2 data2;
 
-    Vector_type b, x, xexact;
+    Vector_type b, x;
     SetupProblem("report_", argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, geom, A, data, A2, data2, b, x, test_data);
 
 
@@ -179,7 +179,6 @@ int main(int argc, char * argv[]) {
     DeleteGMRESData(data2);
     DeleteVector(x);
     DeleteVector(b);
-    DeleteVector(xexact);
   }
 
   // Finish up
