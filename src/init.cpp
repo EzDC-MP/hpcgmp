@@ -66,7 +66,7 @@ startswith(const char * s, const char * prefix) {
   @see HPCG_Finalize
 */
 int
-HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params) {
+HPCG_Init(const char *title, int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm) {
   int argc = *argc_p;
   char ** argv = *argv_p;
   char fname[80];
@@ -115,7 +115,7 @@ HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params) {
 // Broadcast values of iparams to all MPI processes
 #ifndef HPCG_NO_MPI
   if (broadcastParams) {
-    MPI_Bcast( iparams, nparams, MPI_INT, 0, MPI_COMM_WORLD );
+    MPI_Bcast( iparams, nparams, MPI_INT, 0, comm );
   }
 #endif
 
@@ -133,8 +133,8 @@ HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params) {
   params.npz = iparams[9];
 
 #ifndef HPCG_NO_MPI
-  MPI_Comm_rank( MPI_COMM_WORLD, &params.comm_rank );
-  MPI_Comm_size( MPI_COMM_WORLD, &params.comm_size );
+  MPI_Comm_rank( comm, &params.comm_rank );
+  MPI_Comm_size( comm, &params.comm_size );
 #else
   params.comm_rank = 0;
   params.comm_size = 1;
@@ -150,7 +150,7 @@ HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params) {
 
   time ( &rawtime );
   ptm = localtime(&rawtime);
-  sprintf( fname, "hpgmp%04d%02d%02dT%02d%02d%02d.txt",
+  sprintf( fname, "%shpgmp%04d%02d%02dT%02d%02d%02d.txt", title,
       1900 + ptm->tm_year, ptm->tm_mon+1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec );
 
   if (0 == params.comm_rank) {
@@ -173,4 +173,9 @@ HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params) {
   free( iparams );
 
   return 0;
+}
+
+int
+HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm) {
+  return HPCG_Init("", argc_p, argv_p, params, comm);
 }

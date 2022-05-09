@@ -248,14 +248,23 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
 
     doc.add("########## Iterations Summary  ##########","");
     doc.add("Iteration Count Information","");
+    doc.get("Iteration Count Information")->add("Number of processes (validation)", test_data.validation_nprocs);
+    doc.get("Iteration Count Information")->add("Restart length (validation)", test_data.restart_length);
+    doc.get("Iteration Count Information")->add("Convergence tolerance (validation)", test_data.tolerance);
     doc.get("Iteration Count Information")->add("Number of reference iterations (validation)", test_data.refNumIters);
+    doc.get("Iteration Count Information")->add("Initial residual norm of reference iterations (validation)", test_data.refResNorm0);
+    doc.get("Iteration Count Information")->add("Final residual norm of reference iterations (validation)", test_data.refResNorm);
     doc.get("Iteration Count Information")->add("Number of optimized iterations (validation)", test_data.optNumIters);
+    doc.get("Iteration Count Information")->add("Initial residual norm of optimized iterations (validation)", test_data.optResNorm0);
+    doc.get("Iteration Count Information")->add("Final residual norm of optimized iterations (validation)", test_data.optResNorm);
 
     doc.add("########## Performance Summary (times in sec) ##########","");
 
     doc.add("Benchmark Time Summary","");
     //doc.get("Iteration Count Information")->add("Iteration results with # of PASSES", test_data.count_pass);
     //doc.get("Iteration Count Information")->add("Iteration results with # of FAILS",  test_data.count_fail);
+    doc.get("Benchmark Time Summary")->add("Number of GMRES calls (benchmark)",test_data.numOfCalls);
+    doc.get("Benchmark Time Summary")->add("Mximum number of iterations (benchmark)",test_data.maxNumIters);
     doc.get("Benchmark Time Summary")->add("Optimization phase",test_data.OptimizeTime);
     doc.get("Benchmark Time Summary")->add("Ortho",  test_data.times[3]);
     doc.get("Benchmark Time Summary")->add(" DDOT",  test_data.times[1]);
@@ -346,10 +355,6 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
 /* --------------- *
  * specializations *
  * --------------- */
-//template<class SparseMatrix_type, class TestGMRESData_type>
-//void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels, double times[],
-//                   const TestGMRESData_type & test_data, int global_failure, bool quickPath) {
-
 template
 void ReportResults< SparseMatrix<double>, TestGMRESData<double> >
   (const SparseMatrix<double>&, int, const TestGMRESData<double>&, int, bool);

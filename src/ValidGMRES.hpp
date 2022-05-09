@@ -26,12 +26,8 @@
 #include "Vector.hpp"
 #include "GMRESData.hpp"
 
-template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESData_type, class GMRESData_type2, class Vector_type, class TestGMRESData_type>
-extern int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type & data, GMRESData_type2 & data_lo, Vector_type & b, Vector_type & x,
-                      TestGMRESData_type & testcg_data, bool verbose);
-
-template<class SparseMatrix_type, class GMRESData_type, class Vector_type, class TestGMRESData_type>
-extern int ValidGMRES(SparseMatrix_type & A, GMRESData_type & data, Vector_type & b, Vector_type & x, TestGMRESData_type & testcg_data, bool verbose);
+template<class scalar_type, class scalar_type2, class TestGMRESData_type>
+extern int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, TestGMRESData_type & testcg_data);
 
 #endif  // BENCHGMRES_HPP
 

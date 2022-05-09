@@ -23,7 +23,7 @@
 #include "SetupProblem.hpp"
 
 template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESData_type, class GMRESData_type2, class Vector_type, class TestGMRESData_type>
-void SetupProblem(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, Geometry * geom,
+void SetupProblem(const char *title, int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, Geometry * geom,
                   SparseMatrix_type & A, GMRESData_type & data, SparseMatrix_type2 & A2, GMRESData_type2 & data2,
                   Vector_type & b, Vector_type & x, TestGMRESData_type & test_data);
 

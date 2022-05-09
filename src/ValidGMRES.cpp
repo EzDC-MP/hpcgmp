@@ -32,9 +32,11 @@ using std::endl;
 #include <vector>
 #include "hpgmp.hpp"
 
-#include "ValidGMRES.hpp"
+#include "SetupProblem.hpp"
 #include "GMRES.hpp"
 #include "GMRES_IR.hpp"
+
+#include "ValidGMRES.hpp"
 #include "mytimer.hpp"
 
 /*!
@@ -53,16 +55,18 @@ using std::endl;
  */
 
 
-template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESSData_type, class GMRESSData_type2, class Vector_type, class TestGMRESSData_type>
-int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type & data, GMRESSData_type2 & data_lo, Vector_type & b, Vector_type & x,
-               TestGMRESSData_type & test_data, bool verbose) {
+template<class scalar_type, class scalar_type2, class TestGMRESSData_type>
+int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, TestGMRESSData_type & test_data) {
 
-  typedef typename SparseMatrix_type::scalar_type scalar_type;
-  typedef typename SparseMatrix_type2::scalar_type scalar_type2;
+  typedef Vector<scalar_type> Vector_type;
+  typedef SparseMatrix<scalar_type> SparseMatrix_type;
+  typedef GMRESData<scalar_type> GMRESData_type;
+
   typedef Vector<scalar_type2> Vector_type2;
+  typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
+  typedef GMRESData<scalar_type2> GMRESData_type2;
 
 
-#if 0
   //////////////////////////////////////////////////////////
   // Setup problem
   Geometry * geom = new Geometry;
@@ -70,25 +74,22 @@ int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
   SparseMatrix_type A;
   GMRESData_type data;
 
-  SparseMatrix_type2 A2;
-  GMRESData_type2 data2;
+  SparseMatrix_type2 A_lo;
+  GMRESData_type2 data_lo;
 
   Vector_type b, x, xexact;
-  SetupProblem(argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, geom, A, data, A2, data2, b, x, test_data);
-#endif
+  SetupProblem("valid_", argc, argv, comm, numberOfMgLevels, verbose, geom, A, data, A_lo, data_lo, b, x, test_data);
 
 
-  int restart_length = 30;
+  //////////////////////////////////////////////////////////
+  // Solver Parameters
   int MaxIters = 3000;
-  scalar_type tolerance = 1e-9;
-
-  test_data.tolerance = tolerance;
-  test_data.restart_length = restart_length;
-
-  //if (A.geom->rank == 0 && verbose) 
-  {
+  int restart_length = test_data.restart_length;
+  scalar_type tolerance = test_data.tolerance;
+  if (A.geom->rank == 0 && verbose) {
     HPCG_fout << endl << " >> In Validate GMRES( tol = " << tolerance << " and restart = " << restart_length << ") <<" << endl;
   }
+
 
   //////////////////////////////////////////////////////////
   // Run reference GMRES to a fixed tolerance
@@ -99,10 +100,13 @@ int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
     ZeroVector(x);
     int ierr = GMRES(A, data, b, x, restart_length, MaxIters, tolerance, refNumIters, refResNorm, refResNorm0, true, verbose, test_data);
     test_data.refNumIters = refNumIters;
+    test_data.refResNorm0 = refResNorm0;
+    test_data.refResNorm  = refResNorm;
   }
   if (A.geom->rank == 0 && refResNorm/refResNorm0 > tolerance) {
-    HPCG_fout << " ref GMRES did not converege: normr = " << refResNorm/refResNorm0 << "(tol = " << tolerance << ")" << endl;
+    HPCG_fout << " ref GMRES did not converege: normr = " << refResNorm << " / " << refResNorm0 << " = " << refResNorm/refResNorm0 << "(tol = " << tolerance << ")" << endl;
   }
+
 
   //////////////////////////////////////////////////////////
   // Run "optimized" GMRES (aka GMRES-IR) to a fixed tolerance
@@ -114,47 +118,44 @@ int ValidGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
     ZeroVector(x);
     int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, MaxIters, tolerance, optNumIters, optResNorm, optResNorm0, true, verbose, test_data);
     test_data.optNumIters = optNumIters;
+    test_data.optResNorm0 = optResNorm0;
+    test_data.optResNorm  = optResNorm;
   }
   if (A.geom->rank == 0 && optResNorm/optResNorm0 > tolerance) {
     fail = 1;
-    HPCG_fout << " opt GMRES did not converege: normr = " << optResNorm/optResNorm0 << "(tol = " << tolerance << ")" << endl;
+    HPCG_fout << " opt GMRES did not converege: normr = " << optResNorm << " / " << optResNorm0 << " = " << optResNorm/optResNorm0 << "(tol = " << tolerance << ")" << endl;
   }
+
+
+  // cleanup
+  DeleteMatrix(A);
+  DeleteMatrix(A_lo);
+  DeleteGeometry(*geom);
+  delete geom;
+
+  DeleteGMRESData(data);
+  DeleteGMRESData(data_lo);
+  DeleteVector(x);
+  DeleteVector(b);
+  DeleteVector(xexact);
 
   return fail;
 }
 
-template<class SparseMatrix_type, class GMRESSData_type, class Vector_type, class TestGMRESSData_type>
-int ValidGMRES(SparseMatrix_type & A, GMRESSData_type & data, Vector_type & b, Vector_type & x, TestGMRESSData_type & test_data, bool verbose) {
-  return ValidGMRES(A, A, data, data, b, x, test_data, verbose);
-}
 
 
 /* --------------- *
  * specializations *
  * --------------- */
 
-// uniform
-template
-int ValidGMRES< SparseMatrix<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool);
-
-template
-int ValidGMRES< SparseMatrix<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
-  (SparseMatrix<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, TestGMRESData<float>&, bool);
-
-
-
 // uniform version
 template
-int ValidGMRES< SparseMatrix<double>, SparseMatrix<double>, GMRESData<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, SparseMatrix<double>&, GMRESData<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool);
+int ValidGMRES< double, double, TestGMRESData<double> > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
 
 template
-int ValidGMRES< SparseMatrix<float>, SparseMatrix<float>, GMRESData<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
-  (SparseMatrix<float>&, SparseMatrix<float>&, GMRESData<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, TestGMRESData<float>&, bool);
+int ValidGMRES< float, float, TestGMRESData<float> > (int, char**, comm_type, int, bool, TestGMRESData<float>&);
 
 // mixed version
 template
-int ValidGMRES< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRESData<float>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, SparseMatrix<float>&, GMRESData<double>&, GMRESData<float>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool);
+int ValidGMRES< double, float, TestGMRESData<double> > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
 

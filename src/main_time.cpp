@@ -88,7 +88,7 @@ int main(int argc, char * argv[]) {
 
 
   HPCG_Params params;
-  HPCG_Init(&argc, &argv, params);
+  HPCG_Init(&argc, &argv, params, MPI_COMM_WORLD);
 
 
   // Check if QuickPath option is enabled.

@@ -91,8 +91,6 @@ int main(int argc, char * argv[]) {
   //////////////////////////
   // Create Communicators //
   //////////////////////////
-  MPI_Comm valid_comm = MPI_COMM_WORLD;
-
   int color = 0;
   int sizeValidComm = 4;
   if (sizeValidComm > numRanks) {
@@ -102,11 +100,11 @@ int main(int argc, char * argv[]) {
     asseert(1);
     #endif
   }
-
   if (myRank < sizeValidComm) {
     color = 1;
   }
-  MPI_Comm_split(MPI_COMM_WORLD, color, myRank, &valid_comm);
+  MPI_Comm validation_comm = MPI_COMM_WORLD;
+  MPI_Comm_split(MPI_COMM_WORLD, color, myRank, &validation_comm);
 
   // Check if QuickPath option is enabled.
   // If the running time is set to zero, we minimize all paths through the program
@@ -118,91 +116,71 @@ int main(int argc, char * argv[]) {
 
   // Use this array for collecting timing information
   bool verbose = false;
-  std::vector< double > times(10,0.0);
-
   int ierr = 0;  // Used to check return codes on function calls
   TestGMRESData_type test_data;
   test_data.times = NULL;
   test_data.flops = NULL;
+  test_data.validation_nprocs = sizeValidComm;
 
-
-  /////////////////////////
-  // Problem setup Phase //
-  /////////////////////////
-  Geometry * geom = new Geometry;
-
-  SparseMatrix_type A;
-  GMRESData_type data;
-
-  SparseMatrix_type2 A2;
-  GMRESData_type2 data2;
-
-  Vector_type b, x, xexact;
-  SetupProblem(argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, geom, A, data, A2, data2, b, x, test_data);
-
-  //////////////////////////////////////////////////////////////////////////
-  // Validation Phase: make sure optimized version converges to specified //
-  //////////////////////////////////////////////////////////////////////////
 
   //////////////////////
   // Validation phase //
   //////////////////////
   int global_failure = 0;
-  ValidGMRES(A, A2, data, data2, b, x, test_data, verbose);
+  int restart_length = 30;
+  scalar_type tolerance = 1e-9;
 
-
-  ////////////////////////////////////
-  // Reference SpMV+MG Timing Phase //
-  ////////////////////////////////////
-  // Call Reference SpMV and MG. Compute Optimization time as ratio of times in these routines
-  MPI_Comm bench_comm = MPI_COMM_WORLD;
-
-  local_int_t nrow = A.localNumberOfRows;
-  local_int_t ncol = A.localNumberOfColumns;
-
-  Vector_type x_overlap, b_computed;
-  InitializeVector(x_overlap, ncol, bench_comm);  // Overlapped copy of x vector
-  InitializeVector(b_computed, nrow, bench_comm); // Computed RHS vector
-
-
-  // Record execution time of reference SpMV and MG kernels for reporting times
-  // First load vector with random values
-  FillRandomVector(x_overlap);
-
-  int numberOfCalls = 10;
-  if (quickPath) numberOfCalls = 1; //QuickPath means we do on one call of each block of repetitive code
-  double t_begin = mytimer();
-  for (int i=0; i< numberOfCalls; ++i) {
-    ierr = ComputeSPMV_ref(A, x_overlap, b_computed); // b_computed = A*x_overlap
-    if (ierr) HPCG_fout << "Error in call to SpMV: " << ierr << ".\n" << endl;
-    ierr = ComputeMG_ref(A, b_computed, x_overlap); // b_computed = Minv*y_overlap
-    if (ierr) HPCG_fout << "Error in call to MG: " << ierr << ".\n" << endl;
+  test_data.tolerance = tolerance;
+  test_data.restart_length = restart_length;
+  if (myRank < sizeValidComm) {
+    global_failure = ValidGMRES<scalar_type, scalar_type2> (argc, argv, validation_comm, numberOfMgLevels, verbose, test_data);
+    HPCG_Finalize();
   }
-  times[8] = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
 
 
   /////////////////////
   // Benchmark phase //
   /////////////////////
-  bool runReference = true;
-  BenchGMRES(A, A2, data, data2, b, x, test_data, runReference, verbose);
+  {
+    bool runReference = true;
+    BenchGMRES<scalar_type, scalar_type2>(argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, runReference, test_data);
+    MPI_Barrier(MPI_COMM_WORLD);
+    HPCG_Finalize();
+  }
 
   
   ////////////////////
   // Report Results //
   ////////////////////
+  {
+    // setup problem for reporting (TODO: remove)
+    Geometry * geom = new Geometry;
 
-  // Report results to YAML file
-  ReportResults(A, numberOfMgLevels, test_data, global_failure, quickPath);
+    SparseMatrix_type A;
+    GMRESData_type data;
 
-  // Clean up
-  DeleteMatrix(A); // This delete will recursively delete all coarse grid data
-  DeleteGMRESData(data);
-  DeleteVector(x);
-  DeleteVector(b);
-  DeleteVector(xexact);
-  DeleteVector(x_overlap);
-  DeleteVector(b_computed);
+    SparseMatrix_type2 A2;
+    GMRESData_type2 data2;
+
+    Vector_type b, x, xexact;
+    SetupProblem("report_", argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, geom, A, data, A2, data2, b, x, test_data);
+
+
+    // Report results to YAML file
+    ReportResults(A, numberOfMgLevels, test_data, global_failure, quickPath);
+
+    // Clean up
+    DeleteMatrix(A);
+    DeleteMatrix(A2);
+    DeleteGeometry(*geom);
+    delete geom;
+
+    DeleteGMRESData(data);
+    DeleteGMRESData(data2);
+    DeleteVector(x);
+    DeleteVector(b);
+    DeleteVector(xexact);
+  }
 
   // Finish up
   HPCG_Finalize();

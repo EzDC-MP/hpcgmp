@@ -32,13 +32,14 @@ using std::endl;
 #include <vector>
 #include "hpgmp.hpp"
 
-#include "BenchGMRES.hpp"
+#include "SetupProblem.hpp"
 #include "GMRES.hpp"
 #include "GMRES_IR.hpp"
 
 #include "ComputeSPMV_ref.hpp"
 #include "ComputeMG_ref.hpp"
 
+#include "BenchGMRES.hpp"
 #include "mytimer.hpp"
 
 /*!
@@ -57,13 +58,30 @@ using std::endl;
  */
 
 
-template<class SparseMatrix_type, class SparseMatrix_type2, class GMRESSData_type, class GMRESSData_type2, class Vector_type, class TestGMRESSData_type>
-int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type & data, GMRESSData_type2 & data_lo, Vector_type & b, Vector_type & x,
-               TestGMRESSData_type & test_data, bool runReference, bool verbose) {
+template<class scalar_type, class scalar_type2, class TestGMRESSData_type>
+int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, bool runReference, TestGMRESSData_type & test_data) {
 
-  typedef typename SparseMatrix_type::scalar_type scalar_type;
-  typedef typename SparseMatrix_type2::scalar_type scalar_type2;
+  typedef Vector<scalar_type> Vector_type;
+  typedef SparseMatrix<scalar_type> SparseMatrix_type;
+  typedef GMRESData<scalar_type> GMRESData_type;
+
   typedef Vector<scalar_type2> Vector_type2;
+  typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
+  typedef GMRESData<scalar_type2> GMRESData_type2;
+
+
+  //////////////////////////////////////////////////////////
+  // Setup problem
+  Geometry * geom = new Geometry;
+
+  SparseMatrix_type A;
+  GMRESData_type data;
+
+  SparseMatrix_type2 A_lo;
+  GMRESData_type2 data_lo;
+
+  Vector_type b, x, xexact;
+  SetupProblem("bench_",argc, argv, comm, numberOfMgLevels, verbose, geom, A, data, A_lo, data_lo, b, x, test_data);
 
 
   // =====================================================================
@@ -90,6 +108,9 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
     }
     //times[8] = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
     test_data.SpmvMgTime = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
+
+    DeleteVector(x_overlap);
+    DeleteVector(b_computed);
   }
 
   // =====================================================================
@@ -102,6 +123,7 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
   scalar_type tolerance = 0.0;
   int restart_length = test_data.restart_length;
   bool precond = true;
+  test_data.maxNumIters = maxIters;
 
   int num_flops = 4;
   test_data.flops = (double*)malloc(num_flops * sizeof(double));
@@ -162,13 +184,19 @@ int BenchGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESSData_type
     test_data.numOfCalls = numberOfGmresCalls;
   }
 
+  // cleanup
+  DeleteMatrix(A);  
+  DeleteMatrix(A_lo);
+  DeleteGeometry(*geom);
+  delete geom;
+
+  DeleteGMRESData(data);
+  DeleteGMRESData(data_lo);
+  DeleteVector(x);
+  DeleteVector(b);
+  DeleteVector(xexact);
 
   return 0;
-}
-
-template<class SparseMatrix_type, class GMRESSData_type, class Vector_type, class TestGMRESSData_type>
-int BenchGMRES(SparseMatrix_type & A, GMRESSData_type & data, Vector_type & b, Vector_type & x, TestGMRESSData_type & test_data, bool runReference, bool verbose) {
-  return BenchGMRES(A, A, data, data, b, x, test_data, runReference, verbose);
 }
 
 
@@ -176,28 +204,18 @@ int BenchGMRES(SparseMatrix_type & A, GMRESSData_type & data, Vector_type & b, V
  * specializations *
  * --------------- */
 
-// uniform
-template
-int BenchGMRES< SparseMatrix<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool, bool);
-
-template
-int BenchGMRES< SparseMatrix<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
-  (SparseMatrix<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, TestGMRESData<float>&, bool, bool);
-
-
-
 // uniform version
 template
-int BenchGMRES< SparseMatrix<double>, SparseMatrix<double>, GMRESData<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, SparseMatrix<double>&, GMRESData<double>&, GMRESData<double>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool, bool);
+int BenchGMRES< double, double, TestGMRESData<double> >
+  (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
 
 template
-int BenchGMRES< SparseMatrix<float>, SparseMatrix<float>, GMRESData<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
-  (SparseMatrix<float>&, SparseMatrix<float>&, GMRESData<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, TestGMRESData<float>&, bool, bool);
+int BenchGMRES< float, float, TestGMRESData<float> >
+  (int, char**, comm_type, int, bool, bool, TestGMRESData<float>&);
+
 
 // mixed version
 template
-int BenchGMRES< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRESData<float>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, SparseMatrix<float>&, GMRESData<double>&, GMRESData<float>&, Vector<double>&, Vector<double>&, TestGMRESData<double>&, bool, bool);
+int BenchGMRES< double, float, TestGMRESData<double> >
+  (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
 

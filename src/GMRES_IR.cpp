@@ -148,7 +148,10 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     TICK(); ScaleVectorValue(Qj, one_hi/normr_hi); flops += Nrow; TOCK(t2);
 
     // Record initial residual for convergence testing
-    if (niters == 0) normr0 = normr_hi;
+    if (niters == 0) {
+      normr0 = normr_hi;
+      normr0_hi = normr_hi;
+    }
     normr = normr_hi;
     if (verbose && A.geom->rank==0) {
       HPCG_fout << "GMRES_IR Residual at the start of restart cycle = "<< normr

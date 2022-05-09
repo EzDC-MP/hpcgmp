@@ -79,8 +79,13 @@ public:
   SC tolerance;         //!< tolerance = reference residual norm 
 
   // from validation step
-  int refNumIters;      //!< number of reference iterations
-  int optNumIters;      //!< number of optimized iterations
+  int refNumIters;       //!< number of reference iterations
+  int optNumIters;       //!< number of optimized iterations
+  int validation_nprocs; //!<
+  double refResNorm0;
+  double refResNorm;
+  double optResNorm0;
+  double optResNorm;
 
   double SetupTime;
   double OptimizeTime;
@@ -88,6 +93,7 @@ public:
 
   // from benchmark step
   int numOfCalls;       //!< number of calls
+  int maxNumIters;      //!< 
   double refTotalFlops; //
   double refTotalTime;  //
   double optTotalFlops; //

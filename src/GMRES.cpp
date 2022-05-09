@@ -19,7 +19,7 @@
  */
 
 #include <fstream>
-
+#include <iostream>
 #include <cmath>
 
 #include "hpgmp.hpp"

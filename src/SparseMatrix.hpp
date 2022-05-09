@@ -250,11 +250,11 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
   if (A.sendBuffer)            delete [] A.sendBuffer;
 #endif
 
-  if (A.geom!=0) {
+  /*if (A.geom!=0) {
     DeleteGeometry(*A.geom);
     delete A.geom;
     A.geom = 0;
-  }
+  }*/
   if (A.Ac!=0) {
     // Delete coarse matrix
     DeleteMatrix(*A.Ac);
