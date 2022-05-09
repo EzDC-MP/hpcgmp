@@ -19,6 +19,6 @@
 
 template<class SparseMatrix_type, class TestGMRESData_type>
 void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
-                   const TestGMRESData_type & testcg_data, int global_failure, bool quickPath);
+                   const TestGMRESData_type & testcg_data, int global_failure);
 
 #endif // REPORTRESULTS_HPP

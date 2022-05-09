@@ -43,7 +43,6 @@ using std::endl;
 #include "CheckProblem.hpp"
 #include "OptimizeProblem.hpp"
 #include "WriteProblem.hpp"
-#include "ReportResults.hpp"
 #include "mytimer.hpp"
 #include "ComputeSPMV_ref.hpp"
 #include "ComputeMG_ref.hpp"
@@ -90,10 +89,6 @@ int main(int argc, char * argv[]) {
   HPCG_Params params;
   HPCG_Init(&argc, &argv, params, MPI_COMM_WORLD);
 
-
-  // Check if QuickPath option is enabled.
-  // If the running time is set to zero, we minimize all paths through the program
-  bool quickPath = (params.runningTime==0);
 
   int size = params.comm_size, rank = params.comm_rank; // Number of MPI processes, My process ID
 
@@ -182,22 +177,6 @@ int main(int argc, char * argv[]) {
   // Record execution time of reference SpMV and MG kernels for reporting times
   // First load vector with random values
   FillRandomVector(x_overlap);
-
-#if 0
-  int numberOfCalls = 10;
-  if (quickPath) numberOfCalls = 1; //QuickPath means we do on one call of each block of repetitive code
-  double t_begin = mytimer();
-  for (int i=0; i< numberOfCalls; ++i) {
-    ierr = ComputeSPMV_ref(A, x_overlap, b_computed); // b_computed = A*x_overlap
-    if (ierr) HPCG_fout << "Error in call to SpMV: " << ierr << ".\n" << endl;
-    ierr = ComputeMG_ref(A, b_computed, x_overlap); // b_computed = Minv*y_overlap
-    if (ierr) HPCG_fout << "Error in call to MG: " << ierr << ".\n" << endl;
-  }
-  times[8] = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
-#ifdef HPCG_DEBUG
-  if (rank==0) HPCG_fout << "Total SpMV+MG timing phase execution time in main (sec) = " << mytimer() - t1 << endl;
-#endif
-#endif
 
 
   //////////////////////////////

@@ -40,18 +40,16 @@ using std::endl;
 #include "mytimer.hpp"
 
 /*!
-  Test the correctness of the Preconditined CG implementation by using a system matrix with a dominant diagonal.
+  Test the correctness of the optimized GMRES implementation
 
-  @param[in]    geom The description of the problem's geometry.
-  @param[in]    A    The known system matrix
-  @param[in]    data the data structure with all necessary CG vectors preallocated
-  @param[in]    b    The known right hand side vector
-  @param[inout] x    On entry: the initial guess; on exit: the new approximate solution
-  @param[out]   test_data the data structure with the results of the test including pass/fail information
+  @param[in]      argc      the "argc" parameter passed to the main() function
+  @param[in]      argv      the "argv" parameter passed to the main() function
+  @param[in]      comm      the communicator used to run validation
+  @param[inout]   test_data the data structure with the results of the test including pass/fail information
 
   @return Returns zero on success and a non-zero value otherwise.
 
-  @see CG()
+  @see GMRES()
  */
 
 
@@ -66,6 +64,7 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
   typedef GMRESData<scalar_type2> GMRESData_type2;
 
+  double total_validation_time = mytimer();
 
   //////////////////////////////////////////////////////////
   // Setup problem
@@ -94,14 +93,23 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   //////////////////////////////////////////////////////////
   // Run reference GMRES to a fixed tolerance
   int refNumIters = 0;
+  double refSolveTime = 0.0;
   scalar_type refResNorm = 0.0;
   scalar_type refResNorm0 = 0.0;
   {
     ZeroVector(x);
+
+    double time_tic = mytimer();
     int ierr = GMRES(A, data, b, x, restart_length, MaxIters, tolerance, refNumIters, refResNorm, refResNorm0, true, verbose, test_data);
+    refSolveTime = (mytimer() - time_tic);
+
     test_data.refNumIters = refNumIters;
     test_data.refResNorm0 = refResNorm0;
     test_data.refResNorm  = refResNorm;
+  }
+  if (verbose && A.geom->rank==0) {
+    HPCG_fout << "  Reference Iteration time  " << refSolveTime << " seconds." << endl;
+    HPCG_fout << "  Reference Iteration count " << refNumIters << endl;
   }
   if (A.geom->rank == 0 && refResNorm/refResNorm0 > tolerance) {
     HPCG_fout << " ref GMRES did not converege: normr = " << refResNorm << " / " << refResNorm0 << " = " << refResNorm/refResNorm0 << "(tol = " << tolerance << ")" << endl;
@@ -112,14 +120,23 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   // Run "optimized" GMRES (aka GMRES-IR) to a fixed tolerance
   int fail = 0;
   int optNumIters = 0;
+  double optSolveTime = 0.0;
   scalar_type optResNorm = 0.0;
   scalar_type optResNorm0 = 0.0;
   {
     ZeroVector(x);
+
+    double time_tic = mytimer();
     int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, MaxIters, tolerance, optNumIters, optResNorm, optResNorm0, true, verbose, test_data);
+    optSolveTime = (mytimer() - time_tic);
+
     test_data.optNumIters = optNumIters;
     test_data.optResNorm0 = optResNorm0;
     test_data.optResNorm  = optResNorm;
+  }
+  if (verbose && A.geom->rank==0) {
+    HPCG_fout << "  Optimized Iteration time  " << optSolveTime << " seconds." << endl;
+    HPCG_fout << "  Optimized Iteration count " << optNumIters << endl;
   }
   if (optResNorm/optResNorm0 > tolerance) {
     fail = 1;
@@ -140,6 +157,10 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   DeleteVector(x);
   DeleteVector(b);
 
+  if (verbose && A.geom->rank==0) {
+    total_validation_time = (mytimer() - total_validation_time);
+    HPCG_fout << " Total validation time : " << total_validation_time << " seconds." << endl;
+  }
   return fail;
 }
 

@@ -35,18 +35,7 @@ using std::endl;
 #include "hpgmp.hpp"
 
 #include "SetupProblem.hpp"
-#include "CheckAspectRatio.hpp"
-#include "GenerateGeometry.hpp"
-#include "SetupHalo.hpp"
-#include "CheckProblem.hpp"
-#include "ExchangeHalo.hpp"
-#include "OptimizeProblem.hpp"
-#include "WriteProblem.hpp"
 #include "ReportResults.hpp"
-#include "mytimer.hpp"
-#include "ComputeSPMV_ref.hpp"
-#include "ComputeMG_ref.hpp"
-#include "ComputeResidual.hpp"
 #include "Geometry.hpp"
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
@@ -55,6 +44,7 @@ using std::endl;
 #include "GMRESData.hpp"
 #include "ValidGMRES.hpp"
 #include "BenchGMRES.hpp"
+#include "mytimer.hpp"
 
 typedef double scalar_type;
 typedef TestGMRESData<scalar_type> TestGMRESData_type;
@@ -108,14 +98,11 @@ int main(int argc, char * argv[]) {
 
   // Check if QuickPath option is enabled.
   // If the running time is set to zero, we minimize all paths through the program
-  bool quickPath = 1; //TODO: Change back to the following after=(params.runningTime==0);
   int numberOfMgLevels = 4; // Number of levels including first
-
-  HPCG_Params params;
 
 
   // Use this array for collecting timing information
-  bool verbose = false;
+  bool verbose = true; //false;
   int ierr = 0;  // Used to check return codes on function calls
   TestGMRESData_type test_data;
   test_data.times = NULL;
@@ -167,7 +154,7 @@ int main(int argc, char * argv[]) {
 
 
     // Report results to YAML file
-    ReportResults(A, numberOfMgLevels, test_data, global_failure, quickPath);
+    ReportResults(A, numberOfMgLevels, test_data, global_failure);
 
     // Clean up
     DeleteMatrix(A);

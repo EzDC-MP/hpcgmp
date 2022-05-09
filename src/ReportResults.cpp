@@ -48,13 +48,11 @@ using std::endl;
 */
 template<class SparseMatrix_type, class TestGMRESData_type>
 void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
-                   const TestGMRESData_type & test_data, int global_failure, bool quickPath) {
+                   const TestGMRESData_type & test_data, int global_failure) {
 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
   typedef Vector<scalar_type> Vector_type;
   typedef MGData<scalar_type> MGData_type;
-
-  double minOfficialTime = 1800; // Any official benchmark result must run at least this many seconds
 
   if (A.geom->rank==0) { // Only PE 0 needs to compute and report timing results
 
@@ -261,8 +259,7 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     doc.add("########## Performance Summary (times in sec) ##########","");
 
     doc.add("Benchmark Time Summary","");
-    //doc.get("Iteration Count Information")->add("Iteration results with # of PASSES", test_data.count_pass);
-    //doc.get("Iteration Count Information")->add("Iteration results with # of FAILS",  test_data.count_fail);
+    doc.get("Benchmark Time Summary")->add("Run time requested (benchmark)",test_data.runningTime);
     doc.get("Benchmark Time Summary")->add("Number of GMRES calls (benchmark)",test_data.numOfCalls);
     doc.get("Benchmark Time Summary")->add("Mximum number of iterations (benchmark)",test_data.maxNumIters);
     doc.get("Benchmark Time Summary")->add("Optimization phase",test_data.OptimizeTime);
@@ -326,17 +323,12 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
       if (!A.isWaxpbyOptimized) {
         doc.get("Final Summary")->add("Reference version of ComputeWAXPBY used","Performance results are most likely suboptimal");
       }
-      if (test_data.times[0]>=minOfficialTime) {
+      if (test_data.times[0]>=test_data.minOfficialTime) {
         doc.get("Final Summary")->add("Please upload results from the YAML file contents to","http://hpcg-benchmark.org");
       }
       else {
         doc.get("Final Summary")->add("Results are valid but execution time (sec) is",test_data.times[0]);
-        if (quickPath) {
-          doc.get("Final Summary")->add("You have selected the QuickPath option", "Results are official for legacy installed systems with confirmation from the HPCG Benchmark leaders.");
-          doc.get("Final Summary")->add("After confirmation please upload results from the YAML file contents to","http://hpcg-benchmark.org");
-        } else {
-          doc.get("Final Summary")->add("Official results execution time (sec) must be at least",minOfficialTime);
-        }
+        doc.get("Final Summary")->add("Official results execution time (sec) must be at least",test_data.minOfficialTime);
       }
     } else {
       doc.get("Final Summary")->add("HPCG result is","INVALID.");
@@ -357,8 +349,8 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
  * --------------- */
 template
 void ReportResults< SparseMatrix<double>, TestGMRESData<double> >
-  (const SparseMatrix<double>&, int, const TestGMRESData<double>&, int, bool);
+  (const SparseMatrix<double>&, int, const TestGMRESData<double>&, int);
 
 template
 void ReportResults< SparseMatrix<float>, TestGMRESData<float> >
-  (const SparseMatrix<float>&, int, const TestGMRESData<float>&, int, bool);
+  (const SparseMatrix<float>&, int, const TestGMRESData<float>&, int);

@@ -52,6 +52,7 @@ void SetupProblem(const char *title, int argc, char ** argv, comm_type comm, int
   HPCG_Init(title, &argc, &argv, params, comm);
   int size = params.comm_size; // Number of MPI processes
   int rank = params.comm_rank; // My process ID
+  test_data.runningTime = params.runningTime;
 
   local_int_t nx = (local_int_t)params.nx;
   local_int_t ny = (local_int_t)params.ny;

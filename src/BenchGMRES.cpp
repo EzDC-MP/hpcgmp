@@ -13,7 +13,7 @@
 //@HEADER
 
 /*!
- @file TestGMRES.cpp
+ @file BenchGMRES.cpp
 
  HPCG routine
  */
@@ -28,8 +28,10 @@
 
 #include <fstream>
 #include <iostream>
-using std::endl;
 #include <vector>
+#include <math.h>
+using std::endl;
+
 #include "hpgmp.hpp"
 
 #include "SetupProblem.hpp"
@@ -43,18 +45,17 @@ using std::endl;
 #include "mytimer.hpp"
 
 /*!
-  Test the correctness of the Preconditined CG implementation by using a system matrix with a dominant diagonal.
+  Benchmark the optimized GMRES implementation
 
-  @param[in]    geom The description of the problem's geometry.
-  @param[in]    A    The known system matrix
-  @param[in]    data the data structure with all necessary CG vectors preallocated
-  @param[in]    b    The known right hand side vector
-  @param[inout] x    On entry: the initial guess; on exit: the new approximate solution
-  @param[out]   test_data the data structure with the results of the test including pass/fail information
+  @param[in]      argc      the "argc" parameter passed to the main() function
+  @param[in]      argv      the "argv" parameter passed to the main() function
+  @param[in]      comm      the communicator use to run benchmark
+
+  @param[inout]   test_data the data structure with the results of the test including pass/fail information
 
   @return Returns zero on success and a non-zero value otherwise.
 
-  @see CG()
+  @see GMRES()
  */
 
 
@@ -69,6 +70,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
   typedef GMRESData<scalar_type2> GMRESData_type2;
 
+  double total_benchmark_time = mytimer();
 
   //////////////////////////////////////////////////////////
   // Setup problem
@@ -85,6 +87,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
 
   // =====================================================================
+  // Record execution time of reference SpMV and MG kernels for reporting times
   {
     local_int_t nrow = A.localNumberOfRows;
     local_int_t ncol = A.localNumberOfColumns;
@@ -93,8 +96,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     InitializeVector(x_overlap, ncol, A.comm);  // Overlapped copy of x vector
     InitializeVector(b_computed, nrow, A.comm); // Computed RHS vector
 
-    // Record execution time of reference SpMV and MG kernels for reporting times
-    // First load vector with random values
+    // load vector with random values
     FillRandomVector(x_overlap);
 
     int ierr = 0;
@@ -106,7 +108,6 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
       ierr = ComputeMG_ref(A, b_computed, x_overlap); // b_computed = Minv*y_overlap
       if (ierr) HPCG_fout << "Error in call to MG: " << ierr << ".\n" << endl;
     }
-    //times[8] = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
     test_data.SpmvMgTime = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
 
     DeleteVector(x_overlap);
@@ -114,74 +115,104 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   }
 
   // =====================================================================
-  // Run reference GMRES implementation for a fixed number of iterations
-  // and record the obtained residual norm
+  // Benchmark parameters
+  int numberOfGmresCalls = 10;
+  int maxIters = 300;
+  //double minOfficialTime = 1800; // Any official benchmark result must run at least this many seconds
+  double minOfficialTime = 120; // for testing..
+  test_data.minOfficialTime = minOfficialTime;
+
   int niters = 0;
   scalar_type normr (0.0);
   scalar_type normr0 (0.0);
-  int maxIters = 300;
   scalar_type tolerance = 0.0;
   int restart_length = test_data.restart_length;
   bool precond = true;
   test_data.maxNumIters = maxIters;
 
   int num_flops = 4;
+  int num_times = 7;
   test_data.flops = (double*)malloc(num_flops * sizeof(double));
+  test_data.times = (double*)malloc(num_times * sizeof(double));
   for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
-  double time_solve = 0.0;
-  int numberOfGmresCalls = 10;
+  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
+
+  // =====================================================================
+  // Run optimized GMRES (here, we are calling GMRES_IR) for a fixed number of iterations
+  // and record the obtained Gflop/s
+  double time_solve_total = 0.0;
+  {
+    for (int i=0; i< numberOfGmresCalls; ++i) {
+      ZeroVector(x); // Zero out x
+
+      double time_tic = mytimer();
+      int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
+      double time_toc = (mytimer() - time_tic);
+      time_solve_total += time_toc;
+      if (i == 0) {
+        if (test_data.runningTime >= 0.0) {
+          numberOfGmresCalls = ceil(test_data.runningTime / time_toc);
+        } else {
+          int numberOfGmresCalls_min = ceil(test_data.minOfficialTime / time_toc);
+          if (numberOfGmresCalls_min > numberOfGmresCalls) {
+            numberOfGmresCalls = numberOfGmresCalls_min;
+          }
+        }
+      }
+
+      if (ierr) HPCG_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
+      if (verbose && A.geom->rank==0) {
+        HPCG_fout << "Call [" << i << "] Number of GMRES-IR Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
+        HPCG_fout << " Time        " << time_toc << endl;
+        HPCG_fout << " Time/itr    " << time_toc / niters << endl;
+      }
+    }
+    if (verbose && A.geom->rank==0) {
+      double flops = test_data.flops[0];
+      HPCG_fout << "  Accumulated Time " << time_solve_total << " seconds." << endl;
+      HPCG_fout << "  Final Gflop/s    " << flops/1000000000.0 << "/" << time_solve_total << " = " << (flops/1000000000.0)/time_solve_total
+                << " (n = " << A.totalNumberOfRows << ")" << endl;
+    }
+    test_data.optTotalFlops = test_data.flops[0];
+    test_data.optTotalTime = time_solve_total;
+    test_data.numOfCalls = numberOfGmresCalls;
+  }
+
+  // =====================================================================
+  // (Optional)
+  // Run reference GMRES implementation for a fixed number of iterations
+  // and record the obtained Gflop/s
   if (runReference) {
+    time_solve_total = 0.0;
+    for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
+    for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
     for (int i=0; i< numberOfGmresCalls; ++i) {
       ZeroVector(x); // Zero out x
 
       double time_tic = mytimer();
       int ierr = GMRES(A, data, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
-      time_solve += (mytimer() - time_tic);
+      double time_toc = (mytimer() - time_tic);
+      time_solve_total += time_toc;
 
       if (ierr) HPCG_fout << "Error in call to GMRES: " << ierr << ".\n" << endl;
       if (verbose && A.geom->rank==0) {
         HPCG_fout << "Calling GMRES (all double) for testing: " << endl;
         HPCG_fout << " Number of GMRES Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
-        HPCG_fout << " Time     " << time_solve << " seconds." << endl;
-        HPCG_fout << " (n = " << A.totalNumberOfRows << ")" << endl;
-        HPCG_fout << " Time/itr " << time_solve / niters << endl;
+        HPCG_fout << " Time        " << time_toc << endl;
+        HPCG_fout << " Time/itr    " << time_toc / niters << endl;
       }
     }
+    if (verbose && A.geom->rank==0) {
+      double flops = test_data.flops[0];
+      HPCG_fout << "  Accumulated Time " << time_solve_total << " seconds." << endl;
+      HPCG_fout << "  Final Gflop/s    " << flops/1000000000.0 << "/" << time_solve_total << " = " << (flops/1000000000.0)/time_solve_total 
+                << " (n = " << A.totalNumberOfRows << ")" << endl;
+    }
     test_data.refTotalFlops = test_data.flops[0];
-    test_data.refTotalTime  = time_solve;
+    test_data.refTotalTime  = time_solve_total;
   } else {
     test_data.refTotalFlops = 0.0;
     test_data.refTotalTime  = 0.0;
-  }
-
-  // =====================================================================
-  // Run optimized GMRES (here, we are calling GMRES_IR) for a fixed number of iterations
-  int num_times = 7;
-  test_data.times = (double*)malloc(num_times * sizeof(double));
-  for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
-  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
-  time_solve = 0.0;
-  {
-    for (int i=0; i< numberOfGmresCalls; ++i) {
-      ZeroVector(x); // Zero out x
-
-      double flops = test_data.flops[0];
-      double time_tic = mytimer();
-      int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
-      time_solve += (mytimer() - time_tic);
-
-      if (ierr) HPCG_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
-      if (verbose && A.geom->rank==0) {
-        HPCG_fout << "Call [" << i << "] Number of GMRES-IR Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
-        HPCG_fout << " Time     " << time_solve << " seconds." << endl;
-        HPCG_fout << " Gflop/s  " << flops/1000000000.0 << "/" << time_solve << " = " << (flops/1000000000.0)/time_solve 
-                  << " (n = " << A.totalNumberOfRows << ")" << endl;
-        HPCG_fout << " Time/itr " << time_solve / niters << endl;
-      }
-    }
-    test_data.optTotalFlops = test_data.flops[0];
-    test_data.optTotalTime = time_solve;
-    test_data.numOfCalls = numberOfGmresCalls;
   }
 
   // cleanup
@@ -195,6 +226,10 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   DeleteVector(x);
   DeleteVector(b);
 
+  if (verbose && A.geom->rank==0) {
+    total_benchmark_time = (mytimer() - total_benchmark_time);
+    HPCG_fout << " Total benchmark time : " << total_benchmark_time << " seconds." << endl;
+  }
   return 0;
 }
 

@@ -75,8 +75,10 @@ inline void DeleteGMRESData(GMRESData_type & data) {
 template<class SC>
 class TestGMRESData {
 public:
-  int restart_length;   //!< restart length
-  SC tolerance;         //!< tolerance = reference residual norm 
+  int restart_length;     //!< restart length
+  SC tolerance;           //!< tolerance = reference residual norm 
+  double runningTime;     //!<
+  double minOfficialTime; //!<
 
   // from validation step
   int refNumIters;       //!< number of reference iterations
