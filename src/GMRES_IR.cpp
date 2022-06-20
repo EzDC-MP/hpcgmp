@@ -140,6 +140,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     TICK(); ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); flops += (2*Nrow);  TOCK(t2); // r = b - Ax (x stored in p)
     TICK(); ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized); flops += (2*Nrow); TOCK(t1);
     normr_hi = sqrt(normr_hi);
+    test_data.numOfSPCalls++;
 
     // > Copy r and scale to the initial basis vector
     GetVector(Q, 0, Qj);
@@ -176,6 +177,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       TICK();
       if (doPreconditioning) {
         ComputeMG(A_lo, Qkm1, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros); // Apply preconditioner
+        test_data.numOfMGCalls++;
       } else {
         CopyVector(Qkm1, z);       // copy r to z (no preconditioning)
       }
@@ -183,6 +185,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
       // Qk = A*z
       TICK(); ComputeSPMV(A_lo, z, Qk); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3);
+      test_data.numOfSPCalls++;
 
       // orthogonalize z against Q(:,0:k-1), using dots
       bool use_mgs = false;
@@ -280,6 +283,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       ComputeGEMV (nrow, k-1, one, Q, t, zero, r, A.isGemvOptimized); flops += (2*Nrow*(k-1)); // r = Q*t
       TICK();
       ComputeMG(A_lo, r, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros);    // z = M*r
+      test_data.numOfMGCalls++;
       TOCK(t5); // Preconditioner apply time
       // mixed-precision
       TICK(); ComputeWAXPBY(nrow, one_hi, x_hi, one, z, x_hi, A.isWaxpbyOptimized); flops += (2*Nrow); TOCK(t2); // x += z
@@ -291,8 +295,9 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
 
   // Store times
+  double tt = mytimer() - t_begin;
   if (test_data.times != NULL) {
-    test_data.times[0] += mytimer() - t_begin;  // Total time. All done...
+    test_data.times[0] += tt; // Total time. All done...
     test_data.times[1] += t1; // dot-product time
     test_data.times[2] += t2; // WAXPBY time
     test_data.times[3] += t6; // Ortho
@@ -300,6 +305,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     test_data.times[5] += t4; // AllReduce time
     test_data.times[6] += t5; // preconditioner apply time
   }
+  double flops_tot = flops + flops_gmg + flops_spmv + flops_orth;
   if (verbose && A.geom->rank==0) {
     HPCG_fout << " > nnz(A)  : " << A.totalNumberOfNonzeros << std::endl;
     HPCG_fout << " > nnz(MG) : " << A.totalNumberOfMGNonzeros << " (" << numSpMVs_MG << ")" << std::endl;
@@ -309,10 +315,12 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
                               << (flops_gmg  / 1000000000.0) / t5 << " Gflop/s" << std::endl;
     HPCG_fout << " > Orth : " << (flops_orth / 1000000000.0) << " / " << t6 << " = "
                               << (flops_orth / 1000000000.0) / t6 << " Gflop/s" << std::endl;
+    HPCG_fout << " > Total: " << (flops_tot  / 1000000000.0) << " / " << tt << " = "
+                              << (flops_tot  / 1000000000.0) / tt << " Gflop/s" << std::endl;
     HPCG_fout << std::endl;
   }
   if (test_data.flops != NULL) {
-    test_data.flops[0] += flops + flops_gmg + flops_spmv + flops_orth;
+    test_data.flops[0] += flops_tot;
     test_data.flops[1] += flops_gmg;
     test_data.flops[2] += flops_spmv;
     test_data.flops[3] += flops_orth;

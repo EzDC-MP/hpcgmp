@@ -96,12 +96,23 @@ public:
   // from benchmark step
   int numOfCalls;       //!< number of calls
   int maxNumIters;      //!< 
+  int numOfMGCalls;     //!< number of MG calls
+  int numOfSPCalls;     //!< number of SpMV calls
+  int optNumOfMGCalls;  //!< number of MG calls   (opt)
+  int optNumOfSPCalls;  //!< number of SpMV calls (opt)
+  int refNumOfMGCalls;  //!< number of MG calls   (ref)
+  int refNumOfSPCalls;  //!< number of SpMV calls (ref)
   double refTotalFlops; //
   double refTotalTime;  //
   double optTotalFlops; //
   double optTotalTime;  //
-  double *flops;        //!< total, dot, axpy, ortho, spmv, reduce, precond
-  double *times;        //!< total, dot, axpy, ortho, spmv, reduce, precond
+  //!< flop counts and time for total, dot, axpy, ortho, spmv, reduce, precond
+  double *flops;        //!< accumulated in GMRES
+  double *times;        //!< accumulated in GMRES
+  double *ref_flops;    //!< record from output of reference GMRES
+  double *ref_times;    //!< record from output of reference GMRES
+  double *opt_flops;    //!< record from output of optimized GMRES
+  double *opt_times;    //!< record from output of optimized GMRES
 };
 
 #endif // CGDATA_HPP

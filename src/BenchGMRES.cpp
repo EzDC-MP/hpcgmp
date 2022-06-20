@@ -134,14 +134,21 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   int num_times = 7;
   test_data.flops = (double*)malloc(num_flops * sizeof(double));
   test_data.times = (double*)malloc(num_times * sizeof(double));
-  for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
-  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
 
   // =====================================================================
   // Run optimized GMRES (here, we are calling GMRES_IR) for a fixed number of iterations
   // and record the obtained Gflop/s
   double time_solve_total = 0.0;
   {
+    //warmup
+    ZeroVector(x); // Zero out x
+    GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
+
+    //benchmark runs
+    test_data.numOfMGCalls = 0;
+    test_data.numOfSPCalls = 0;
+    for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
+    for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
     for (int i=0; i< numberOfGmresCalls; ++i) {
       ZeroVector(x); // Zero out x
 
@@ -151,18 +158,27 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
       time_solve_total += time_toc;
       if (i == 0) {
         if (test_data.runningTime >= 0.0) {
-          numberOfGmresCalls = ceil(test_data.runningTime / time_toc);
+          int numberOfGmresCalls_min = ceil(test_data.runningTime / time_toc);
+          if (numberOfGmresCalls_min > numberOfGmresCalls) {
+            if (verbose && A.geom->rank==0) {
+              HPCG_fout << " numberOfGmresCalls = runningTime / time_toc = "
+                        << test_data.runningTime << " / " << time_toc << " = " << numberOfGmresCalls << endl;
+            }
+          }
         } else {
           int numberOfGmresCalls_min = ceil(test_data.minOfficialTime / time_toc);
           if (numberOfGmresCalls_min > numberOfGmresCalls) {
             numberOfGmresCalls = numberOfGmresCalls_min;
+            HPCG_fout << " numberOfGmresCalls = minOfficialTime / time_toc = "
+                      << test_data.minOfficialTime << " / " << time_toc << " = " << numberOfGmresCalls << endl;
           }
         }
       }
 
       if (ierr) HPCG_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
       if (verbose && A.geom->rank==0) {
-        HPCG_fout << "Call [" << i << "] Number of GMRES-IR Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
+        HPCG_fout << "Call [" << i << " / " << numberOfGmresCalls << "] Number of GMRES-IR Iterations ["
+                  << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
         HPCG_fout << " Time        " << time_toc << endl;
         HPCG_fout << " Time/itr    " << time_toc / niters << endl;
       }
@@ -176,6 +192,13 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     test_data.optTotalFlops = test_data.flops[0];
     test_data.optTotalTime = time_solve_total;
     test_data.numOfCalls = numberOfGmresCalls;
+
+    test_data.optNumOfMGCalls = test_data.numOfMGCalls;
+    test_data.optNumOfSPCalls = test_data.numOfSPCalls;
+    test_data.opt_flops = (double*)malloc(num_flops * sizeof(double));
+    test_data.opt_times = (double*)malloc(num_times * sizeof(double));
+    for (int i=0; i<num_flops; i++) test_data.opt_flops[i] = test_data.flops[i];
+    for (int i=0; i<num_times; i++) test_data.opt_times[i] = test_data.times[i];
   }
 
   // =====================================================================
@@ -183,6 +206,11 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   // Run reference GMRES implementation for a fixed number of iterations
   // and record the obtained Gflop/s
   if (runReference) {
+    //warmup
+    ZeroVector(x); // Zero out x
+    GMRES(A, data, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
+
+    //benchmark runs
     time_solve_total = 0.0;
     for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
     for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
@@ -196,7 +224,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
       if (ierr) HPCG_fout << "Error in call to GMRES: " << ierr << ".\n" << endl;
       if (verbose && A.geom->rank==0) {
-        HPCG_fout << "Calling GMRES (all double) for testing: " << endl;
+        HPCG_fout << "Call [" << i << " / " << numberOfGmresCalls << "]";
         HPCG_fout << " Number of GMRES Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
         HPCG_fout << " Time        " << time_toc << endl;
         HPCG_fout << " Time/itr    " << time_toc / niters << endl;
@@ -210,6 +238,13 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     }
     test_data.refTotalFlops = test_data.flops[0];
     test_data.refTotalTime  = time_solve_total;
+
+    test_data.refNumOfMGCalls = test_data.numOfMGCalls;
+    test_data.refNumOfSPCalls = test_data.numOfSPCalls;
+    test_data.ref_flops = (double*)malloc(num_flops * sizeof(double));
+    test_data.ref_times = (double*)malloc(num_times * sizeof(double));
+    for (int i=0; i<num_flops; i++) test_data.ref_flops[i] = test_data.flops[i];
+    for (int i=0; i<num_times; i++) test_data.ref_times[i] = test_data.times[i];
   } else {
     test_data.refTotalFlops = 0.0;
     test_data.refTotalTime  = 0.0;

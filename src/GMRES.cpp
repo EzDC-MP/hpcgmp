@@ -271,8 +271,9 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
 
 
   // Store times
+  double tt = mytimer() - t_begin;
   if (test_data.times != NULL) {
-    test_data.times[0] += mytimer() - t_begin;  // Total time. All done...
+    test_data.times[0] += tt; // Total time. All done...
     test_data.times[1] += t1; // dot-product time
     test_data.times[2] += t2; // WAXPBY time
     test_data.times[3] += t6; // Ortho
@@ -283,6 +284,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
 //#ifndef HPCG_NO_MPI
 //  times[6] += t6; // exchange halo time
 //#endif
+  double flops_tot = flops + flops_gmg + flops_spmv + flops_orth;
   if (verbose && A.geom->rank==0) {
     HPCG_fout << " > nnz(A)  : " << A.totalNumberOfNonzeros << std::endl;
     HPCG_fout << " > nnz(MG) : " << A.totalNumberOfMGNonzeros << " (" << numSpMVs_MG << ")" << std::endl;
@@ -292,10 +294,12 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
                               << (flops_gmg  / 1000000000.0) / t5 << " Gflop/s" << std::endl;
     HPCG_fout << " > Orth : " << (flops_orth / 1000000000.0) << " / " << t6 << " = "
                               << (flops_orth / 1000000000.0) / t6 << " Gflop/s" << std::endl;
+    HPCG_fout << " > Total: " << (flops_tot  / 1000000000.0) << " / " << tt << " = "
+                              << (flops_tot  / 1000000000.0) / tt << " Gflop/s" << std::endl;
     HPCG_fout << std::endl;
   }
   if (test_data.flops != NULL) {
-    test_data.flops[0] += flops + flops_gmg + flops_spmv + flops_orth;
+    test_data.flops[0] += flops_tot;
     test_data.flops[1] += flops_gmg;
     test_data.flops[2] += flops_spmv;
     test_data.flops[3] += flops_orth;
