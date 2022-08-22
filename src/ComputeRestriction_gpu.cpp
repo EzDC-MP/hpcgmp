@@ -42,10 +42,10 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
 
-  scalar_type * Axfv = A.mgData->Axf->values;
-  scalar_type * rfv = rf.values;
-  scalar_type * rcv = A.mgData->rc->values;
-  local_int_t * f2c = A.mgData->f2cOperator;
+  //scalar_type * Axfv = A.mgData->Axf->values;
+  //scalar_type * rfv = rf.values;
+  //scalar_type * rcv = A.mgData->rc->values;
+  //local_int_t * f2c = A.mgData->f2cOperator;
   local_int_t nc = A.mgData->rc->localLength;
 
   const scalar_type zero ( 0.0);
@@ -56,41 +56,81 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
   scalar_type * d_rfv  = rf.d_values;
   scalar_type * d_rcv  = A.mgData->rc->d_values;
   #if defined(HPCG_WITH_CUDA)
-  if (std::is_same<scalar_type, double>::value) {
-    if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                                  nc, n, nc,
-                                                  (const double*)&one,  A.mgData->descrR,
-                                                                        (double*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
-                                                                        (double*)d_rfv,
-                                                  (const double*)&zero, (double*)d_rcv)) {
-      printf( " Failed cusparseDcsrmv\n" );
+    cusparseStatus_t status;
+    #if CUDA_VERSION >= 11000
+    cudaDataType computeType;
+    if (std::is_same<scalar_type, double>::value) {
+      computeType = CUDA_R_64F;
+    } else if (std::is_same<scalar_type, float>::value) {
+      computeType = CUDA_R_32F;
     }
-    if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                                  nc, n, nc,
-                                                  (const double*)&mone, A.mgData->descrR,
-                                                                        (double*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
-                                                                        (double*)d_Axfv,
-                                                  (const double*)&one,  (double*)d_rcv)) {
-      printf( " Failed cusparseDcsrmv\n" );
+    // create matrix
+    cusparseSpMatDescr_t Ac_cusparse;
+    cusparseCreateCsr(&Ac_cusparse, nc, n, nc,
+                      A.mgData->d_row_ptr, A.mgData->d_col_idx, A.mgData->d_nzvals,
+                      CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                      CUSPARSE_INDEX_BASE_ZERO, computeType);
+    // create vectors
+    cusparseDnVecDescr_t vecAF, vecF, vecC;
+    cusparseCreateDnVec(&vecAF, n,  d_Axfv, computeType);
+    cusparseCreateDnVec(&vecF,  n,  d_rfv,  computeType);
+    cusparseCreateDnVec(&vecC,  nc, d_rcv,  computeType);
+    // SpMV
+    status = cusparseSpMV(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                          &one, Ac_cusparse,
+                                 vecF,
+                          &zero, vecC,
+                          computeType, CUSPARSE_MV_ALG_DEFAULT, A.mgData->buffer_R);
+    if (CUSPARSE_STATUS_SUCCESS != status) {
+      printf( " Failed first cusparseSpMV for Restriction\n" );
+    } else {
+      // SpMV
+      status = cusparseSpMV(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                            &mone, Ac_cusparse,
+                                   vecAF,
+                            &one,  vecC,
+                            computeType, CUSPARSE_MV_ALG_DEFAULT, A.mgData->buffer_R);
+      if (CUSPARSE_STATUS_SUCCESS != status) {
+        printf( " Failed second cusparseSpMV for Restriction\n" );
+      }
     }
-  } else if (std::is_same<scalar_type, float>::value) {
-    if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                                  nc, n, nc,
-                                                  (const float*)&one,  A.mgData->descrR,
-                                                                       (float*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
-                                                                       (float*)d_rfv,
-                                                  (const float*)&zero, (float*)d_rcv)) {
-      printf( " Failed cusparseScsrmv\n" );
+    #else
+    if (std::is_same<scalar_type, double>::value) {
+      if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                                    nc, n, nc,
+                                                    (const double*)&one,  A.mgData->descrR,
+                                                                          (double*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
+                                                                          (double*)d_rfv,
+                                                    (const double*)&zero, (double*)d_rcv)) {
+        printf( " Failed cusparseDcsrmv\n" );
+      }
+      if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                                    nc, n, nc,
+                                                    (const double*)&mone, A.mgData->descrR,
+                                                                          (double*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
+                                                                          (double*)d_Axfv,
+                                                    (const double*)&one,  (double*)d_rcv)) {
+        printf( " Failed cusparseDcsrmv\n" );
+      }
+    } else if (std::is_same<scalar_type, float>::value) {
+      if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                                    nc, n, nc,
+                                                    (const float*)&one,  A.mgData->descrR,
+                                                                         (float*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
+                                                                         (float*)d_rfv,
+                                                    (const float*)&zero, (float*)d_rcv)) {
+        printf( " Failed cusparseScsrmv\n" );
+      }
+      if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                                                    nc, n, nc,
+                                                    (const float*)&mone, A.mgData->descrR,
+                                                                         (float*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
+                                                                         (float*)d_Axfv,
+                                                    (const float*)&one,  (float*)d_rcv)) {
+        printf( " Failed cusparseScsrmv\n" );
+      }
     }
-    if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                                  nc, n, nc,
-                                                  (const float*)&mone, A.mgData->descrR,
-                                                                       (float*)A.mgData->d_nzvals, A.mgData->d_row_ptr, A.mgData->d_col_idx,
-                                                                       (float*)d_Axfv,
-                                                  (const float*)&one,  (float*)d_rcv)) {
-      printf( " Failed cusparseScsrmv\n" );
-    }
-  }
+    #endif
   #elif defined(HPCG_WITH_HIP)
   rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
   if (std::is_same<scalar_type, float>::value) {

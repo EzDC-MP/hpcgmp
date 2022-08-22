@@ -35,6 +35,10 @@ using std::endl;
 
 #include <vector>
 
+#ifdef HPCG_KOKKOSKERNELS
+#include "Kokkos_Core.hpp"
+#endif
+
 #include "hpgmp.hpp"
 
 #include "SetupMatrix.hpp"
@@ -81,9 +85,12 @@ int main(int argc, char * argv[]) {
 
 #ifndef HPCG_NO_MPI
   MPI_Init(&argc, &argv);
-#endif
-  MPI_Comm valid_comm = MPI_COMM_WORLD;
+  #ifdef HPCG_KOKKOSKERNELS
+  Kokkos::initialize();
+  {
+  #endif
   MPI_Comm bench_comm = MPI_COMM_WORLD;
+#endif
 
 
   HPCG_Params params;
@@ -183,7 +190,7 @@ int main(int argc, char * argv[]) {
   // Validation Testing Phase //
   //////////////////////////////
   bool test_diagonal_exaggeration = false;
-  bool test_noprecond = false;
+  bool test_noprecond = true;
   TestGMRESData_type test_data;
 
 #ifdef HPCG_DEBUG
@@ -234,6 +241,10 @@ int main(int argc, char * argv[]) {
   // Finish up
   HPCG_Finalize();
 #ifndef HPCG_NO_MPI
+  #ifdef HPCG_KOKKOSKERNELS
+  }
+  Kokkos::finalize();
+  #endif
   MPI_Finalize();
 #endif
   return 0;

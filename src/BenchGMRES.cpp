@@ -143,6 +143,9 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     //warmup
     ZeroVector(x); // Zero out x
     GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
+    if (verbose && A.geom->rank==0) {
+      HPCG_fout << "Warm-up runs" << endl;
+    }
 
     //benchmark runs
     test_data.numOfMGCalls = 0;
@@ -176,7 +179,8 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
       }
 
       if (ierr) HPCG_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
-      if (verbose && A.geom->rank==0) {
+      if (verbose && A.geom->rank==0)
+      {
         HPCG_fout << "Call [" << i << " / " << numberOfGmresCalls << "] Number of GMRES-IR Iterations ["
                   << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
         HPCG_fout << " Time        " << time_toc << endl;
@@ -230,7 +234,8 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
         HPCG_fout << " Time/itr    " << time_toc / niters << endl;
       }
     }
-    if (verbose && A.geom->rank==0) {
+    if (verbose && A.geom->rank==0)
+    {
       double flops = test_data.flops[0];
       HPCG_fout << "  Accumulated Time " << time_solve_total << " seconds." << endl;
       HPCG_fout << "  Final Gflop/s    " << flops/1000000000.0 << "/" << time_solve_total << " = " << (flops/1000000000.0)/time_solve_total 

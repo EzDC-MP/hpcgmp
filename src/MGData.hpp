@@ -48,6 +48,10 @@ public:
    used inside optimized ComputeSPMV().
    */
   void * optimizationData;
+  size_t buffer_size_R;
+  size_t buffer_size_P;
+  void* buffer_R;
+  void* buffer_P;
   #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   // to store the restrictiion as CRS matrix on device
   int *d_row_ptr;
@@ -57,13 +61,9 @@ public:
   cusparseMatDescr_t descrR;
   #elif defined(HPCG_WITH_HIP)
   rocsparse_spmat_descr descrR;
-  size_t buffer_size_R;
-  void* buffer_R;
 
   // to store transpose
   rocsparse_spmat_descr descrP;
-  size_t buffer_size_P;
-  void* buffer_P;
   int *d_tran_row_ptr;
   int *d_tran_col_idx;
   SC  *d_tran_nzvals;   //!< values of matrix entries

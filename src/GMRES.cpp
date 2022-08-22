@@ -83,9 +83,10 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
                            << " on ( " << A.geom->npx << " x " << A.geom->npy << " x " << A.geom->npz
                            << " ) MPI grid "
                            << std::endl;
+    HPCG_fout << std::flush;
   }
   normr = 0.0;
-  scalar_type rtz = zero, oldrtz = zero, alpha = zero, beta = zero, pAp = zero;
+  scalar_type alpha = zero, beta = zero;
 
 //#ifndef HPCG_NO_MPI
 //  double t6 = 0.0;

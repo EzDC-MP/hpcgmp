@@ -89,6 +89,7 @@ public:
   double optResNorm0;
   double optResNorm;
 
+  // setup time
   double SetupTime;
   double OptimizeTime;
   double SpmvMgTime;

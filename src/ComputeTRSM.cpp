@@ -27,8 +27,6 @@ int ComputeTRSM(const local_int_t n,
                       SerialDenseMatrix_type & x) {
 
   typedef typename SerialDenseMatrix_type::scalar_type scalar_type;
-  const scalar_type one  (1.0);
-  const scalar_type zero (0.0);
 
   assert(x.m >= n);
   assert(x.n == 1); // one RHS

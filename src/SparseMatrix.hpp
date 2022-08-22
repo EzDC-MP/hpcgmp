@@ -40,6 +40,7 @@ using GlobalToLocalMap = std::unordered_map< global_int_t, local_int_t >;
  #include <mpi.h>
 #endif
 #ifdef HPCG_WITH_CUDA
+ #include <cuda.h>
  #include <cuda_runtime.h>
  #include <cusparse.h>
 #elif defined(HPCG_WITH_HIP)
@@ -99,9 +100,9 @@ public:
   #elif defined(HPCG_WITH_HIP)
   rocsparse_handle rocsparseHandle;
   rocsparse_spmat_descr descrA;
+  #endif
   size_t buffer_size_A;
   void* buffer_A;
-  #endif
 
   // to store the local matrix on device
   int *d_row_ptr;
@@ -112,7 +113,12 @@ public:
   local_int_t nnzL;
   #if defined(HPCG_WITH_CUDA)
   cusparseMatDescr_t descrL;
+  #if (CUDA_VERSION >= 11000)
+  void* buffer_L;
+  csrsv2Info_t infoL;
+  #else
   cusparseSolveAnalysisInfo_t infoL;
+  #endif
   #elif defined(HPCG_WITH_HIP)
   rocsparse_spmat_descr descrL;
   size_t buffer_size_L;
@@ -127,9 +133,9 @@ public:
   cusparseMatDescr_t descrU;
   #elif defined(HPCG_WITH_HIP)
   rocsparse_spmat_descr descrU;
+  #endif
   size_t buffer_size_U;
   void* buffer_U;
-  #endif
   int *d_Urow_ptr;
   int *d_Ucol_idx;
   SC  *d_Unzvals;   //!< values of matrix entries
@@ -288,7 +294,11 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
   cusparseDestroyMatDescr(A.descrA);
   cusparseDestroyMatDescr(A.descrL);
   cusparseDestroyMatDescr(A.descrU);
+  #if (CUDA_VERSION >= 11000)
+  cusparseDestroyCsrsv2Info(A.infoL);
+  #else
   cusparseDestroySolveAnalysisInfo(A.infoL);
+  #endif
 #endif
   return;
 }

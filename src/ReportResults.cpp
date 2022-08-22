@@ -64,12 +64,12 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     double fnnz = A.totalNumberOfNonzeros;
 
     // Op counts come from implementation of CG in CG.cpp (include 1 extra for the CG preamble ops)
-    double fnops_ddot   = 0.0;
-    double fnops_waxpby = 0.0;
-    double fnops_sparsemv = 0.0;
+    //double fnops_ddot   = 0.0;
+    //double fnops_waxpby = 0.0;
+    //double fnops_sparsemv = 0.0;
     // Op counts from the multigrid preconditioners
-    double fnops_precond = 0.0;
-    double fnops = 0.0;    //fnops_ddot+fnops_waxpby+fnops_sparsemv+fnops_precond;
+    //double fnops_precond = 0.0;
+    //double fnops = 0.0;    //fnops_ddot+fnops_waxpby+fnops_sparsemv+fnops_precond;
 
     // ======================== Memory bandwidth model =======================================
 
@@ -90,8 +90,8 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     double fnrow_Af = Af->totalNumberOfRows;
     double fnreads = fnreads_ddot+fnreads_waxpby+fnreads_sparsemv+fnreads_precond;
     double fnwrites = fnwrites_ddot+fnwrites_waxpby+fnwrites_sparsemv+fnwrites_precond;
-    double frefnreads = 0.0;
-    double frefnwrites = 0.0;
+    //double frefnreads = 0.0;
+    //double frefnwrites = 0.0;
 
 
     // ======================== Memory usage model =======================================

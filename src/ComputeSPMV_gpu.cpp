@@ -73,8 +73,6 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
 
   const local_int_t nrow = A.localNumberOfRows;
   scalar_type * const xv = x.values;
-  scalar_type * const yv = y.values;
-
   scalar_type * const d_xv = x.d_values;
   scalar_type * const d_yv = y.d_values;
 
@@ -107,6 +105,8 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
 #endif
 
 #if defined(HPCG_DEBUG)
+  scalar_type * const yv = y.values;
+
   #ifndef HPCG_NO_OPENMP
   #pragma omp parallel for
   #endif
@@ -123,25 +123,53 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
 #endif
 
   #if defined(HPCG_WITH_CUDA)
+  cusparseStatus_t status;
+  #if CUDA_VERSION >= 11000
+  cudaDataType computeType;
   if (std::is_same<scalar_type, double>::value) {
-     if (CUSPARSE_STATUS_SUCCESS != cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                                   nrow, ncol, nnz,
-                                                   (const double*)&one,  A.descrA,
-                                                                         (double*)A.d_nzvals, A.d_row_ptr, A.d_col_idx,
-                                                                         (double*)d_xv,
-                                                   (const double*)&zero, (double*)d_yv)) {
-       printf( " Failed cusparseDcsrmv\n" );
-     }
+      computeType = CUDA_R_64F;
   } else if (std::is_same<scalar_type, float>::value) {
-     if (CUSPARSE_STATUS_SUCCESS != cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
-                                                   nrow, ncol, nnz,
-                                                   (const float*)&one,  A.descrA,
-                                                                        (float*)A.d_nzvals, A.d_row_ptr, A.d_col_idx,
-                                                                        (float*)d_xv,
-                                                   (const float*)&zero, (float*)d_yv)) {
-       printf( " Failed cusparseScsrmv\n" );
-     }
+      computeType = CUDA_R_32F;
   }
+  // create matrix
+  cusparseSpMatDescr_t A_cusparse;
+  cusparseCreateCsr(&A_cusparse, nrow, ncol, nnz,
+                    A.d_row_ptr, A.d_col_idx, (double*)A.d_nzvals,
+                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                    CUSPARSE_INDEX_BASE_ZERO, computeType);
+  // create vectors
+  cusparseDnVecDescr_t vecX, vecY;
+  cusparseCreateDnVec(&vecX, ncol, d_xv, computeType);
+  cusparseCreateDnVec(&vecY, nrow, d_yv, computeType);
+  // SpMV
+  status = cusparseSpMV(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                        &one, A_cusparse, 
+                               vecX,
+                        &zero, vecY,
+                        computeType, CUSPARSE_MV_ALG_DEFAULT, A.buffer_A);
+  if (CUSPARSE_STATUS_SUCCESS != status) {
+     printf( " Failed cusparseSpMV for SpMV\n" );
+  }
+  #else
+  if (std::is_same<scalar_type, double>::value) {
+     status = cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                             nrow, ncol, nnz,
+                             (const double*)&one,  A.descrA,
+                                                   (double*)A.d_nzvals, A.d_row_ptr, A.d_col_idx,
+                                                   (double*)d_xv,
+                             (const double*)&zero, (double*)d_yv);
+  } else if (std::is_same<scalar_type, float>::value) {
+     status = cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
+                             nrow, ncol, nnz,
+                             (const float*)&one,  A.descrA,
+                                                  (float*)A.d_nzvals, A.d_row_ptr, A.d_col_idx,
+                                                  (float*)d_xv,
+                             (const float*)&zero, (float*)d_yv);
+  }
+  if (CUSPARSE_STATUS_SUCCESS != status) {
+     printf( " Failed cusparseDcsrmv for SpMV\n" );
+  }
+  #endif
   #elif defined(HPCG_WITH_HIP)
   rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
   if (std::is_same<scalar_type, float>::value) {

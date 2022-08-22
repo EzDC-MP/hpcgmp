@@ -42,19 +42,21 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   typedef typename SerialDenseMatrix_type::scalar_type scalarX_type;
   typedef typename            Vector_type::scalar_type scalarY_type;
 
-  const scalarA_type one  (1.0);
-  const scalarA_type zero (0.0);
-
   assert(x.localLength >= m); // Test vector lengths
   assert(y.m >= n);
   assert(y.n == 1);
 
-  // Input serial dense vector 
-  scalarA_type * const Av = A.values;
-  scalarX_type * const xv = x.values;
+  // Output serial dense vector 
   scalarY_type * const yv = y.values;
 
 #if defined(HPCG_DEBUG)
+  const scalarA_type one  (1.0);
+  const scalarA_type zero (0.0);
+
+  // Input serial dense vector 
+  scalarA_type * const Av = A.values;
+  scalarX_type * const xv = x.values;
+
   // GEMV on HOST CPU
   if (beta == zero) {
     for (local_int_t i = 0; i < n; i++) yv[i] = zero;
@@ -123,7 +125,7 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
     }
   }
 
-  // Copy input serial dense vector to host
+  // Copy output serial dense vector to host
   if (hipSuccess != hipMemcpy(yv, d_yv, n*sizeof(scalarX_type), hipMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_x\n" );
   }

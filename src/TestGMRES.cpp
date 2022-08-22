@@ -104,8 +104,8 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
   scalar_type normr (0.0);
   scalar_type normr0 (0.0);
   int restart_length = 30;
-  int maxIters = 5000;
-  int numberOfGmresCalls = 2;
+  int maxIters = 10000;
+  int numberOfGmresCalls = 1;
   bool verbose = true;
   scalar_type tolerance = 1.0e-12; // Set tolerance to reasonable value for grossly scaled diagonal terms
 
@@ -122,6 +122,7 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
 
       if (A.geom->rank==0) {
         HPCG_fout << "Calling GMRES (all double) for testing: " << endl;
+std::cout << std::flush;
       }
       double flops = test_data.flops[0];
       double time_tic = mytimer();
@@ -144,7 +145,7 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
     }
   }
 
-#if 1
+#if 0
   for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
   for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
   for (int k=(test_noprecond ? 0 : 1); k<2; ++k)

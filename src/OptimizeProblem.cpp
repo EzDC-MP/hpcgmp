@@ -19,6 +19,7 @@
  */
 
 #ifdef HPCG_WITH_CUDA
+ #include <cuda.h>
  #include <cuda_runtime.h>
  #include <cublas_v2.h>
 #elif defined(HPCG_WITH_HIP)
@@ -330,25 +331,97 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       cusparseCreateMatDescr(&(curLevelMatrix->descrA));
       cusparseSetMatType(curLevelMatrix->descrA, CUSPARSE_MATRIX_TYPE_GENERAL);
       cusparseSetMatIndexBase(curLevelMatrix->descrA, CUSPARSE_INDEX_BASE_ZERO);
+      #if CUDA_VERSION >= 11000
+      // create matrix
+      cudaDataType computeType;
+      if (std::is_same<SC, double>::value) {
+          computeType = CUDA_R_64F;
+      } else if (std::is_same<SC, float>::value) {
+          computeType = CUDA_R_32F;
+      }
+      cusparseSpMatDescr_t A_cusparse;
+      cusparseCreateCsr(&A_cusparse, nrow, ncol, nnz,
+                        curLevelMatrix->d_row_ptr, curLevelMatrix->d_col_idx, curLevelMatrix->d_nzvals,
+                        CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                        CUSPARSE_INDEX_BASE_ZERO, computeType);
+      // create vectors
+      cusparseDnVecDescr_t vecX, vecY;
+      cusparseCreateDnVec(&vecX, ncol, (void*)curLevelMatrix->x.d_values, computeType);
+      cusparseCreateDnVec(&vecY, nrow, (void*)curLevelMatrix->y.d_values, computeType);
+      // allocate buffer
+      const SC one  (1.0);
+      const SC zero (0.0);
+      cusparseSpMV_bufferSize(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &one, A_cusparse, vecX, &zero, vecY,
+                              computeType, CUSPARSE_MV_ALG_DEFAULT, &curLevelMatrix->buffer_size_A);
+      cudaMalloc(&curLevelMatrix->buffer_A, curLevelMatrix->buffer_size_A);
+      #endif
 
       // -------------------------
       // run analysis for triangular solve
       cusparseCreateMatDescr(&(curLevelMatrix->descrL));
-      cusparseCreateSolveAnalysisInfo(&(curLevelMatrix->infoL));
-      cusparseSetMatType(curLevelMatrix->descrL, CUSPARSE_MATRIX_TYPE_TRIANGULAR);
       cusparseSetMatIndexBase(curLevelMatrix->descrL, CUSPARSE_INDEX_BASE_ZERO);
+      #if CUDA_VERSION >= 11000
+      cusparseSetMatType(curLevelMatrix->descrL, CUSPARSE_MATRIX_TYPE_GENERAL);
+      cusparseSetMatDiagType(curLevelMatrix->descrL, CUSPARSE_DIAG_TYPE_NON_UNIT);
+      cusparseSetMatFillMode(curLevelMatrix->descrL, CUSPARSE_FILL_MODE_LOWER);
+      cusparseCreateCsrsv2Info(&(curLevelMatrix->infoL));
+      #else
+      cusparseSetMatType(curLevelMatrix->descrL, CUSPARSE_MATRIX_TYPE_TRIANGULAR);
+      cusparseCreateSolveAnalysisInfo(&(curLevelMatrix->infoL));
+      #endif
       if (std::is_same<SC, double>::value) {
+        #if CUDA_VERSION >= 11000
+        int pBufferSize;
+        cusparseDcsrsv2_bufferSize(curLevelMatrix->cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nrow, nnzL,
+                                   curLevelMatrix->descrL,
+                                   (double *)curLevelMatrix->d_Lnzvals, curLevelMatrix->d_Lrow_ptr, curLevelMatrix->d_Lcol_idx,
+                                   curLevelMatrix->infoL,
+                                   &pBufferSize);
+        if (cudaSuccess != cudaMalloc(&(curLevelMatrix->buffer_L), pBufferSize)) {
+          printf( " Failed cudaMalloc for cusparseDcsrsv2 failed\n" );
+        }
+        cusparseStatus_t status;
+        status = cusparseDcsrsv2_analysis(
+                                 curLevelMatrix->cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nrow, nnzL, curLevelMatrix->descrL,
+                                 (double *)curLevelMatrix->d_Lnzvals, curLevelMatrix->d_Lrow_ptr, curLevelMatrix->d_Lcol_idx,
+                                 curLevelMatrix->infoL, CUSPARSE_SOLVE_POLICY_USE_LEVEL, curLevelMatrix->buffer_L);
+        if (CUSPARSE_STATUS_SUCCESS != status) {
+          printf( " cusparseDcsrsv2_analysis failed\n" );
+          if (status == CUSPARSE_STATUS_NOT_INITIALIZED)            printf( " > CUSPARSE_STATUS_NOT_INITIALIZED <\n" );
+          if (status == CUSPARSE_STATUS_ALLOC_FAILED)               printf( " > CUSPARSE_STATUS_ALLOC_FAILED <\n" );
+          if (status == CUSPARSE_STATUS_INVALID_VALUE)              printf( " > CUSPARSE_STATUS_INVALID_VALUE <\n" );
+          if (status == CUSPARSE_STATUS_EXECUTION_FAILED)           printf( " > CUSPARSE_STATUS_EXECUTION_FAILED <\n" );
+          if (status == CUSPARSE_STATUS_INTERNAL_ERROR)             printf( " > CUSPARSE_STATUS_INTERNAL_ERROR <\n" );
+          if (status == CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED ) printf( " > CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED <\n" );
+	}
+        #else
         cusparseDcsrsv_analysis(curLevelMatrix->cusparseHandle,
                                 CUSPARSE_OPERATION_NON_TRANSPOSE, nrow, nnzL,
                                 curLevelMatrix->descrL,
                                 (double *)curLevelMatrix->d_Lnzvals, curLevelMatrix->d_Lrow_ptr, curLevelMatrix->d_Lcol_idx,
                                 curLevelMatrix->infoL);
+        #endif
       } else if (std::is_same<SC, float>::value) {
+        #if CUDA_VERSION >= 11000
+        int pBufferSize;
+        cusparseScsrsv2_bufferSize(curLevelMatrix->cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nrow, nnzL,
+                                   curLevelMatrix->descrL,
+                                   (float *)curLevelMatrix->d_Lnzvals, curLevelMatrix->d_Lrow_ptr, curLevelMatrix->d_Lcol_idx,
+                                   curLevelMatrix->infoL,
+                                   &pBufferSize);
+        if (cudaSuccess != cudaMalloc(&(curLevelMatrix->buffer_L), pBufferSize)) {
+          printf( " Failed cudaMalloc for cusparseDcsrsv2 failed\n" );
+        }
+        cusparseScsrsv2_analysis(curLevelMatrix->cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nrow, nnzL, curLevelMatrix->descrL,
+                                 (float *)curLevelMatrix->d_Lnzvals, curLevelMatrix->d_Lrow_ptr, curLevelMatrix->d_Lcol_idx,
+                                 curLevelMatrix->infoL, CUSPARSE_SOLVE_POLICY_USE_LEVEL, curLevelMatrix->buffer_L);
+        #else
         cusparseScsrsv_analysis(curLevelMatrix->cusparseHandle,
                                 CUSPARSE_OPERATION_NON_TRANSPOSE, nrow, nnzL,
                                 curLevelMatrix->descrL,
                                 (float *)curLevelMatrix->d_Lnzvals, curLevelMatrix->d_Lrow_ptr, curLevelMatrix->d_Lcol_idx,
                                 curLevelMatrix->infoL);
+        #endif
       }
 
       // -------------------------
@@ -356,6 +429,17 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       cusparseCreateMatDescr(&(curLevelMatrix->descrU));
       cusparseSetMatType(curLevelMatrix->descrU, CUSPARSE_MATRIX_TYPE_GENERAL);
       cusparseSetMatIndexBase(curLevelMatrix->descrU, CUSPARSE_INDEX_BASE_ZERO);
+      #if CUDA_VERSION >= 11000
+      cusparseSpMatDescr_t U_cusparse;
+      cusparseCreateCsr(&U_cusparse, nrow, ncol, curLevelMatrix->nnzU,
+                        curLevelMatrix->d_Urow_ptr, curLevelMatrix->d_Ucol_idx, curLevelMatrix->d_Unzvals,
+                        CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                        CUSPARSE_INDEX_BASE_ZERO, computeType);
+      // allocate buffer
+      cusparseSpMV_bufferSize(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &one, U_cusparse, vecX, &zero, vecY,
+                              computeType, CUSPARSE_MV_ALG_DEFAULT, &curLevelMatrix->buffer_size_U);
+      cudaMalloc(&curLevelMatrix->buffer_U, curLevelMatrix->buffer_size_U);
+      #endif
       #elif defined(HPCG_WITH_HIP)
       // -------------------------
       // create Handle (for each matrix)
@@ -487,7 +571,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
           printf( " Failed to memcpy A.d_nzvals\n" );
         }
 
-	// store explicity store transpose
+        // store explicity store transpose
         free(h_row_ptr);
         h_row_ptr = (int*)calloc((nrow+1), sizeof(int));
         for (local_int_t i=0; i<nc; ++i) {
@@ -529,6 +613,26 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         cusparseCreateMatDescr(&(curLevelMatrix->mgData->descrR));
         cusparseSetMatType(curLevelMatrix->mgData->descrR, CUSPARSE_MATRIX_TYPE_GENERAL);
         cusparseSetMatIndexBase(curLevelMatrix->mgData->descrR, CUSPARSE_INDEX_BASE_ZERO);
+        #if CUDA_VERSION >= 11000
+        // create matrix R
+        cusparseSpMatDescr_t R_cusparse;
+        cusparseCreateCsr(&R_cusparse, nc, nrow, nc,
+                          curLevelMatrix->mgData->d_row_ptr, curLevelMatrix->mgData->d_col_idx, curLevelMatrix->mgData->d_nzvals,
+                          CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,
+                          CUSPARSE_INDEX_BASE_ZERO, computeType);
+        // create vectors
+        cusparseDnVecDescr_t vecX, vecY;
+        cusparseCreateDnVec(&vecX, nrow, (void*)curLevelMatrix->x.d_values, computeType);
+        cusparseCreateDnVec(&vecY, nc,   (void*)curLevelMatrix->y.d_values, computeType);
+        // allocate buffer for R
+        cusparseSpMV_bufferSize(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, &one, R_cusparse, vecX, &one, vecY,
+                                computeType, CUSPARSE_MV_ALG_DEFAULT, &curLevelMatrix->mgData->buffer_size_R);
+        cudaMalloc(&curLevelMatrix->mgData->buffer_R, curLevelMatrix->mgData->buffer_size_R);
+        // allocate buffer for P
+        cusparseSpMV_bufferSize(A.cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, &one, R_cusparse, vecY, &one, vecX,
+                                computeType, CUSPARSE_MV_ALG_DEFAULT, &curLevelMatrix->mgData->buffer_size_P);
+        cudaMalloc(&curLevelMatrix->mgData->buffer_P, curLevelMatrix->mgData->buffer_size_P);
+        #endif
         #elif defined(HPCG_WITH_HIP)
         rocsparse_create_csr_descr(&(curLevelMatrix->mgData->descrR), nc, nrow, nc,
                                    curLevelMatrix->mgData->d_row_ptr, curLevelMatrix->mgData->d_col_idx, curLevelMatrix->mgData->d_nzvals,

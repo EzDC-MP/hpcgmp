@@ -78,15 +78,15 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   const scalar_type2 one  (1.0);
   const scalar_type2 zero (0.0);
   scalar_type2 normr, normr0;
-  scalar_type2 rtz = zero, oldrtz = zero, alpha = zero, beta = zero, pAp = zero;
+  scalar_type2 alpha = zero, beta = zero;
 
   local_int_t nrow = A_lo.localNumberOfRows;
   local_int_t Nrow = A.totalNumberOfRows;
-  Vector_type2 & x = data_lo.w; // Intermediate solution vector
+  //Vector_type2 & x = data_lo.w; // Intermediate solution vector
   Vector_type2 & r = data_lo.r; // Residual vector
   Vector_type2 & z = data_lo.z; // Preconditioned residual vector
-  Vector_type2 & p = data_lo.p; // Direction vector (in MPI mode ncol>=nrow)
-  Vector_type2 & Ap = data_lo.Ap;
+  //Vector_type2 & p = data_lo.p; // Direction vector (in MPI mode ncol>=nrow)
+  //Vector_type2 & Ap = data_lo.Ap;
 
   SerialDenseMatrix_type2 H;
   SerialDenseMatrix_type2 h;
@@ -108,7 +108,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   // vectors in scalar_type (higher)
   const scalar_type one_hi  (1.0);
   Vector_type & r_hi = data.r; // Residual vector
-  Vector_type & z_hi = data.z; // Preconditioned residual vector
+  //Vector_type & z_hi = data.z; // Preconditioned residual vector
   Vector_type & p_hi = data.p; // Direction vector (in MPI mode ncol>=nrow)
   Vector_type & Ap_hi = data.Ap;
 
