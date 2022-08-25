@@ -187,6 +187,7 @@ void GenerateNonsymProblem_v1_ref(SparseMatrix_type & A, Vector_type * b, Vector
                       #endif
                     }
                     *currentIndexPointerG++ = curcol;
+		    //HPCG_fout << currentLocalRow << " " << curcol << " " << *(currentValuePointer-1) << std::endl;
                     numberOfNonzerosInRow++;
                   } // end x bounds test
                 } // end sx loop

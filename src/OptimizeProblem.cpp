@@ -358,6 +358,29 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
 
       // -------------------------
       // run analysis for triangular solve
+      #ifdef HPCG_KOKKOSKERNELS
+      // Create Handle
+      #if 1
+      // GS-MT
+      curLevelMatrix->kh.create_gs_handle();
+      #endif
+      #if 0
+      //GS2
+      bool classic = false;
+      curLevelMatrix->kh.create_gs_handle(KokkosSparse::GS_TWOSTAGE);
+      curLevelMatrix->kh.set_gs_twostage(!classic, nrow);
+      #endif
+      // Perform Symbolic
+      bool graph_symmetric = false;
+      typename SparseMatrix_type::RowPtrView rowptr_view(curLevelMatrix->d_row_ptr, nrow+1);
+      typename SparseMatrix_type::ColIndView colidx_view(curLevelMatrix->d_col_idx, nnz);
+      KokkosSparse::Experimental::gauss_seidel_symbolic
+        (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, graph_symmetric);
+      // Numeric
+      typename SparseMatrix_type::ValuesView values_view(curLevelMatrix->d_nzvals, nnz);
+      KokkosSparse::Experimental::gauss_seidel_numeric
+        (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, values_view, graph_symmetric);
+      #endif
       cusparseCreateMatDescr(&(curLevelMatrix->descrL));
       cusparseSetMatIndexBase(curLevelMatrix->descrL, CUSPARSE_INDEX_BASE_ZERO);
       #if CUDA_VERSION >= 11000

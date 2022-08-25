@@ -48,6 +48,11 @@ using GlobalToLocalMap = std::unordered_map< global_int_t, local_int_t >;
  #include <rocsparse.h>
 #endif
 
+#ifdef HPCG_KOKKOSKERNELS
+#include <KokkosKernels_Handle.hpp>
+#include <KokkosSparse_gauss_seidel.hpp>
+#endif
+
 template <class SC = double>
 class SparseMatrix {
 public:
@@ -92,6 +97,15 @@ public:
   local_int_t * receiveLength; //!< lenghts of messages received from neighboring processes
   local_int_t * sendLength; //!< lenghts of messages sent to neighboring processes
   SC * sendBuffer; //!< send buffer for non-blocking sends
+#endif
+#ifdef HPCG_KOKKOSKERNELS
+  using execution_space = Kokkos::DefaultExecutionSpace;
+  using memory_space    = typename execution_space::memory_space;
+  using KernelHandle = KokkosKernels::Experimental::KokkosKernelsHandle<int, int, SC, execution_space, memory_space, memory_space>;
+  using RowPtrView = Kokkos::View<int*, Kokkos::LayoutLeft, execution_space>;
+  using ColIndView = Kokkos::View<int*, Kokkos::LayoutLeft, execution_space>;
+  using ValuesView = Kokkos::View<SC *, Kokkos::LayoutLeft, execution_space>;
+  KernelHandle kh;
 #endif
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   #if defined(HPCG_WITH_CUDA)

@@ -136,6 +136,27 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   const scalar_type  one ( 1.0);
   const scalar_type mone (-1.0);
 
+#ifdef HPCG_KOKKOSKERNELS
+  {
+    bool init_zero_x_vector = true;
+    bool update_y_vector = true;
+    const scalar_type omega (1.0);
+    int num_sweeps = 1;
+
+    const int nnzA = A.localNumberOfNonzeros;
+    typename SparseMatrix_type::RowPtrView rowptr_view(A.d_row_ptr, nrow+1);
+    typename SparseMatrix_type::ColIndView colidx_view(A.d_col_idx, nnzA);
+    typename SparseMatrix_type::ValuesView values_view(A.d_nzvals,  nnzA);
+
+    typename SparseMatrix_type::ValuesView r_view(r.d_values, ncol);
+    typename SparseMatrix_type::ValuesView x_view(x.d_values, nrow);
+    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
+    KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
+      (handle, nrow, ncol, rowptr_view, colidx_view, values_view, x_view, r_view, init_zero_x_vector, update_y_vector, omega, num_sweeps);
+    return 0;
+  }
+#endif
+
   // b = r - Ux
   #if defined(HPCG_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(d_bv, r.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToDevice)) {

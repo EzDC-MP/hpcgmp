@@ -85,12 +85,12 @@ int main(int argc, char * argv[]) {
 
 #ifndef HPCG_NO_MPI
   MPI_Init(&argc, &argv);
-  #ifdef HPCG_KOKKOSKERNELS
+#endif
+#ifdef HPCG_KOKKOSKERNELS
   Kokkos::initialize();
   {
-  #endif
-  MPI_Comm bench_comm = MPI_COMM_WORLD;
 #endif
+  MPI_Comm bench_comm = MPI_COMM_WORLD;
 
 
   HPCG_Params params;
@@ -240,11 +240,11 @@ int main(int argc, char * argv[]) {
 
   // Finish up
   HPCG_Finalize();
-#ifndef HPCG_NO_MPI
-  #ifdef HPCG_KOKKOSKERNELS
+#ifdef HPCG_KOKKOSKERNELS
   }
   Kokkos::finalize();
-  #endif
+#endif
+#ifndef HPCG_NO_MPI
   MPI_Finalize();
 #endif
   return 0;
