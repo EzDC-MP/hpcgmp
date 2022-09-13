@@ -207,6 +207,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
           }
           SetMatrixValue(H, j, k-1, alpha);
         }
+        flops_orth += (4*k*Nrow);
       } else {
         // CGS2
         GetMultiVector(Q, 0, k-1, P);
@@ -215,23 +216,26 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
         for(int i = 0; i < k; i++) {
           SetMatrixValue(H, i, k-1, h.values[i]);
         }
+        flops_orth += (4*k*Nrow);
         // reorthogonalize
         ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); // h = Q(1:k)'*q(k+1)
         ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); // h = Q(1:k)'*q(k+1)
         for(int i = 0; i < k; i++) {
           AddMatrixValue(H, i, k-1, h.values[i]);
         }
+        flops_orth += (4*k*Nrow);
       }
       TOCK(t6); // Ortho time
-      flops_orth += (2*k*Nrow);
 
       // beta = norm(Qk)
       TICK(); ComputeDotProduct(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); TOCK(t1);
+      flops_orth += (2*Nrow);
       beta = sqrt(beta);
 
       // Qk = Qk / beta
       //TICK(); ComputeWAXPBY(nrow, zero, Qk, one/beta, Qk, Qk, A.isWaxpbyOptimized); TOCK(t2);
-      TICK(); ScaleVectorValue(Qk, one/beta); flops += Nrow; TOCK(t2);
+      TICK(); ScaleVectorValue(Qk, one/beta); TOCK(t2);
+      flops_orth += (Nrow);
       SetMatrixValue(H, k, k-1, beta);
 
       // Given's rotation
