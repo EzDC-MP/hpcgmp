@@ -67,11 +67,14 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
 
   const scalar_type one  (1.0);
   const scalar_type zero (0.0);
+  const global_int_t ione  = 1;
+  const global_int_t itwo  = 2;
+  const global_int_t ifour = 4;
   double t_begin = mytimer();  // Start timing right away
   double t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0;
 
-  local_int_t nrow = A.localNumberOfRows;
-  local_int_t Nrow = A.totalNumberOfRows;
+  local_int_t  nrow = A.localNumberOfRows;
+  global_int_t Nrow = A.totalNumberOfRows;
   int print_freq = 1;
   if (verbose && A.geom->rank==0) {
     HPCG_fout << std::endl << " Running GMRES(" << restart_length
@@ -79,7 +82,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
                            << ", tol = " << tolerance
                            << " and restart = " << restart_length
                            << (doPreconditioning ? " with precond" : " without precond")
-                           << ", nrow = " << nrow 
+                           << ", nrow = " << nrow << " (local) " << Nrow << " (global)"
                            << " on ( " << A.geom->npx << " x " << A.geom->npy << " x " << A.geom->npz
                            << " ) MPI grid "
                            << std::endl;
@@ -126,8 +129,8 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     // p is of length ncols, copy x to p for sparse MV operation
     CopyVector(x, p);
     TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); flops_spmv += (2*A.totalNumberOfNonzeros); // Ap = A*p
-    TICK(); ComputeWAXPBY(nrow, one, b, -one, Ap, r, A.isWaxpbyOptimized); TOCK(t2); flops += (2*Nrow); // r = b - Ax (x stored in p)
-    TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); flops += (2*Nrow); TOCK(t1);
+    TICK(); ComputeWAXPBY(nrow, one, b, -one, Ap, r, A.isWaxpbyOptimized); TOCK(t2); flops += (itwo*Nrow); // r = b - Ax (x stored in p)
+    TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t1);
     normr = sqrt(normr);
     GetVector(Q, 0, Qj);
     CopyVector(r, Qj);
@@ -149,7 +152,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     bool symmetric = false;
 
     // Start restart cycle
-    int k = 1;
+    global_int_t k = 1;
     SetMatrixValue(t, 0, 0, normr);
     while (k <= restart_length && normr/normr0 > tolerance) {
       GetVector(Q, k-1, Qkm1);
@@ -187,7 +190,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
           }
           SetMatrixValue(H, j, k-1, alpha);
         }
-        flops_orth += (4*k*Nrow);
+        flops_orth += (ifour*k*Nrow);
       } else {
         // CGS2
         GetMultiVector(Q, 0, k-1, P);
@@ -196,19 +199,19 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
         for(int i = 0; i < k; i++) {
           SetMatrixValue(H, i, k-1, h.values[i]);
         }
-        flops_orth += (4*k*Nrow);
+        flops_orth += (ifour*k*Nrow);
         // reorthogonalize
         ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); // h = Q(1:k)'*q(k+1)
         ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); // h = Q(1:k)'*q(k+1)
         for(int i = 0; i < k; i++) {
           AddMatrixValue(H, i, k-1, h.values[i]);
         }
-        flops_orth += (4*k*Nrow);
+        flops_orth += (ifour*k*Nrow);
       }
       TOCK(t6); // Ortho time
       // beta = norm(Qk)
       TICK(); ComputeDotProduct(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); TOCK(t1);
-      flops_orth += (2*Nrow);
+      flops_orth += (itwo*Nrow);
       beta = sqrt(beta);
 
       // Qk = Qk / beta
@@ -265,13 +268,13 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     // > update x
     ComputeTRSM(k-1, one, H, t);
     if (doPreconditioning) {
-      ComputeGEMV(nrow, k-1, one, Q, t, zero, r, A.isGemvOptimized); flops += (2*Nrow*(k-1)); // r = Q*t
+      ComputeGEMV(nrow, k-1, one, Q, t, zero, r, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // r = Q*t
       TICK();
       ComputeMG(A, r, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros);      // z = M*r
       TOCK(t5); // Preconditioner apply time
-      TICK(); ComputeWAXPBY(nrow, one, x, one, z, x, A.isWaxpbyOptimized); TOCK(t2); flops += (2*Nrow); // x += z
+      TICK(); ComputeWAXPBY(nrow, one, x, one, z, x, A.isWaxpbyOptimized); TOCK(t2); flops += (itwo*Nrow); // x += z
     } else {
-      ComputeGEMV (nrow, k-1, one, Q, t, one, x, A.isGemvOptimized); flops += (2*Nrow*(k-1)); // x += Q*t
+      ComputeGEMV (nrow, k-1, one, Q, t, one, x, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // x += Q*t
     }
   } // end of outer-loop
 
