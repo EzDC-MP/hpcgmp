@@ -98,7 +98,7 @@ void GenerateNonsymCoarseProblem(const SparseMatrix_type & Af) {
   GenerateGeometry(Af.geom->size, Af.geom->rank, Af.geom->numThreads, Af.geom->pz, zlc, zuc, nxc, nyc, nzc, Af.geom->npx, Af.geom->npy, Af.geom->npz, geomc);
 
   bool init_vect = false;
-  Vector_type * tmp = nullptr;
+  Vector_type * tmp;
   SparseMatrix_type * Ac = new SparseMatrix_type;
   InitializeSparseMatrix(*Ac, geomc, Af.comm);
   GenerateNonsymProblem(*Ac, tmp, tmp, tmp, init_vect);

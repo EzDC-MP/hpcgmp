@@ -122,7 +122,6 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
 
       if (A.geom->rank==0) {
         HPCG_fout << "Calling GMRES (all double) for testing: " << endl;
-std::cout << std::flush;
       }
       double flops = test_data.flops[0];
       double time_tic = mytimer();
@@ -145,7 +144,7 @@ std::cout << std::flush;
     }
   }
 
-#if 0
+#if 1
   for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
   for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
   for (int k=(test_noprecond ? 0 : 1); k<2; ++k)

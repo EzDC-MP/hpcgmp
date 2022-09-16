@@ -256,7 +256,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
       if (verbose && A.geom->rank==0 && (k%print_freq == 0 || k+1 == restart_length)) {
         HPCG_fout << "GMRES Iteration = "<< k << " (" << niters << ")   Scaled Residual = "
                   << normr << " / " << normr0 << " = " << normr/normr0 << std::endl;
-        HPCG_fout << "Flop count : GMG = " << flops_gmg << " SpMV = " << flops_spmv << " Ortho = " << flops_orth << std::endl;
+        //HPCG_fout << "Flop count : GMG = " << flops_gmg << " SpMV = " << flops_spmv << " Ortho = " << flops_orth << std::endl;
       }
       niters ++;
       k ++;
