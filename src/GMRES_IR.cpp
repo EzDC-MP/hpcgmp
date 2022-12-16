@@ -72,7 +72,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   typedef Vector<scalar_type2> Vector_type2;
 
   double t_begin = mytimer();  // Start timing right away
-  double t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0;
+  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0;
 
   // vectors/matrices in scalar_type2 (lower)
   const global_int_t ione  = 1;
@@ -202,10 +202,10 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
           alpha = zero;
           for (int i = 0; i < 2; i++) {
             // beta = Qk'*Qj
-            TICK(); ComputeDotProduct(nrow, Qk, Qj, beta, t4, A.isDotProductOptimized); TOCK(t1);
+            START_T(); ComputeDotProduct(nrow, Qk, Qj, beta, t4, A.isDotProductOptimized); STOP_T(t1);
 
             // Qk = Qk - beta * Qj
-            TICK(); ComputeWAXPBY(nrow, one, Qk, -beta, Qj, Qk, A.isWaxpbyOptimized); TOCK(t2);
+            START_T(); ComputeWAXPBY(nrow, one, Qk, -beta, Qj, Qk, A.isWaxpbyOptimized); STOP_T(t2);
             alpha += beta;
           }
           SetMatrixValue(H, j, k-1, alpha);
@@ -214,15 +214,15 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       } else {
         // CGS2
         GetMultiVector(Q, 0, k-1, P);
-        ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); // h = Q(1:k)'*q(k+1)
-        ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); // h = Q(1:k)'*q(k+1)
+        START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1)
+        START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
         for(int i = 0; i < k; i++) {
           SetMatrixValue(H, i, k-1, h.values[i]);
         }
         flops_orth += (ifour*k*Nrow);
         // reorthogonalize
-        ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); // h = Q(1:k)'*q(k+1)
-        ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); // h = Q(1:k)'*q(k+1)
+        START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1)
+        START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
         for(int i = 0; i < k; i++) {
           AddMatrixValue(H, i, k-1, h.values[i]);
         }
