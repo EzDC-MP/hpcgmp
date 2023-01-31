@@ -134,6 +134,8 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   int num_times = 7;
   test_data.flops = (double*)malloc(num_flops * sizeof(double));
   test_data.times = (double*)malloc(num_times * sizeof(double));
+  test_data.times_comp = (double*)malloc(num_times * sizeof(double));
+  test_data.times_comm = (double*)malloc(num_times * sizeof(double));
 
   // =====================================================================
   // Run optimized GMRES (here, we are calling GMRES_IR) for a fixed number of iterations
@@ -203,6 +205,11 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     test_data.opt_times = (double*)malloc(num_times * sizeof(double));
     for (int i=0; i<num_flops; i++) test_data.opt_flops[i] = test_data.flops[i];
     for (int i=0; i<num_times; i++) test_data.opt_times[i] = test_data.times[i];
+
+    test_data.opt_times_comp = (double*)malloc(num_times * sizeof(double));
+    test_data.opt_times_comm = (double*)malloc(num_times * sizeof(double));
+    for (int i=0; i<num_times; i++) test_data.opt_times_comp[i] = test_data.times_comp[i];
+    for (int i=0; i<num_times; i++) test_data.opt_times_comm[i] = test_data.times_comm[i];
   }
 
   // =====================================================================
@@ -250,6 +257,11 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     test_data.ref_times = (double*)malloc(num_times * sizeof(double));
     for (int i=0; i<num_flops; i++) test_data.ref_flops[i] = test_data.flops[i];
     for (int i=0; i<num_times; i++) test_data.ref_times[i] = test_data.times[i];
+
+    test_data.ref_times_comp = (double*)malloc(num_times * sizeof(double));
+    test_data.ref_times_comm = (double*)malloc(num_times * sizeof(double));
+    for (int i=0; i<num_times; i++) test_data.ref_times_comp[i] = test_data.times_comp[i];
+    for (int i=0; i<num_times; i++) test_data.ref_times_comm[i] = test_data.times_comm[i];
   } else {
     test_data.refTotalFlops = 0.0;
     test_data.refTotalTime  = 0.0;

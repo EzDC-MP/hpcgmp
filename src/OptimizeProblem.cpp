@@ -106,7 +106,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
     colors[i] = counters[colors[i]]++;
 #endif
 
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP) | defined(HPCG_WITH_KOKKOSKERNELS)
   {
     typedef typename SparseMatrix_type::scalar_type SC;
 
@@ -161,6 +161,10 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (cudaSuccess != cudaMemcpy(curLevelMatrix->d_nzvals,  h_nzvals,  nnz*sizeof(SC),  cudaMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_nzvals\n" );
       }
+      // free matrix on host
+      free(h_row_ptr);
+      free(h_col_ind);
+      free(h_nzvals);
       #elif defined(HPCG_WITH_HIP)
       if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_row_ptr), (nrow+1)*sizeof(int))) {
         printf( " Failed to allocate A.d_row_ptr(nrow=%d)\n",nrow );
@@ -181,13 +185,41 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (hipSuccess != hipMemcpy(curLevelMatrix->d_nzvals,  h_nzvals,  nnz*sizeof(SC), hipMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_nzvals\n" );
       }
-      #endif
-
       // free matrix on host
       free(h_row_ptr);
       free(h_col_ind);
       free(h_nzvals);
+      #elif defined(HPCG_WITH_KOKKOSKERNELS)
+      // store the matrix on host
+      curLevelMatrix->h_row_ptr = h_row_ptr;
+      curLevelMatrix->h_col_idx = h_col_ind;
+      curLevelMatrix->h_nzvals = h_nzvals;
+      {
+        // Create Handle
+        #if 1
+        // GS-MT
+        curLevelMatrix->kh.create_gs_handle();
+        #endif
+        #if 0
+        //GS2
+        bool classic = false;
+        curLevelMatrix->kh.create_gs_handle(KokkosSparse::GS_TWOSTAGE);
+        curLevelMatrix->kh.set_gs_twostage(!classic, nrow);
+        #endif
+        // Perform Symbolic
+        bool graph_symmetric = false;
+        typename SparseMatrix_type::RowPtrView rowptr_view(curLevelMatrix->h_row_ptr, nrow+1);
+        typename SparseMatrix_type::ColIndView colidx_view(curLevelMatrix->h_col_idx, nnz);
+        KokkosSparse::Experimental::gauss_seidel_symbolic
+          (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, graph_symmetric);
+        // Numeric
+        typename SparseMatrix_type::ValuesView values_view(curLevelMatrix->h_nzvals, nnz);
+        KokkosSparse::Experimental::gauss_seidel_numeric
+          (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, values_view, graph_symmetric);
+      }
+      #endif
 
+      #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
       // -------------------------
       // Extract lower/upper-triangular matrix
       global_int_t nnzU = nnz-nnzL;
@@ -320,7 +352,28 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       // for debuging, TODO: remove these
       InitializeVector(curLevelMatrix->x, nrow, curLevelMatrix->comm);
       InitializeVector(curLevelMatrix->y, ncol, curLevelMatrix->comm);
+      #endif
  
+      #if defined(HPCG_WITH_SSL2)
+      const SC zero (0.0);
+      Ellpack_vals = (SC  *)malloc( 27*nrow * sizeof(SC));
+      Ellpack_cols = (int *)malloc( 27*nrow * sizeof(int));
+      for (local_int_t i=0; i<nrow; i++)  {
+        const SC * const cur_vals = curLevelMatrix->matrixValues[i];
+        const local_int_t * const cur_inds = curLevelMatrix->mtxIndL[i];
+
+        const int cur_nnz = curLevelMatrix->nonzerosInRow[i];
+        for (int j=0; j<cur_nnz; j++) {
+          Ellpack_vals[j] = cur_vals[j];
+          Ellpack_cols[j] = cur_inds[j];
+        }
+        for (int j=cur_nnz; j<27; j++) {
+          Ellpack_vals[j] = zero;
+          Ellpack_cols[j] = cur_inds[cur_nnz-1];
+        }
+      }
+      #endif
+
       #if defined(HPCG_WITH_CUDA)
       // -------------------------
       // create Handle (for each matrix)
@@ -358,29 +411,6 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
 
       // -------------------------
       // run analysis for triangular solve
-      #ifdef HPCG_KOKKOSKERNELS
-      // Create Handle
-      #if 1
-      // GS-MT
-      curLevelMatrix->kh.create_gs_handle();
-      #endif
-      #if 0
-      //GS2
-      bool classic = false;
-      curLevelMatrix->kh.create_gs_handle(KokkosSparse::GS_TWOSTAGE);
-      curLevelMatrix->kh.set_gs_twostage(!classic, nrow);
-      #endif
-      // Perform Symbolic
-      bool graph_symmetric = false;
-      typename SparseMatrix_type::RowPtrView rowptr_view(curLevelMatrix->d_row_ptr, nrow+1);
-      typename SparseMatrix_type::ColIndView colidx_view(curLevelMatrix->d_col_idx, nnz);
-      KokkosSparse::Experimental::gauss_seidel_symbolic
-        (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, graph_symmetric);
-      // Numeric
-      typename SparseMatrix_type::ValuesView values_view(curLevelMatrix->d_nzvals, nnz);
-      KokkosSparse::Experimental::gauss_seidel_numeric
-        (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, values_view, graph_symmetric);
-      #endif
       cusparseCreateMatDescr(&(curLevelMatrix->descrL));
       cusparseSetMatIndexBase(curLevelMatrix->descrL, CUSPARSE_INDEX_BASE_ZERO);
       #if CUDA_VERSION >= 11000
@@ -416,7 +446,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
           if (status == CUSPARSE_STATUS_EXECUTION_FAILED)           printf( " > CUSPARSE_STATUS_EXECUTION_FAILED <\n" );
           if (status == CUSPARSE_STATUS_INTERNAL_ERROR)             printf( " > CUSPARSE_STATUS_INTERNAL_ERROR <\n" );
           if (status == CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED ) printf( " > CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED <\n" );
-	}
+        }
         #else
         cusparseDcsrsv_analysis(curLevelMatrix->cusparseHandle,
                                 CUSPARSE_OPERATION_NON_TRANSPOSE, nrow, nnzL,
@@ -536,6 +566,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       hipMalloc(&curLevelMatrix->buffer_U, curLevelMatrix->buffer_size_U);
       #endif
 
+      #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
       if (curLevelMatrix->mgData!=0) {
         // -------------------------
         // store restriction as CRS
@@ -689,6 +720,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         free(h_col_ind);
         free(h_nzvals);
       } //A.mgData!=0
+      #endif
 
       // next matrix
       curLevelMatrix = curLevelMatrix->Ac;

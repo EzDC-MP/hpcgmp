@@ -56,6 +56,11 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/GenerateNonsymProblem_v1_ref.o \
 	    src/GenerateNonsymCoarseProblem.o \
             \
+	    src/ComputeDotProduct_blas.o \
+	    src/ComputeGEMV_blas.o \
+	    src/ComputeGEMVT_blas.o \
+	    src/ComputeSPMV_ssl2.o \
+            \
 	    src/ComputeDotProduct_gpu.o \
 	    src/ComputeGEMV_gpu.o \
 	    src/ComputeGEMVT_gpu.o \
@@ -64,6 +69,9 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/ComputeGS_Forward_gpu.o \
 	    src/ComputeProlongation_gpu.o \
 	    src/ComputeRestriction_gpu.o \
+            \
+	    src/ComputeGS_Forward_kk.o \
+	    src/ComputeSPMV_kk.o 
 
 # These header files are included in many source files, so we recompile every file if one or more of these header is modified.
 PRIMARY_HEADERS = HPCG_SRC_PATH/src/Geometry.hpp HPCG_SRC_PATH/src/SparseMatrix.hpp HPCG_SRC_PATH/src/Vector.hpp HPCG_SRC_PATH/src/MultiVector.hpp \
@@ -139,6 +147,9 @@ src/ComputeDotProduct.o: HPCG_SRC_PATH/src/ComputeDotProduct.cpp HPCG_SRC_PATH/s
 src/ComputeDotProduct_ref.o: HPCG_SRC_PATH/src/ComputeDotProduct_ref.cpp HPCG_SRC_PATH/src/ComputeDotProduct_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeDotProduct_blas.o: HPCG_SRC_PATH/src/ComputeDotProduct_blas.cpp HPCG_SRC_PATH/src/ComputeDotProduct_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeDotProduct_gpu.o: HPCG_SRC_PATH/src/ComputeDotProduct_gpu.cpp HPCG_SRC_PATH/src/ComputeDotProduct_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
@@ -160,7 +171,13 @@ src/ComputeSPMV.o: HPCG_SRC_PATH/src/ComputeSPMV.cpp HPCG_SRC_PATH/src/ComputeSP
 src/ComputeSPMV_ref.o: HPCG_SRC_PATH/src/ComputeSPMV_ref.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeSPMV_ssl2.o: HPCG_SRC_PATH/src/ComputeSPMV_ssl2.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeSPMV_gpu.o: HPCG_SRC_PATH/src/ComputeSPMV_gpu.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/ComputeSPMV_kk.o: HPCG_SRC_PATH/src/ComputeSPMV_kk.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/ComputeSYMGS.o: HPCG_SRC_PATH/src/ComputeSYMGS.cpp HPCG_SRC_PATH/src/ComputeSYMGS.hpp $(PRIMARY_HEADERS)
@@ -227,6 +244,9 @@ src/ComputeGS_Forward_ref.o: HPCG_SRC_PATH/src/ComputeGS_Forward_ref.cpp HPCG_SR
 src/ComputeGS_Forward_gpu.o: HPCG_SRC_PATH/src/ComputeGS_Forward_gpu.cpp HPCG_SRC_PATH/src/ComputeGS_Forward_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeGS_Forward_kk.o: HPCG_SRC_PATH/src/ComputeGS_Forward_kk.cpp HPCG_SRC_PATH/src/ComputeGS_Forward_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeTRSM.o: HPCG_SRC_PATH/src/ComputeTRSM.cpp HPCG_SRC_PATH/src/ComputeTRSM.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
@@ -236,6 +256,9 @@ src/ComputeGEMV.o: HPCG_SRC_PATH/src/ComputeGEMV.cpp HPCG_SRC_PATH/src/ComputeGE
 src/ComputeGEMV_ref.o: HPCG_SRC_PATH/src/ComputeGEMV_ref.cpp HPCG_SRC_PATH/src/ComputeGEMV_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
+src/ComputeGEMV_blas.o: HPCG_SRC_PATH/src/ComputeGEMV_blas.cpp HPCG_SRC_PATH/src/ComputeGEMV_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
 src/ComputeGEMV_gpu.o: HPCG_SRC_PATH/src/ComputeGEMV_gpu.cpp HPCG_SRC_PATH/src/ComputeGEMV_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
@@ -243,6 +266,9 @@ src/ComputeGEMVT.o: HPCG_SRC_PATH/src/ComputeGEMVT.cpp HPCG_SRC_PATH/src/Compute
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/ComputeGEMVT_ref.o: HPCG_SRC_PATH/src/ComputeGEMVT_ref.cpp HPCG_SRC_PATH/src/ComputeGEMVT_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+src/ComputeGEMVT_blas.o: HPCG_SRC_PATH/src/ComputeGEMVT_blas.cpp HPCG_SRC_PATH/src/ComputeGEMVT_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/ComputeGEMVT_gpu.o: HPCG_SRC_PATH/src/ComputeGEMVT_gpu.cpp HPCG_SRC_PATH/src/ComputeGEMVT_ref.hpp $(PRIMARY_HEADERS)

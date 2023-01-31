@@ -110,10 +110,16 @@ public:
   //!< flop counts and time for total, dot, axpy, ortho, spmv, reduce, precond
   double *flops;        //!< accumulated in GMRES
   double *times;        //!< accumulated in GMRES
+  double *times_comp;   //!< accumulated in GMRES
+  double *times_comm;   //!< accumulated in GMRES
   double *ref_flops;    //!< record from output of reference GMRES
   double *ref_times;    //!< record from output of reference GMRES
   double *opt_flops;    //!< record from output of optimized GMRES
   double *opt_times;    //!< record from output of optimized GMRES
+  double *ref_times_comp; //!< record from output of reference GMRES
+  double *ref_times_comm; //!< record from output of reference GMRES
+  double *opt_times_comp; //!< record from output of optimized GMRES
+  double *opt_times_comm; //!< record from output of optimized GMRES
 };
 
 #endif // CGDATA_HPP

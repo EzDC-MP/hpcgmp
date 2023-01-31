@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) //& !defined(HPCG_WITH_KOKKOSKERNELS)
+#if 0 //defined(HPCG_WITH_KOKKOSKERNELS)
 
 #include "ComputeSPMV_ref.hpp"
 
@@ -62,6 +62,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   }
 #endif
 
+#if 1
   #ifndef HPCG_NO_OPENMP
   #pragma omp parallel for
   #endif
@@ -75,7 +76,20 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
       sum += cur_vals[j]*xv[cur_inds[j]];
     yv[i] = sum;
   }
+#else
+  {
+    const int nnzA = A.localNumberOfNonzeros;
+    typename SparseMatrix_type::RowPtrView rowptr_view(A.h_row_ptr, nrow+1);
+    typename SparseMatrix_type::ColIndView colidx_view(A.h_col_idx, nnzA);
+    typename SparseMatrix_type::ValuesView values_view(A.h_nzvals,  nnzA);
+    graph_t static_graph(column_view, rowmap_view);
+    crsmat_t crsmat("CrsMatrix", n, values_view, static_graph);
 
+    typename SparseMatrix_type::ValuesView x_view(x.values, ncol);
+    typename SparseMatrix_type::ValuesView y_view(y.values, nrow);
+    KokkosSparse::spmv(tran, one, A_view, x_view, one, y_view);
+  }
+#endif
   return 0;
 }
 

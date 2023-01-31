@@ -136,7 +136,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   const scalar_type  one ( 1.0);
   const scalar_type mone (-1.0);
 
-#ifdef HPCG_KOKKOSKERNELS
+#ifdef HPCG_WITH_KOKKOSKERNELS
   {
     bool init_zero_x_vector = true;
     bool update_y_vector = true;

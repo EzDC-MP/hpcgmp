@@ -13,19 +13,21 @@
 //@HEADER
 
 /*!
- @file ComputeGEMVT_ref.cpp
+ @file ComputeGEMVT_gpu.cpp
 
  HPCG routine for computing GEMV transpose (dot-products)
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_BLAS)
+#if defined(HPCG_WITH_BLAS)
 
 #ifndef HPCG_NO_MPI
  #include "Utils_MPI.hpp"
 #endif
 
+#include "cblas.h"
 #include "ComputeGEMVT_ref.hpp"
 #include "hpgmp.hpp"
 #include "mytimer.hpp"
+
 
 template<class MultiVector_type, class Vector_type, class SerialDenseMatrix_type>
 int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
@@ -36,36 +38,31 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   typedef typename SerialDenseMatrix_type::scalar_type scalarX_type;
   typedef typename            Vector_type::scalar_type scalarY_type;
 
-  const scalarA_type one  (1.0);
-  const scalarA_type zero (0.0);
-
   assert(x.localLength >= m); // Test vector lengths
   assert(y.m >= n);
   assert(y.n == 1);
 
+
   // Input serial dense vector 
-  scalarA_type * const Av = A.values;
-  scalarX_type * const xv = x.values;
+  const scalarX_type * const xv = x.values;
+  const scalarA_type * const Av = A.values;
+
+  // Output serial dense vector
   scalarY_type * const yv = y.values;
 
-  // GEMV on HOST CPU
+  // Perform GEMV on host
   double t0; TICK();
-  if (beta == zero) {
-    for (local_int_t i = 0; i < n; i++) yv[i] = zero;
-  } else if (beta != one) {
-    for (local_int_t i = 0; i < n; i++) yv[i] *= beta;
-  }
-
-  if (alpha == one) {
-    for (local_int_t j=0; j<n; j++)
-      for (local_int_t i=0; i<m; i++) {
-        yv[j] += Av[i + j*m] * xv[i];
-    }
-  } else {
-    for (local_int_t i=0; i<m; i++) {
-      for (local_int_t j=0; j<n; j++)
-        yv[j] += alpha * Av[i + j*m] * xv[i];
-    }
+  const int ione = 1;
+  if (std::is_same<scalarX_type, double>::value) {
+    cblas_dgemv(CblasColMajor, CblasTrans, m, n,
+                alpha, (double*)Av, m,
+                       (double*)xv, ione,
+                beta,  (double*)yv, ione);
+  } else if (std::is_same<scalarX_type, float>::value) {
+    cblas_sgemv(CblasColMajor, CblasTrans, m, n,
+                alpha, (float*)Av, m,
+                       (float*)xv, ione,
+                beta,  (float*)yv, ione);
   }
   TIME(y.time1);
 

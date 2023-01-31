@@ -13,9 +13,9 @@
 //@HEADER
 
 /*!
- @file Vector.hpp
+ @file ComputeGEMVT_gpu.cpp
 
- HPCG data structures for dense vectors
+ HPCG routine for computing GEMV transpose (dot-products)
  */
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
 
@@ -36,7 +36,7 @@
 template<class MultiVector_type, class Vector_type, class SerialDenseMatrix_type>
 int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
                      const typename MultiVector_type::scalar_type alpha, const MultiVector_type & A, const Vector_type & x,
-                     const typename      Vector_type::scalar_type beta,  const SerialDenseMatrix_type & y) {
+                     const typename      Vector_type::scalar_type beta,  SerialDenseMatrix_type & y) {
 
   typedef typename       MultiVector_type::scalar_type scalarA_type;
   typedef typename SerialDenseMatrix_type::scalar_type scalarX_type;
@@ -148,10 +148,10 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
 // uniform
 template
 int ComputeGEMVT_ref< MultiVector<double>, Vector<double>, SerialDenseMatrix<double> >
-  (int, int, double, MultiVector<double> const&, Vector<double> const&, double, SerialDenseMatrix<double> const&);
+  (int, int, double, MultiVector<double> const&, Vector<double> const&, double, SerialDenseMatrix<double> &);
 
 template
 int ComputeGEMVT_ref< MultiVector<float>, Vector<float>, SerialDenseMatrix<float> >
-  (int, int, float, MultiVector<float> const&, Vector<float> const&, float, SerialDenseMatrix<float> const&);
+  (int, int, float, MultiVector<float> const&, Vector<float> const&, float, SerialDenseMatrix<float> &);
 
 #endif

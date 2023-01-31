@@ -73,6 +73,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
   double t_begin = mytimer();  // Start timing right away
   double start_t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0;
+  double t1_comp = 0.0, t1_comm = 0.0;
 
   // vectors/matrices in scalar_type2 (lower)
   const global_int_t ione  = 1;
@@ -216,6 +217,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
         GetMultiVector(Q, 0, k-1, P);
         START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1)
         START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
+        t1_comp += h.time1; t1_comm += h.time2;
         for(int i = 0; i < k; i++) {
           SetMatrixValue(H, i, k-1, h.values[i]);
         }
@@ -223,6 +225,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
         // reorthogonalize
         START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1)
         START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
+        t1_comp += h.time1; t1_comm += h.time2;
         for(int i = 0; i < k; i++) {
           AddMatrixValue(H, i, k-1, h.values[i]);
         }
@@ -311,6 +314,9 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     test_data.times[4] += t3; // SPMV time
     test_data.times[5] += t4; // AllReduce time
     test_data.times[6] += t5; // preconditioner apply time
+
+    test_data.times_comp[1] += t1_comp; // dot-product time
+    test_data.times_comm[1] += t1_comm; // dot-product time
   }
   double flops_tot = flops + flops_gmg + flops_spmv + flops_orth;
   if (verbose && A.geom->rank==0) {

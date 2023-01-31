@@ -17,16 +17,13 @@
 
  HPCG routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) //& !defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_SSL2)
 
+#include "cssl.h"
 #include "ComputeSPMV_ref.hpp"
 
 #ifndef HPCG_NO_MPI
 #include "ExchangeHalo.hpp"
-#endif
-
-#ifndef HPCG_NO_OPENMP
- #include <omp.h>
 #endif
 #include <cassert>
 
@@ -62,18 +59,21 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   }
 #endif
 
-  #ifndef HPCG_NO_OPENMP
-  #pragma omp parallel for
-  #endif
-  for (local_int_t i=0; i< nrow; i++)  {
-    scalar_type sum = 0.0;
-    const scalar_type * const cur_vals = A.matrixValues[i];
-    const local_int_t * const cur_inds = A.mtxIndL[i];
-    const int cur_nnz = A.nonzerosInRow[i];
+  if (std::is_same<scalar_type, double>::value) {
+    int info;
+    c_dvmvse ((double*)A.Ellpack_vals, nrow, 27, nrow, A.Ellpack_cols, (double*)xv, (double*)yv, &info);
+    if (info != 0) printf( " Failed c_dvmvse\n" );
+  } else {
+    for (local_int_t i=0; i< nrow; i++)  {
+      scalar_type sum = 0.0;
+      const scalar_type * const cur_vals = A.matrixValues[i];
+      const local_int_t * const cur_inds = A.mtxIndL[i];
+      const int cur_nnz = A.nonzerosInRow[i];
 
-    for (int j=0; j< cur_nnz; j++)
-      sum += cur_vals[j]*xv[cur_inds[j]];
-    yv[i] = sum;
+      for (int j=0; j< cur_nnz; j++)
+        sum += cur_vals[j]*xv[cur_inds[j]];
+      yv[i] = sum;
+    }
   }
 
   return 0;

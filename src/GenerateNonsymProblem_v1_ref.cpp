@@ -131,6 +131,7 @@ void GenerateNonsymProblem_v1_ref(SparseMatrix_type & A, Vector_type * b, Vector
 #endif
 
   local_int_t localNumberOfNonzeros = 0;
+//printf( "A=[\n" );
   // TODO:  This triply nested loop could be flattened or use nested parallelism
 #ifndef HPCG_NO_OPENMP
   #pragma omp parallel for
@@ -187,7 +188,8 @@ void GenerateNonsymProblem_v1_ref(SparseMatrix_type & A, Vector_type * b, Vector
                       #endif
                     }
                     *currentIndexPointerG++ = curcol;
-		    //HPCG_fout << currentLocalRow << " " << curcol << " " << *(currentValuePointer-1) << std::endl;
+		    //HPCG_fout << currentLocalRow << ", " << curcol << ", " << *(currentValuePointer-1) << "," << std::endl;
+		    //printf( "%d %d %f\n", (int)currentLocalRow, (int)curcol, (double)*(currentValuePointer-1));
                     numberOfNonzerosInRow++;
                   } // end x bounds test
                 } // end sx loop
@@ -208,6 +210,7 @@ void GenerateNonsymProblem_v1_ref(SparseMatrix_type & A, Vector_type * b, Vector
       } // end ix loop
     } // end iy loop
   } // end iz loop
+//printf("];\n");
 #ifdef HPCG_DETAILED_DEBUG
   HPCG_fout     << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfRows    << " rows."     << endl
       << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfNonzeros<< " nonzeros." <<endl;

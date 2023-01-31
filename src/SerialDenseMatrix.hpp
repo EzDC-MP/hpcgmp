@@ -43,6 +43,8 @@ public:
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   SC * d_values;        //!< array of values
 #endif
+  // aux for profile
+  double time1, time2;
   /*!
    This is for storing optimized data structures created in OptimizeProblem and
    used inside optimized ComputeSPMV().

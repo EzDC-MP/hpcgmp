@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS)
 
 #ifndef HPCG_NO_MPI
  #include "ExchangeHalo.hpp"
@@ -25,6 +25,14 @@
 #include "ComputeGS_Forward_ref.hpp"
 #include <cassert>
 #include <iostream>
+
+#include "ComputeSPMV.hpp"
+#include "ComputeWAXPBY.hpp"
+#ifdef HPCG_DEBUG
+ #include <mpi.h>
+ #include "Utils_MPI.hpp"
+ #include "hpgmp.hpp"
+#endif
 
 /*!
   Computes one forward step of Gauss-Seidel:
@@ -55,15 +63,21 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
   const local_int_t nrow = A.localNumberOfRows;
-
-  const scalar_type * const rv = r.values;
-  scalar_type * const xv = x.values;
+  const local_int_t ncol = A.localNumberOfColumns;
 
 #ifndef HPCG_NO_MPI
   // Exchange Halo on HOST CPU
   ExchangeHalo(A, x);
+  #ifdef HPCG_DEBUG
+  if (A.geom->rank==0) {
+    HPCG_fout << A.geom->rank << " : ComputeGS(" << nrow << " x " << ncol << ") start" << std::endl;
+  }
+  #endif
 #endif
 
+#if 1
+  const scalar_type * const rv = r.values;
+  scalar_type * const xv = x.values;
   scalar_type ** matrixDiagonal = A.matrixDiagonal;  // An array of pointers to the diagonal entries A.matrixValues
 
   for (local_int_t i=0; i < nrow; i++) {
@@ -83,6 +97,27 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   }
 
   return 0;
+#else
+  {
+    // wrap pointers into Kokkos Views and call, Kokkos-Kernels forward-sweep Gauss-Seidel
+    bool init_zero_x_vector = true;
+    bool update_y_vector = true;
+    const scalar_type omega (1.0);
+    int num_sweeps = 1;
+
+    const int nnzA = A.localNumberOfNonzeros;
+    typename SparseMatrix_type::RowPtrView rowptr_view(A.h_row_ptr, nrow+1);
+    typename SparseMatrix_type::ColIndView colidx_view(A.h_col_idx, nnzA);
+    typename SparseMatrix_type::ValuesView values_view(A.h_nzvals,  nnzA);
+
+    typename SparseMatrix_type::ValuesView r_view(r.values, ncol);
+    typename SparseMatrix_type::ValuesView x_view(x.values, nrow);
+    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
+    KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
+      (handle, nrow, ncol, rowptr_view, colidx_view, values_view, x_view, r_view, init_zero_x_vector, update_y_vector, omega, num_sweeps);
+    return 0;
+  }
+#endif
 }
 
 
@@ -97,3 +132,4 @@ template
 int ComputeGS_Forward_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&);
 
 #endif
+

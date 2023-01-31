@@ -13,9 +13,9 @@
 //@HEADER
 
 /*!
- @file Vector.hpp
+ @file ComputeGEMV_gpu.cpp
 
- HPCG data structures for dense vectors
+ HPCG routine for computing GEMV (vector-update)
  */
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
 

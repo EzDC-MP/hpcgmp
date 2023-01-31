@@ -109,12 +109,16 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
   bool verbose = true;
   scalar_type tolerance = 1.0e-12; // Set tolerance to reasonable value for grossly scaled diagonal terms
 
-  int num_times = 7;
   int num_flops = 4;
-  test_data.times = (double*)malloc(num_times * sizeof(double));
+  int num_times = 7;
   test_data.flops = (double*)malloc(num_flops * sizeof(double));
-  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
+  test_data.times = (double*)malloc(num_times * sizeof(double));
+  test_data.times_comp = (double*)malloc(num_times * sizeof(double));
+  test_data.times_comm = (double*)malloc(num_times * sizeof(double));
   for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
+  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
+  for (int i=0; i<num_times; i++) test_data.times_comp[i] = 0.0;
+  for (int i=0; i<num_times; i++) test_data.times_comm[i] = 0.0;
   for (int k=(test_noprecond ? 0 : 1); k<2; ++k)
   { // This loop tests both unpreconditioned and preconditioned runs
     for (int i=0; i< numberOfGmresCalls; ++i) {
@@ -145,8 +149,10 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
   }
 
 #if 1
-  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
   for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
+  for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
+  for (int i=0; i<num_times; i++) test_data.times_comp[i] = 0.0;
+  for (int i=0; i<num_times; i++) test_data.times_comm[i] = 0.0;
   for (int k=(test_noprecond ? 0 : 1); k<2; ++k)
   { // This loop tests both unpreconditioned and preconditioned runs
     for (int i=0; i< numberOfGmresCalls; ++i) {

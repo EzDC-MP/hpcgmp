@@ -35,7 +35,7 @@ using std::endl;
 
 #include <vector>
 
-#ifdef HPCG_KOKKOSKERNELS
+#ifdef HPCG_WITH_KOKKOSKERNELS
 #include "Kokkos_Core.hpp"
 #endif
 
@@ -86,7 +86,7 @@ int main(int argc, char * argv[]) {
 #ifndef HPCG_NO_MPI
   MPI_Init(&argc, &argv);
 #endif
-#ifdef HPCG_KOKKOSKERNELS
+#ifdef HPCG_WITH_KOKKOSKERNELS
   Kokkos::initialize();
   {
 #endif
@@ -240,7 +240,7 @@ int main(int argc, char * argv[]) {
 
   // Finish up
   HPCG_Finalize();
-#ifdef HPCG_KOKKOSKERNELS
+#ifdef HPCG_WITH_KOKKOSKERNELS
   }
   Kokkos::finalize();
 #endif

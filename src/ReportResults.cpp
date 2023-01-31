@@ -61,7 +61,7 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     // ======================== FLOP count model =======================================
 
     double fnrow = A.totalNumberOfRows;
-    double fnnz = A.totalNumberOfNonzeros;
+    //double fnnz = A.totalNumberOfNonzeros;
 
     // Op counts come from implementation of CG in CG.cpp (include 1 extra for the CG preamble ops)
     //double fnops_ddot   = 0.0;
@@ -74,22 +74,22 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     // ======================== Memory bandwidth model =======================================
 
     // Read/Write counts come from implementation of CG in CG.cpp (include 1 extra for the CG preamble ops)
-    double fnreads_ddot = 0.0;
-    double fnwrites_ddot = 0.0;
-    double fnreads_waxpby = 0.0;
-    double fnwrites_waxpby = 0.0;
-    double fnreads_sparsemv = 0.0;
+    //double fnreads_ddot = 0.0;
+    //double fnwrites_ddot = 0.0;
+    //double fnreads_waxpby = 0.0;
+    //double fnwrites_waxpby = 0.0;
+    //double fnreads_sparsemv = 0.0;
     // plus nrow reads of x
-    double fnwrites_sparsemv = 0.0;
+    //double fnwrites_sparsemv = 0.0;
     // Op counts from the multigrid preconditioners
-    double fnreads_precond = 0.0;
-    double fnwrites_precond = 0.0;
+    //double fnreads_precond = 0.0;
+    //double fnwrites_precond = 0.0;
 
     const SparseMatrix_type * Af = &A;
-    double fnnz_Af = Af->totalNumberOfNonzeros;
-    double fnrow_Af = Af->totalNumberOfRows;
-    double fnreads = fnreads_ddot+fnreads_waxpby+fnreads_sparsemv+fnreads_precond;
-    double fnwrites = fnwrites_ddot+fnwrites_waxpby+fnwrites_sparsemv+fnwrites_precond;
+    //double fnnz_Af = Af->totalNumberOfNonzeros;
+    //double fnrow_Af = Af->totalNumberOfRows;
+    //double fnreads = fnreads_ddot+fnreads_waxpby+fnreads_sparsemv+fnreads_precond;
+    //double fnwrites = fnwrites_ddot+fnwrites_waxpby+fnwrites_sparsemv+fnwrites_precond;
     //double frefnreads = 0.0;
     //double frefnwrites = 0.0;
 
@@ -268,6 +268,8 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     doc.get("Benchmark Time Summary")->add("Num MGs",   test_data.optNumOfMGCalls);
     doc.get("Benchmark Time Summary")->add("Ortho",  test_data.opt_times[3]);
     doc.get("Benchmark Time Summary")->add(" DDOT",  test_data.opt_times[1]);
+    doc.get("Benchmark Time Summary")->add("  DDOT (comp)",  test_data.opt_times_comp[1]);
+    doc.get("Benchmark Time Summary")->add("  DDOT (comm)",  test_data.opt_times_comm[1]);
     doc.get("Benchmark Time Summary")->add(" WAXPBY",test_data.opt_times[2]);
     doc.get("Benchmark Time Summary")->add("SpMV",   test_data.opt_times[4]);
     doc.get("Benchmark Time Summary")->add("MG",     test_data.opt_times[6]);

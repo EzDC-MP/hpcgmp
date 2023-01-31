@@ -17,8 +17,9 @@
 
  HPCG routine
  */
-#if !defined(HPCG_WITH_BLAS) & !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)
+#if defined(HPCG_WITH_BLAS)
 
+#include "cblas.h"
 #ifndef HPCG_NO_MPI
  #include <mpi.h>
  #include "mytimer.hpp"
@@ -56,18 +57,14 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   typedef typename Vector_type::scalar_type scalar_type;
   scalar_type local_result (0.0);
 
-  scalar_type * xv = x.values;
-  scalar_type * yv = y.values;
-  if (yv==xv) {
-    #ifndef HPCG_NO_OPENMP
-    #pragma omp parallel for reduction (+:local_result)
-    #endif
-    for (local_int_t i=0; i<n; i++) local_result += xv[i]*xv[i];
-  } else {
-    #ifndef HPCG_NO_OPENMP
-    #pragma omp parallel for reduction (+:local_result)
-    #endif
-    for (local_int_t i=0; i<n; i++) local_result += xv[i]*yv[i];
+  scalar_type* xv = x.values;
+  scalar_type* yv = y.values;
+
+  // Compute dot on Nvidia GPU
+  if (std::is_same<scalar_type, double>::value) {
+    local_result = cblas_ddot(n, (double*)xv, 1, (double*)yv, 1);
+  } else if (std::is_same<scalar_type, float>::value) {
+    local_result = cblas_sdot(n, (float*)xv, 1, (float*)yv, 1);
   }
 
 #ifndef HPCG_NO_MPI
@@ -78,6 +75,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
   result = global_result;
   time_allreduce += mytimer() - t0;
+
 #else
   time_allreduce += 0.0;
   result = local_result;

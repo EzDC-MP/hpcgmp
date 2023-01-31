@@ -13,9 +13,9 @@
 //@HEADER
 
 /*!
- @file Vector.hpp
+ @file ComputeGEMV_ref.hpp
 
- HPCG data structures for dense vectors
+ HPCG routine for computing GEMV (vector-update)
  */
 
 #ifndef COMPUTE_GEMV_REF_HPP

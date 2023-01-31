@@ -25,6 +25,9 @@
 #include <cassert>
 #include <cstdlib>
 
+#ifdef HPCG_WITH_BLAS
+ #include "cblas.h"
+#endif
 #ifndef HPCG_NO_MPI
  #include <mpi.h>
 #endif
@@ -142,15 +145,24 @@ inline void ScaleVectorValue(Vector_type & v, local_int_t index, typename Vector
 template<class Vector_type>
 inline void ScaleVectorValue(Vector_type & v, typename Vector_type::scalar_type value) {
   typedef typename Vector_type::scalar_type scalar_type;
-  const scalar_type zero (0.0);
 
   local_int_t localLength = v.localLength;
   scalar_type * vv = v.values;
+#if defined(HPCG_WITH_BLAS)
+  if (std::is_same<scalar_type, double>::value) {
+    cblas_dscal(localLength, value, (double *)vv, 1);
+  } else if (std::is_same<scalar_type, float>::value) {
+    cblas_sscal(localLength, value, (float *)vv, 1);
+  }
+#else
+  const scalar_type zero (0.0);
   if (value == zero) {
     for (int i=0; i<localLength; ++i) vv[i] = zero;
   } else {
     for (int i=0; i<localLength; ++i) vv[i] *= value;
   }
+#endif
+
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   scalar_type * d_vv = v.d_values;
   if (std::is_same<scalar_type, double>::value) {
@@ -205,7 +217,18 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
   scalar_src * vv = v.values;
   scalar_dst * wv = w.values;
 #if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
-  for (int i=0; i<localLength; ++i) wv[i] = vv[i];
+  #if defined(HPCG_WITH_BLAS)
+  if (std::is_same<scalar_src, scalar_dst>::value) {
+    if (std::is_same<scalar_src, double>::value) {
+      cblas_dcopy(localLength, (const double *)vv, 1, (double *)wv, 1);
+    } else if (std::is_same<scalar_src, float>::value) {
+      cblas_scopy(localLength, (const float *)vv, 1, (float *)wv, 1);
+    }
+  } else
+  #endif
+  {
+    for (int i=0; i<localLength; ++i) wv[i] = vv[i];
+  }
 #endif
 
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)

@@ -13,12 +13,13 @@
 //@HEADER
 
 /*!
- @file ComputeGEMV_ref.cpp
+ @file ComputeGEMV_blas.cpp
 
  HPCG routine for computing GEMV (vector-update)
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_BLAS)
+#if defined(HPCG_WITH_BLAS)
 
+#include "cblas.h"
 #include "ComputeGEMV_ref.hpp"
 #include "hpgmp.hpp"
 
@@ -31,6 +32,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
   typedef typename SerialDenseMatrix_type::scalar_type scalarX_type;
   typedef typename            Vector_type::scalar_type scalarY_type;
 
+  const int ione = 1;
   const scalarA_type one  (1.0);
   const scalarA_type zero (0.0);
 
@@ -44,6 +46,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
   scalarA_type * const Av = A.values;
   scalarY_type * const yv = y.values;
 
+#if 0
   // GEMV on HOST CPU
   if (beta == zero) {
     for (local_int_t i = 0; i < m; i++) yv[i] = zero;
@@ -62,6 +65,47 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
         yv[i] += alpha * Av[i + j*m] * xv[j];
     }
   }
+#else
+  #if !defined(HPCG_WITH_ARMPL)
+  if ((std::is_same<scalarX_type, double>::value && std::is_same<scalarY_type, double>::value && std::is_same<scalarA_type, double>::value) ||
+      (std::is_same<scalarX_type, float >::value && std::is_same<scalarY_type, float >::value && std::is_same<scalarA_type, float >::value)) {
+
+    // Perform GEMV on host
+    if (std::is_same<scalarX_type, double>::value) {
+      cblas_dgemv(CblasColMajor, CblasNoTrans, m, n,
+                  alpha, (double*)Av, m,
+                         (double*)xv, ione,
+                  beta,  (double*)yv, ione);
+    } else if (std::is_same<scalarX_type, float>::value) {
+      cblas_sgemv(CblasColMajor, CblasNoTrans, m, n,
+                  alpha, (float*)Av, m,
+                         (float*)xv, ione,
+                  beta,  (float*)yv, ione);
+    }
+  } else
+  #endif
+  {
+    //HPCG_vout << " Mixed-precision GEMV not supported" << std::endl;
+    // GEMV on HOST CPU
+    if (beta == zero) {
+      for (local_int_t i = 0; i < m; i++) yv[i] = zero;
+    } else if (beta != one) {
+      for (local_int_t i = 0; i < m; i++) yv[i] *= beta;
+    }
+
+    if (alpha == one) {
+      for (local_int_t j=0; j<n; j++)
+        for (local_int_t i=0; i<m; i++) {
+          yv[i] += Av[i + j*m] * xv[j];
+      }
+    } else {
+      for (local_int_t j=0; j<n; j++)
+        for (local_int_t i=0; i<m; i++) {
+          yv[i] += alpha * Av[i + j*m] * xv[j];
+      }
+    }
+  }
+#endif
 
   return 0;
 }
