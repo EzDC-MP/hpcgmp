@@ -33,6 +33,7 @@
  #include "Utils_MPI.hpp"
  #include "hpgmp.hpp"
 #endif
+#include "mytimer.hpp"
 
 /*!
   Computes one forward step of Gauss-Seidel:
@@ -75,7 +76,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   #endif
 #endif
 
-#if 1
+#if 0
   const scalar_type * const rv = r.values;
   scalar_type * const xv = x.values;
   scalar_type ** matrixDiagonal = A.matrixDiagonal;  // An array of pointers to the diagonal entries A.matrixValues
@@ -105,7 +106,21 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
     const scalar_type omega (1.0);
     int num_sweeps = 1;
 
+    double t0 = 0.0;
     const int nnzA = A.localNumberOfNonzeros;
+    #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+    typename SparseMatrix_type::RowPtrView rowptr_view(A.d_row_ptr, nrow+1);
+    typename SparseMatrix_type::ColIndView colidx_view(A.d_col_idx, nnzA);
+    typename SparseMatrix_type::ValuesView values_view(A.d_nzvals,  nnzA);
+
+    typename SparseMatrix_type::ValuesView r_view(r.d_values, ncol);
+    typename SparseMatrix_type::ValuesView x_view(x.d_values, nrow);
+    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
+    TICK();
+    KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
+      (handle, nrow, ncol, rowptr_view, colidx_view, values_view, x_view, r_view, init_zero_x_vector, update_y_vector, omega, num_sweeps);
+    TOCK(x.time2);
+    #else
     typename SparseMatrix_type::RowPtrView rowptr_view(A.h_row_ptr, nrow+1);
     typename SparseMatrix_type::ColIndView colidx_view(A.h_col_idx, nnzA);
     typename SparseMatrix_type::ValuesView values_view(A.h_nzvals,  nnzA);
@@ -113,8 +128,11 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
     typename SparseMatrix_type::ValuesView r_view(r.values, ncol);
     typename SparseMatrix_type::ValuesView x_view(x.values, nrow);
     typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
+    TICK();
     KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
       (handle, nrow, ncol, rowptr_view, colidx_view, values_view, x_view, r_view, init_zero_x_vector, update_y_vector, omega, num_sweeps);
+    TOCK(x.time2);
+    #endif
     return 0;
   }
 #endif

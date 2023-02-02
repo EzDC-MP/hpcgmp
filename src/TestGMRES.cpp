@@ -110,7 +110,7 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
   scalar_type tolerance = 1.0e-12; // Set tolerance to reasonable value for grossly scaled diagonal terms
 
   int num_flops = 4;
-  int num_times = 7;
+  int num_times = 10;
   test_data.flops = (double*)malloc(num_flops * sizeof(double));
   test_data.times = (double*)malloc(num_times * sizeof(double));
   test_data.times_comp = (double*)malloc(num_times * sizeof(double));

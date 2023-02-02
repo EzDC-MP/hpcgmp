@@ -131,7 +131,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   test_data.maxNumIters = maxIters;
 
   int num_flops = 4;
-  int num_times = 7;
+  int num_times = 10;
   test_data.flops = (double*)malloc(num_flops * sizeof(double));
   test_data.times = (double*)malloc(num_times * sizeof(double));
   test_data.times_comp = (double*)malloc(num_times * sizeof(double));

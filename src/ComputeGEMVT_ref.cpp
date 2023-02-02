@@ -75,6 +75,8 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
   MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
   TIME(y.time2);
+#else
+  y.time2 = 0.0;
 #endif
 
   return 0;

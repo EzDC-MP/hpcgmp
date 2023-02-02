@@ -64,6 +64,7 @@ public:
    used inside optimized ComputeSPMV().
    */
   void * optimizationData;
+  double time1, time2;
 };
 
 /*!

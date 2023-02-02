@@ -23,6 +23,7 @@
  #include "ExchangeHalo.hpp"
 #endif
 #include "ComputeGS_Forward_ref.hpp"
+#include "mytimer.hpp"
 #include <cassert>
 #include <iostream>
 
@@ -59,6 +60,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   const scalar_type * const rv = r.values;
   scalar_type * const xv = x.values;
 
+  double t0 = 0.0;
 #ifndef HPCG_NO_MPI
   // Exchange Halo on HOST CPU
   ExchangeHalo(A, x);
@@ -66,6 +68,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
   scalar_type ** matrixDiagonal = A.matrixDiagonal;  // An array of pointers to the diagonal entries A.matrixValues
 
+  TICK();
   for (local_int_t i=0; i < nrow; i++) {
     const scalar_type * const currentValues = A.matrixValues[i];
     const local_int_t * const currentColIndices = A.mtxIndL[i];
@@ -81,6 +84,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
     xv[i] = sum/currentDiagonal;
   }
+  TOCK(x.time2);
 
   return 0;
 }

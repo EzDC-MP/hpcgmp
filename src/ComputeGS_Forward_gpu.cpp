@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)) & !defined(HPCG_WITH_KOKKOSKERNELS)
 
 #ifndef HPCG_NO_MPI
  #include "ExchangeHalo.hpp"
@@ -41,6 +41,7 @@
  #include "Utils_MPI.hpp"
  #include "hpgmp.hpp"
 #endif
+#include "mytimer.hpp"
 
 /*!
   Computes one forward step of Gauss-Seidel:
@@ -136,6 +137,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   const scalar_type  one ( 1.0);
   const scalar_type mone (-1.0);
 
+  double t0 = 0.0;
 #ifdef HPCG_WITH_KOKKOSKERNELS
   {
     bool init_zero_x_vector = true;
@@ -151,8 +153,10 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
     typename SparseMatrix_type::ValuesView r_view(r.d_values, ncol);
     typename SparseMatrix_type::ValuesView x_view(x.d_values, nrow);
     typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
+    TICK();
     KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
       (handle, nrow, ncol, rowptr_view, colidx_view, values_view, x_view, r_view, init_zero_x_vector, update_y_vector, omega, num_sweeps);
+    TOCK(x.time2);
     return 0;
   }
 #endif
@@ -181,15 +185,18 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
     cusparseCreateDnVec(&vecX, ncol, d_xv, computeType);
     cusparseCreateDnVec(&vecB, nrow, d_bv, computeType);
     // SpMV
+    TICK();
     status = cusparseSpMV(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                           &mone, A_cusparse,
                                  vecX,
                           &one,  vecB,
                           computeType, CUSPARSE_MV_ALG_DEFAULT, A.buffer_U);
+    TOCK(x.time1);
     if (CUSPARSE_STATUS_SUCCESS != status) {
       printf( " Failed cusparseSpMV for GS\n" );
     }
     #else
+    TICK();
     if (std::is_same<scalar_type, double>::value) {
        status = cusparseDcsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                nrow, ncol, A.nnzU,
@@ -205,6 +212,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
                                                     (float*)d_xv,
                                (const float*)&one,  (float*)d_bv);
     }
+    TOCK(x.time1);
     if (CUSPARSE_STATUS_SUCCESS != status) {
       printf( " Failed cusparseDcsrmv for GS\n" );
     }
@@ -221,15 +229,18 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   rocsparse_dnvec_descr vecX, vecY;
   rocsparse_create_dnvec_descr(&vecX, ncol, (void*)d_xv, rocsparse_compute_type);
   rocsparse_create_dnvec_descr(&vecY, nrow, (void*)d_bv, rocsparse_compute_type);
+  TICK();
   if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
                                                  &mone, A.descrU, vecX, &one, vecY,
                                                  rocsparse_compute_type, rocsparse_spmv_alg_default,
                                                  &buffer_size, A.buffer_U)) {
     printf( " Failed rocsparse_spmv\n" );
   }
+  TOCK(x.time1);
   #endif
 
   // x = L^{-1}b
+  TICK();
   #if defined(HPCG_WITH_CUDA)
     if (std::is_same<scalar_type, double>::value) {
       #if CUDA_VERSION >= 11000
@@ -289,6 +300,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   }
   #endif
   #endif
+  TOCK(x.time2);
 
   #ifdef HPCG_DEBUG
   scalar_type * tv = (scalar_type *)malloc(nrow * sizeof(scalar_type));

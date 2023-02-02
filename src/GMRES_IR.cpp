@@ -72,7 +72,8 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   typedef Vector<scalar_type2> Vector_type2;
 
   double t_begin = mytimer();  // Start timing right away
-  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0;
+  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
+         t7 = 0.0, t8 = 0.0, t9 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
 
   // vectors/matrices in scalar_type2 (lower)
@@ -141,16 +142,15 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     // p is of length ncols, copy x to p for sparse MV operation
     CopyVector(x_hi, p_hi);
     TICK(); ComputeSPMV(A, p_hi, Ap_hi); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3); // Ap = A*p
-    TICK(); ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow);  TOCK(t2); // r = b - Ax (x stored in p)
-    TICK(); ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t1);
+    TICK(); ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow);  TOCK(t9); // r = b - Ax (x stored in p)
+    TICK(); ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t9);
     normr_hi = sqrt(normr_hi);
     test_data.numOfSPCalls++;
 
     // > Copy r and scale to the initial basis vector
     GetVector(Q, 0, Qj);
     CopyVector(r_hi, Qj);
-    //TICK(); ComputeWAXPBY(nrow, zero, Qj, one_hi/normr_hi, Qj, Qj, A.isWaxpbyOptimized); TOCK(t2);
-    TICK(); ScaleVectorValue(Qj, one_hi/normr_hi); flops += Nrow; TOCK(t2);
+    TICK(); ScaleVectorValue(Qj, one_hi/normr_hi); flops += Nrow; TOCK(t9);
 
     // Record initial residual for convergence testing
     if (niters == 0) {
@@ -180,8 +180,10 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
       TICK();
       if (doPreconditioning) {
+        z.time1 = z.time2 = 0.0;
         ComputeMG(A_lo, Qkm1, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros); // Apply preconditioner
         test_data.numOfMGCalls++;
+        t7 += z.time1; t8 += z.time2;
       } else {
         CopyVector(Qkm1, z);       // copy r to z (no preconditioning)
       }
@@ -231,18 +233,16 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
         }
         flops_orth += (ifour*k*Nrow);
       }
-      TOCK(t6); // Ortho time
-
       // beta = norm(Qk)
-      TICK(); ComputeDotProduct(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); TOCK(t1);
+      START_T(); ComputeDotProduct(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); STOP_T(t1);
       flops_orth += (itwo*Nrow);
       beta = sqrt(beta);
 
       // Qk = Qk / beta
-      //TICK(); ComputeWAXPBY(nrow, zero, Qk, one/beta, Qk, Qk, A.isWaxpbyOptimized); TOCK(t2);
-      TICK(); ScaleVectorValue(Qk, one/beta); TOCK(t2);
+      START_T(); ScaleVectorValue(Qk, one/beta); STOP_T(t2);
       flops_orth += (Nrow);
       SetMatrixValue(H, k, k-1, beta);
+      TOCK(t6); // Ortho time
 
       // Given's rotation
       for(int j = 0; j < k-1; j++){
@@ -291,12 +291,16 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     ComputeTRSM(k-1, one, H, t);
     if (doPreconditioning) {
       ComputeGEMV (nrow, k-1, one, Q, t, zero, r, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // r = Q*t
+
+      z.time1 = z.time2 = 0.0;
       TICK();
       ComputeMG(A_lo, r, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros);    // z = M*r
-      test_data.numOfMGCalls++;
       TOCK(t5); // Preconditioner apply time
+      test_data.numOfMGCalls++;
+      t7 += z.time1; t8 += z.time2;
+
       // mixed-precision
-      TICK(); ComputeWAXPBY(nrow, one_hi, x_hi, one, z, x_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow); TOCK(t2); // x += z
+      TICK(); ComputeWAXPBY(nrow, one_hi, x_hi, one, z, x_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow); TOCK(t9); // x += z
     } else {
       // mixed-precision
       ComputeGEMV (nrow, k-1, one_hi, Q, t, one_hi, x_hi, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // x += Q*t
@@ -314,6 +318,9 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     test_data.times[4] += t3; // SPMV time
     test_data.times[5] += t4; // AllReduce time
     test_data.times[6] += t5; // preconditioner apply time
+    test_data.times[7] += t7; // > SpTRSV for GS
+    test_data.times[8] += t8; // > SpMV for GS
+    test_data.times[9] += t9; // Vector update time
 
     test_data.times_comp[1] += t1_comp; // dot-product time
     test_data.times_comm[1] += t1_comm; // dot-product time

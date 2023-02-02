@@ -71,7 +71,8 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
   const global_int_t itwo  = 2;
   const global_int_t ifour = 4;
   double t_begin = mytimer();  // Start timing right away
-  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0;
+  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
+         t7 = 0.0, t8 = 0.9, t9 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
 
   local_int_t  nrow = A.localNumberOfRows;
@@ -130,13 +131,12 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     // p is of length ncols, copy x to p for sparse MV operation
     CopyVector(x, p);
     TICK(); ComputeSPMV(A, p, Ap); TOCK(t3); flops_spmv += (2*A.totalNumberOfNonzeros); // Ap = A*p
-    TICK(); ComputeWAXPBY(nrow, one, b, -one, Ap, r, A.isWaxpbyOptimized); TOCK(t2); flops += (itwo*Nrow); // r = b - Ax (x stored in p)
-    TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t1);
+    TICK(); ComputeWAXPBY(nrow, one, b, -one, Ap, r, A.isWaxpbyOptimized); TOCK(t7); flops += (itwo*Nrow); // r = b - Ax (x stored in p)
+    TICK(); ComputeDotProduct(nrow, r, r, normr, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t7);
     normr = sqrt(normr);
     GetVector(Q, 0, Qj);
     CopyVector(r, Qj);
-    //TICK(); ComputeWAXPBY(nrow, zero, Qj, one/normr, Qj, Qj, A.isWaxpbyOptimized); TOCK(t2);
-    TICK(); ScaleVectorValue(Qj, one/normr); TOCK(t2); flops += Nrow;
+    TICK(); ScaleVectorValue(Qj, one/normr); TOCK(t7); flops += Nrow;
 
     // Record initial residual for convergence testing
     if (niters == 0) normr0 = normr;
@@ -161,7 +161,9 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
 
       TICK();
       if (doPreconditioning) {
+        z.time1 = z.time2 = 0.0;
         ComputeMG(A, Qkm1, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros); // Apply preconditioner
+        t7 += z.time1; t8 += z.time2;
       } else {
         CopyVector(Qkm1, z);              // copy r to z (no preconditioning)
       }
@@ -211,16 +213,16 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
         }
         flops_orth += (ifour*k*Nrow);
       }
-      TOCK(t6); // Ortho time
       // beta = norm(Qk)
-      TICK(); ComputeDotProduct(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); TOCK(t1);
+      START_T(); ComputeDotProduct(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); STOP_T(t1);
       flops_orth += (itwo*Nrow);
       beta = sqrt(beta);
 
       // Qk = Qk / beta
-      //TICK(); ComputeWAXPBY(nrow, zero, Qk, one/beta, Qk, Qk, A.isWaxpbyOptimized); TOCK(t2);
-      TICK(); ScaleVectorValue(Qk, one/beta); TOCK(t2);
+      START_T(); ScaleVectorValue(Qk, one/beta); STOP_T(t2);
       flops_orth += (Nrow);
+      TOCK(t6); // Ortho time
+
       SetMatrixValue(H, k, k-1, beta);
 
       // Given's rotation
@@ -272,10 +274,14 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     ComputeTRSM(k-1, one, H, t);
     if (doPreconditioning) {
       ComputeGEMV(nrow, k-1, one, Q, t, zero, r, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // r = Q*t
+
+      z.time1 = z.time2 = 0.0;
       TICK();
       ComputeMG(A, r, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros);      // z = M*r
       TOCK(t5); // Preconditioner apply time
-      TICK(); ComputeWAXPBY(nrow, one, x, one, z, x, A.isWaxpbyOptimized); TOCK(t2); flops += (itwo*Nrow); // x += z
+      t7 += z.time1; t8 += z.time2;
+
+      TICK(); ComputeWAXPBY(nrow, one, x, one, z, x, A.isWaxpbyOptimized); TOCK(t9); flops += (itwo*Nrow); // x += z
     } else {
       ComputeGEMV (nrow, k-1, one, Q, t, one, x, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // x += Q*t
     }
@@ -292,6 +298,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     test_data.times[4] += t3; // SPMV time
     test_data.times[5] += t4; // AllReduce time
     test_data.times[6] += t5; // preconditioner apply time
+    test_data.times[9] += t9; // Vector update time
 
     test_data.times_comp[1] += t1_comp; // dot-product time
     test_data.times_comm[1] += t1_comm; // dot-product time

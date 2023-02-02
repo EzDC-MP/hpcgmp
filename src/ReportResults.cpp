@@ -270,10 +270,13 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     doc.get("Benchmark Time Summary")->add(" DDOT",  test_data.opt_times[1]);
     doc.get("Benchmark Time Summary")->add("  DDOT (comp)",  test_data.opt_times_comp[1]);
     doc.get("Benchmark Time Summary")->add("  DDOT (comm)",  test_data.opt_times_comm[1]);
-    doc.get("Benchmark Time Summary")->add(" WAXPBY",test_data.opt_times[2]);
-    doc.get("Benchmark Time Summary")->add("SpMV",   test_data.opt_times[4]);
-    doc.get("Benchmark Time Summary")->add("MG",     test_data.opt_times[6]);
-    doc.get("Benchmark Time Summary")->add("Total",  test_data.opt_times[0]);
+    doc.get("Benchmark Time Summary")->add(" WAXPBY",   test_data.opt_times[2]);
+    doc.get("Benchmark Time Summary")->add("SpMV",      test_data.opt_times[4]);
+    doc.get("Benchmark Time Summary")->add("MG",        test_data.opt_times[6]);
+    doc.get("Benchmark Time Summary")->add(" SpMV",     test_data.opt_times[7]);
+    doc.get("Benchmark Time Summary")->add(" SpTRSV",   test_data.opt_times[8]);
+    doc.get("Benchmark Time Summary")->add("VecUpdate", test_data.opt_times[9]);
+    doc.get("Benchmark Time Summary")->add("Total",     test_data.opt_times[0]);
     if (test_data.refTotalTime > 0.0) {
       doc.get("Benchmark Time Summary")->add(" - Ortho (reference)",test_data.ref_times[3]);
       doc.get("Benchmark Time Summary")->add(" - SpMV  (reference)",test_data.ref_times[4]);

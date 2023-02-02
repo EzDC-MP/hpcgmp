@@ -104,12 +104,15 @@ public:
   using KernelHandle    = KokkosKernels::Experimental::KokkosKernelsHandle<int, int, SC, execution_space, memory_space, memory_space>;
   using CrsMatView      = KokkosSparse::CrsMatrix<SC, int, execution_space, void, int>;
   using StaticGraphView = typename CrsMatView::StaticCrsGraphType;
-  using RowPtrView = typename StaticGraphView::row_map_type::non_const_type;
-  using ColIndView = typename StaticGraphView::entries_type::non_const_type;
-  using ValuesView = typename CrsMatView::values_type::non_const_type;
-  //using RowPtrView = Kokkos::View<int*, Kokkos::LayoutLeft, execution_space>;
-  //using ColIndView = Kokkos::View<int*, Kokkos::LayoutLeft, execution_space>;
-  //using ValuesView = Kokkos::View<SC *, Kokkos::LayoutLeft, execution_space>;
+  #if 0
+   using RowPtrView = typename StaticGraphView::row_map_type::non_const_type;
+   using ColIndView = typename StaticGraphView::entries_type::non_const_type;
+   using ValuesView = typename CrsMatView::values_type::non_const_type;
+  #else
+   using RowPtrView = Kokkos::View<int*, Kokkos::LayoutLeft, execution_space>;
+   using ColIndView = Kokkos::View<int*, Kokkos::LayoutLeft, execution_space>;
+   using ValuesView = Kokkos::View<SC *, Kokkos::LayoutLeft, execution_space>;
+  #endif
   KernelHandle kh;
 #endif
 #if defined(HPCG_WITH_SSL2)
@@ -172,6 +175,8 @@ public:
   int *h_col_idx;
   SC  *h_nzvals;   //!< values of matrix entries
 #endif
+
+  double time1, time2;
 };
 
 /*!

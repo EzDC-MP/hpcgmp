@@ -32,6 +32,7 @@
 
 #include "ComputeGEMVT_ref.hpp"
 #include "hpgmp.hpp"
+#include "mytimer.hpp"
 
 template<class MultiVector_type, class Vector_type, class SerialDenseMatrix_type>
 int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
@@ -81,6 +82,7 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   scalarX_type * const d_xv = x.d_values;
   scalarY_type * const d_yv = y.d_values;
 
+  double t0; TICK();
   #if defined(HPCG_WITH_CUDA)
   // Perform GEMV on device
   if (std::is_same<scalarX_type, double>::value) {
@@ -100,8 +102,10 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
       printf( " Failed cublasSgemv\n" );
     }
   }
+  TIME(y.time1);
 
   // Copy input serial dense vector to host
+  TICK();
   if (cudaSuccess != cudaMemcpy(yv, d_yv, n*sizeof(scalarX_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_x\n" );
   }
@@ -124,8 +128,10 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
       printf( " Failed rocblas_sgemv\n" );
     }
   }
+  TIME(y.time1);
 
   // Copy output serial dense vector to host
+  TICK();
   if (hipSuccess != hipMemcpy(yv, d_yv, n*sizeof(scalarX_type), hipMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_x\n" );
   }
@@ -135,6 +141,9 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   // Use MPI's reduce function to collect all partial sums
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
   MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  TIME(y.time2);
+#else
+  y.time2 = 0.0;
 #endif
 
   return 0;
