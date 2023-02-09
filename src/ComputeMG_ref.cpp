@@ -91,3 +91,8 @@ int ComputeMG_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> c
 
 template
 int ComputeMG_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&, bool);
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeMG_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&, bool);
+#endif

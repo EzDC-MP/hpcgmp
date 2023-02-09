@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)) & !defined(HPCG_WITH_KOKKOSKERNELS)
 
 #include "ComputeSPMV_ref.hpp"
 #ifndef HPCG_NO_MPI
@@ -122,14 +122,18 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   }
 #endif
 
+  printf( " SPMV_gpu (nrow = %d)\n",nrow );
   #if defined(HPCG_WITH_CUDA)
   cusparseStatus_t status;
   #if CUDA_VERSION >= 11000
   cudaDataType computeType;
   if (std::is_same<scalar_type, double>::value) {
-      computeType = CUDA_R_64F;
+    computeType = CUDA_R_64F;
   } else if (std::is_same<scalar_type, float>::value) {
-      computeType = CUDA_R_32F;
+    computeType = CUDA_R_32F;
+  } else {
+    printf( " ComputeSPMV only supported double or float\n" );
+    return 0;
   }
   // create matrix
   cusparseSpMatDescr_t A_cusparse;
@@ -244,9 +248,13 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
  * --------------- */
 
 template
-int ComputeSPMV_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> const&, Vector<double>&, Vector<double>&);
+int ComputeSPMV_ref< SparseMatrix<double>, Vector<double> >(const SparseMatrix<double> &, Vector<double>&, Vector<double>&);
 
 template
-int ComputeSPMV_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&, Vector<float>&);
+int ComputeSPMV_ref< SparseMatrix<float>, Vector<float> >(const SparseMatrix<float> &, Vector<float>&, Vector<float>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeSPMV_ref< SparseMatrix<half_t>, Vector<half_t> >(const SparseMatrix<half_t> &, Vector<half_t>&, Vector<half_t>&);
+#endif
 #endif

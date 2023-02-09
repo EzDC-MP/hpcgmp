@@ -48,3 +48,8 @@ int ComputeMG< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> const
 
 template
 int ComputeMG< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&, bool);
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeMG< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&, bool);
+#endif

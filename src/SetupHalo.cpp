@@ -59,3 +59,7 @@ void SetupHalo< SparseMatrix<double> >(SparseMatrix<double>&);
 template
 void SetupHalo< SparseMatrix<float> >(SparseMatrix<float>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+void SetupHalo< SparseMatrix<half_t> >(SparseMatrix<half_t>&);
+#endif

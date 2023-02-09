@@ -38,9 +38,9 @@
 
   @see ComputeDotProduct_ref
 */
-template<class Vector_type>
+template<class Vector_type, class scalar_type>
 int ComputeDotProduct(const local_int_t n, const Vector_type & x, const Vector_type & y,
-                      typename Vector_type::scalar_type & result, double & time_allreduce, bool & isOptimized) {
+                      scalar_type & result, double & time_allreduce, bool & isOptimized) {
 
   // This line and the next two lines should be removed and your version of ComputeDotProduct should be used.
   isOptimized = false;
@@ -57,3 +57,11 @@ int ComputeDotProduct< Vector<double> >(int, Vector<double> const&, Vector<doubl
 
 template
 int ComputeDotProduct< Vector<float> >(int, Vector<float> const&, Vector<float> const&, float&, double&, bool&);
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeDotProduct< Vector<half_t> >(int, Vector<half_t> const&, Vector<half_t> const&, half_t&, double&, bool&);
+
+template
+int ComputeDotProduct< Vector<half_t>, float >(int, Vector<half_t> const&, Vector<half_t> const&, float&, double&, bool&);
+#endif

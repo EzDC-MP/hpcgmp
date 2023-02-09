@@ -99,6 +99,23 @@ int ComputeWAXPBY_ref(const local_int_t n,
   scalarY_type * const d_yv = y.d_values;
   scalarW_type * const d_wv = w.d_values;
 
+  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  {
+    using execution_space = Kokkos::DefaultExecutionSpace;
+    Kokkos::View<scalarX_type *, Kokkos::LayoutLeft, execution_space> x_view(d_xv, n);
+    Kokkos::View<scalarY_type *, Kokkos::LayoutLeft, execution_space> y_view(d_yv, n);
+    Kokkos::View<scalarW_type *, Kokkos::LayoutLeft, execution_space> w_view(d_wv, n);
+
+    // w = alpha*x + beta*y (note: w may be x)
+    //Kokkos::deep_copy(w_view, y_view);
+    const scalarW_type one  (1.0);
+    const scalarW_type zero (0.0);
+    {
+      KokkosBlas::axpby(alpha, x_view, zero, w_view);
+    }
+    KokkosBlas::axpby(beta, y_view, one, w_view);
+  }
+  #else
   // Only uniform-precision supported
   if ((std::is_same<scalarX_type, double>::value && std::is_same<scalarY_type, double>::value && std::is_same<scalarW_type, double>::value) ||
       (std::is_same<scalarX_type, float >::value && std::is_same<scalarY_type, float >::value && std::is_same<scalarW_type, float >::value)) {
@@ -205,7 +222,7 @@ int ComputeWAXPBY_ref(const local_int_t n,
     free(tv);
     #endif
   } else {
-    HPCG_vout << " Mixed-precision WAXPBY not supported" << std::endl;
+    HPCG_vout << " Mixed-precision WAXPBY on host, since not supported on device" << std::endl;
 
     // copy Input vectors to Host
     #if defined(HPCG_WITH_CUDA)
@@ -226,7 +243,8 @@ int ComputeWAXPBY_ref(const local_int_t n,
     #endif
 
     // WAXPBY on Host
-    for (local_int_t i=0; i<n; i++) wv[i] = alpha * xv[i] + beta * yv[i];
+    for (local_int_t i=0; i<n; i++) wv[i] = scalarW_type(alpha) * scalarW_type(xv[i])
+                                          + scalarW_type(beta) * scalarW_type(yv[i]);
 
     // Copy output vector to Device
     #if defined(HPCG_WITH_CUDA)
@@ -239,6 +257,7 @@ int ComputeWAXPBY_ref(const local_int_t n,
     }
     #endif
   }
+  #endif
 
   return 0;
 }
@@ -255,9 +274,17 @@ int ComputeWAXPBY_ref< Vector<double>, Vector<double>, Vector<double> >(int, dou
 template
 int ComputeWAXPBY_ref< Vector<float>, Vector<float>, Vector<float> >(int, float, Vector<float> const&, float, Vector<float> const&, Vector<float>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeWAXPBY_ref< Vector<half_t>, Vector<half_t>, Vector<half_t> >(int, half_t, Vector<half_t> const&, half_t, Vector<half_t> const&, Vector<half_t>&);
+#endif
 
 // mixed
 template
 int ComputeWAXPBY_ref< Vector<double>, Vector<float>, Vector<double> >(int, double, Vector<double> const&, float, Vector<float> const&, Vector<double>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeWAXPBY_ref< Vector<double>, Vector<half_t>, Vector<double> >(int, double, Vector<double> const&, half_t, Vector<half_t> const&, Vector<double>&);
+#endif
 #endif

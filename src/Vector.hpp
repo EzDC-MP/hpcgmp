@@ -39,6 +39,7 @@
  #include <rocblas.h>
 #endif
 
+#include "DataTypes.hpp"
 #include "hpgmp.hpp"
 #include "Geometry.hpp"
 
@@ -106,7 +107,7 @@ inline void InitializeVector(Vector_type & v, local_int_t localLength, comm_type
 template<class Vector_type>
 inline void ZeroVector(Vector_type & v) {
   typedef typename Vector_type::scalar_type scalar_type;
-  const scalar_type zero (0.0);
+  const int zero (0);
 
   local_int_t localLength = v.localLength;
   scalar_type * vv = v.values;
@@ -143,28 +144,17 @@ inline void ScaleVectorValue(Vector_type & v, local_int_t index, typename Vector
   @param[inout] v Vector to be modified
   @param[in] value Value to scale by
  */
-template<class Vector_type>
-inline void ScaleVectorValue(Vector_type & v, typename Vector_type::scalar_type value) {
-  typedef typename Vector_type::scalar_type scalar_type;
-
+template<class Vector_type, class scalar_type = typename Vector_type::scalar_type>
+inline void ScaleVectorValue(Vector_type & v, scalar_type value) {
+  typedef typename Vector_type::scalar_type vector_scalar_type;
   local_int_t localLength = v.localLength;
-  scalar_type * vv = v.values;
-#if defined(HPCG_WITH_BLAS)
-  if (std::is_same<scalar_type, double>::value) {
-    cblas_dscal(localLength, value, (double *)vv, 1);
-  } else if (std::is_same<scalar_type, float>::value) {
-    cblas_sscal(localLength, value, (float *)vv, 1);
-  }
-#else
-  const scalar_type zero (0.0);
-  if (value == zero) {
-    for (int i=0; i<localLength; ++i) vv[i] = zero;
-  } else {
-    for (int i=0; i<localLength; ++i) vv[i] *= value;
-  }
-#endif
 
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+    using execution_space = Kokkos::DefaultExecutionSpace;
+    Kokkos::View<vector_scalar_type *,  Kokkos::LayoutLeft, execution_space> v_view(v.d_values, localLength);
+    //KokkosBlas::scal<Vector_type, scalar_type, Vector_type>(v_view, value, v_view);
+    KokkosBlas::scal(v_view, value, v_view);
+#elif defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   scalar_type * d_vv = v.d_values;
   if (std::is_same<scalar_type, double>::value) {
     #ifdef HPCG_WITH_CUDA
@@ -187,6 +177,23 @@ inline void ScaleVectorValue(Vector_type & v, typename Vector_type::scalar_type 
     }
     #endif
   }
+#else
+  // host CPU
+  vector_scalar_type * vv = v.values;
+  #if defined(HPCG_WITH_BLAS)
+  if (std::is_same<vector_scalar_type, double>::value) {
+    cblas_dscal(localLength, value, (double *)vv, 1);
+  } else if (std::is_same<vector_scalar_type, float>::value) {
+    cblas_sscal(localLength, value, (float *)vv, 1);
+  }
+  #else
+  const scalar_type zero (0.0);
+  if (value == zero) {
+    for (int i=0; i<localLength; ++i) vv[i] = zero;
+  } else {
+    for (int i=0; i<localLength; ++i) vv[i] = value * scalar_type(vv[i]);
+  }
+  #endif
 #endif
   return;
 }
@@ -232,7 +239,13 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
   }
 #endif
 
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+    using execution_space = Kokkos::DefaultExecutionSpace;
+    Kokkos::View<scalar_src *,  Kokkos::LayoutLeft, execution_space> v_view(v.d_values, localLength);
+    Kokkos::View<scalar_dst *,  Kokkos::LayoutLeft, execution_space> w_view(w.d_values, localLength);
+    const scalar_src one (1.0);
+    KokkosBlas::scal(w_view, one, v_view);
+#elif defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   if (std::is_same<scalar_src, scalar_dst>::value) {
     #ifdef HPCG_DEBUG
     HPCG_fout << " CopyVector ( Unit-precision )" << std::endl;

@@ -50,7 +50,22 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
   local_int_t n = xf.localLength;
   scalar_type * d_xfv = xf.d_values;
   scalar_type * d_xcv = Af.mgData->xc->d_values;
-  #if defined(HPCG_WITH_CUDA)
+
+  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  {
+    typename SparseMatrix_type::RowPtrView rowptr_view(Af.mgData->d_row_ptr, nc+1);
+    typename SparseMatrix_type::ColIndView colidx_view(Af.mgData->d_col_idx, nc);
+    typename SparseMatrix_type::ValuesView values_view(Af.mgData->d_nzvals,  nc);
+    typename SparseMatrix_type::StaticGraphView static_graph(colidx_view, rowptr_view);
+    typename SparseMatrix_type::CrsMatView A_view("CrsMatrix", n, values_view, static_graph);
+
+    typename SparseMatrix_type::ValuesView x_view(d_xcv, nc);
+    typename SparseMatrix_type::ValuesView y_view(d_xfv, n);
+
+    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(Af.kh));
+    KokkosSparse::spmv(KokkosSparse::Transpose, one, A_view, x_view, one, y_view);
+  }
+  #elif defined(HPCG_WITH_CUDA)
     cusparseStatus_t status;
     #if CUDA_VERSION >= 11000
     cudaDataType computeType;
@@ -128,5 +143,10 @@ int ComputeProlongation_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix
 
 template
 int ComputeProlongation_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&);
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeProlongation_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t>&);
+#endif
 
 #endif

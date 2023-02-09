@@ -35,6 +35,8 @@ const char* NULLDEVICE="/dev/null";
 #include <iostream>
 
 #include "hpgmp.hpp"
+#include "DataTypes.hpp"
+#include "Utils_MPI.hpp"
 
 #include "ReadHpcgDat.hpp"
 
@@ -48,6 +50,36 @@ startswith(const char * s, const char * prefix) {
     return 0;
   return 1;
 }
+
+#ifndef HPCG_NO_MPI
+void HPGMP_FP16_SUM_FUNCTION(void* invec, void* inoutvec, int *len, MPI_Datatype *datatype) {
+  half_t* in = (half_t*)invec;
+  half_t* inout = (half_t*)inoutvec;
+  for (int i = 0; i < *len; ++i) {
+    inout[i] = in[i] + inout[i];
+  }
+}
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+MPI_Datatype    HPGMP_MPI_HALF;
+MPI_Op          MPI_SUM_HALF;
+#endif
+#endif
+
+int
+HPCG_Init(int * argc_p, char ** *argv_p) {
+#ifndef HPCG_NO_MPI
+  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  MPI_Type_contiguous(2, MPI_BYTE, &HPGMP_MPI_HALF);
+  MPI_Type_commit(&HPGMP_MPI_HALF);
+
+  MPI_Op_create(&HPGMP_FP16_SUM_FUNCTION, 1, &MPI_SUM_HALF);
+  #endif
+#endif
+  return 0;
+}
+
+
 
 /*!
   Initializes an HPCG run by obtaining problem parameters (from a file or
@@ -66,7 +98,7 @@ startswith(const char * s, const char * prefix) {
   @see HPCG_Finalize
 */
 int
-HPCG_Init(const char *title, int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm) {
+HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm) {
   int argc = *argc_p;
   char ** argv = *argv_p;
   char fname[80];
@@ -75,8 +107,9 @@ HPCG_Init(const char *title, int * argc_p, char ** *argv_p, HPCG_Params & params
   time_t rawtime;
   tm * ptm;
   const int nparams = (sizeof cparams) / (sizeof cparams[0]);
+#ifndef HPCG_NO_MPI
   bool broadcastParams = false; // Make true if parameters read from file.
-
+#endif
   iparams = (int *)malloc(sizeof(int) * nparams);
 
   // Initialize iparams
@@ -98,7 +131,9 @@ HPCG_Init(const char *title, int * argc_p, char ** *argv_p, HPCG_Params & params
   if (iparams[3]) rt = 0; // If --rt was specified, we already have the runtime, so don't read it from file
   if (! iparams[0] && ! iparams[1] && ! iparams[2]) { /* no geometry arguments on the command line */
     ReadHpcgDat(iparams, rt, iparams+7);
+#ifndef HPCG_NO_MPI
     broadcastParams = true;
+#endif
   }
 
   // Check for small or unspecified nx, ny, nz values
@@ -169,13 +204,12 @@ HPCG_Init(const char *title, int * argc_p, char ** *argv_p, HPCG_Params & params
     HPCG_fout.open(NULLDEVICE);
 #endif
   }
-
   free( iparams );
 
   return 0;
 }
 
 int
-HPCG_Init(int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm) {
-  return HPCG_Init("", argc_p, argv_p, params, comm);
+HPCG_Init_Params(int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm) {
+  return HPCG_Init_Params("", argc_p, argv_p, params, comm);
 }

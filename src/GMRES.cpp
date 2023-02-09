@@ -283,7 +283,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
 
       TICK(); ComputeWAXPBY(nrow, one, x, one, z, x, A.isWaxpbyOptimized); TOCK(t9); flops += (itwo*Nrow); // x += z
     } else {
-      ComputeGEMV (nrow, k-1, one, Q, t, one, x, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // x += Q*t
+      ComputeGEMV(nrow, k-1, one, Q, t, one, x, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // x += Q*t
     }
   } // end of outer-loop
 
@@ -350,3 +350,4 @@ template
 int GMRES< SparseMatrix<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
   (SparseMatrix<float> const&, GMRESData<float>&, Vector<float> const&, Vector<float>&,
    const int, const int, float, int&, float&, float&, bool, bool, TestGMRESData<float>&);
+

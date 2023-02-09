@@ -48,13 +48,12 @@
 
   @see ComputeDotProduct
 */
-template<class Vector_type>
+template<class Vector_type, class scalar_type>
 int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vector_type & y,
-                          typename Vector_type::scalar_type & result, double & time_allreduce) {
+                          scalar_type & result, double & time_allreduce) {
   assert(x.localLength>=n); // Test vector lengths
   assert(y.localLength>=n);
 
-  typedef typename Vector_type::scalar_type scalar_type;
   scalar_type local_result (0.0);
 
   scalar_type* xv = x.values;

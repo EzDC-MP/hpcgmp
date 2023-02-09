@@ -57,11 +57,17 @@ typedef Vector<scalar_type> Vector_type;
 typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+typedef Kokkos::Experimental::half_t scalar_type2;
+//typedef float scalar_type2;
+typedef float project_type;
+#else
 typedef float scalar_type2;
+typedef float project_type;
+#endif
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
-typedef GMRESData<scalar_type2> GMRESData_type2;
-
+typedef GMRESData<scalar_type2, project_type> GMRESData_type2;
 
 /*!
   Main driver program: Construct synthetic problem, run V&V tests, compute benchmark parameters, run benchmark, report results.
@@ -77,20 +83,24 @@ int main(int argc, char * argv[]) {
 #ifndef HPCG_NO_MPI
   MPI_Init(&argc, &argv);
 #endif
+  HPCG_Init(&argc, &argv);
 #ifdef HPCG_WITH_KOKKOSKERNELS
   Kokkos::initialize();
   {
 #endif
-  int numRanks;
-  int myRank;
+  int myRank = 0;
+#ifndef HPCG_NO_MPI
+  int numRanks = 1;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
+#endif
 
   //////////////////////////
   // Create Communicators //
   //////////////////////////
-  int color = 0;
   int sizeValidComm = 4;
+#ifndef HPCG_NO_MPI
+  int color = 0;
   if (sizeValidComm > numRanks) {
     #if 1
     sizeValidComm = numRanks;
@@ -102,7 +112,12 @@ int main(int argc, char * argv[]) {
     color = 1;
   }
   MPI_Comm validation_comm = MPI_COMM_WORLD;
+  MPI_Comm benchmark_comm = MPI_COMM_WORLD;
   MPI_Comm_split(MPI_COMM_WORLD, color, myRank, &validation_comm);
+#else
+  comm_type validation_comm = 0;
+  comm_type benchmark_comm = 0;
+#endif
 
   // Check if QuickPath option is enabled.
   // If the running time is set to zero, we minimize all paths through the program
@@ -110,7 +125,7 @@ int main(int argc, char * argv[]) {
 
 
   // Use this array for collecting timing information
-  bool verbose = false;
+  bool verbose = true; //false;
   TestGMRESData_type test_data;
   test_data.times = NULL;
   test_data.flops = NULL;
@@ -127,8 +142,8 @@ int main(int argc, char * argv[]) {
   test_data.tolerance = tolerance;
   test_data.restart_length = restart_length;
   if (myRank < sizeValidComm) {
-    global_failure = ValidGMRES<scalar_type, scalar_type2> (argc, argv, validation_comm, numberOfMgLevels, verbose, test_data);
-    HPCG_Finalize();
+    global_failure = ValidGMRES<TestGMRESData_type, scalar_type, scalar_type2, project_type>
+                         (argc, argv, validation_comm, numberOfMgLevels, verbose, test_data);
   }
 
 
@@ -137,9 +152,11 @@ int main(int argc, char * argv[]) {
   /////////////////////
   {
     bool runReference = true;
-    BenchGMRES<scalar_type, scalar_type2>(argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, runReference, test_data);
+    BenchGMRES<TestGMRESData_type, scalar_type, scalar_type2, project_type>
+        (argc, argv, benchmark_comm, numberOfMgLevels, verbose, runReference, test_data);
+#ifndef HPCG_NO_MPI
     MPI_Barrier(MPI_COMM_WORLD);
-    HPCG_Finalize();
+#endif
   }
 
   
@@ -157,7 +174,7 @@ int main(int argc, char * argv[]) {
     GMRESData_type2 data2;
 
     Vector_type b, x;
-    SetupProblem("report_", argc, argv, MPI_COMM_WORLD, numberOfMgLevels, verbose, geom, A, data, A2, data2, b, x, test_data);
+    SetupProblem("report_", argc, argv, benchmark_comm, numberOfMgLevels, verbose, geom, A, data, A2, data2, b, x, test_data);
 
 
     // Report results to YAML file
@@ -174,13 +191,11 @@ int main(int argc, char * argv[]) {
     DeleteVector(x);
     DeleteVector(b);
   }
-
-  // Finish up
-  HPCG_Finalize();
 #ifdef HPCG_WITH_KOKKOSKERNELS
   }
   Kokkos::finalize();
 #endif
+  HPCG_Finalize();
 #ifndef HPCG_NO_MPI
   MPI_Finalize();
 #endif

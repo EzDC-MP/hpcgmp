@@ -53,6 +53,7 @@ void ExchangeHalo(const SparseMatrix_type & A, Vector_type & x) {
   int size, rank; // Number of MPI processes, My process ID
   MPI_Comm_size(A.comm, &size);
   MPI_Comm_rank(A.comm, &rank);
+  if (size == 1) return;
 
   //
   //  first post receives, these are immediate receives
@@ -124,5 +125,9 @@ void ExchangeHalo< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> c
 template
 void ExchangeHalo< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+void ExchangeHalo< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t>&);
+#endif
 
 #endif // ifndef HPCG_NO_MPI

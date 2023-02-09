@@ -53,7 +53,7 @@ using std::endl;
  */
 
 
-template<class scalar_type, class scalar_type2, class TestGMRESSData_type>
+template<class TestGMRESSData_type, class scalar_type, class scalar_type2, class project_type>
 int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, TestGMRESSData_type & test_data) {
 
   typedef Vector<scalar_type> Vector_type;
@@ -62,7 +62,7 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
   typedef Vector<scalar_type2> Vector_type2;
   typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
-  typedef GMRESData<scalar_type2> GMRESData_type2;
+  typedef GMRESData<scalar_type2,  project_type> GMRESData_type2;
 
   double total_validation_time = mytimer();
 
@@ -172,12 +172,19 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
 // uniform version
 template
-int ValidGMRES< double, double, TestGMRESData<double> > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
+int ValidGMRES<TestGMRESData<double>,  double, double, double > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
 
 template
-int ValidGMRES< float, float, TestGMRESData<float> > (int, char**, comm_type, int, bool, TestGMRESData<float>&);
+int ValidGMRES< TestGMRESData<float>, float, float, float > (int, char**, comm_type, int, bool, TestGMRESData<float>&);
 
 // mixed version
 template
-int ValidGMRES< double, float, TestGMRESData<double> > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
+int ValidGMRES< TestGMRESData<double>, double, float, float > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ValidGMRES< TestGMRESData<double>, double, half_t, half_t > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
+
+template
+int ValidGMRES< TestGMRESData<double>, double, half_t, float > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
+#endif

@@ -66,21 +66,62 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   const local_int_t nrow = A.localNumberOfRows;
   const local_int_t ncol = A.localNumberOfColumns;
 
-#ifndef HPCG_NO_MPI
+#if 0//ndef HPCG_NO_MPI
+  // Copy local part of X to HOST CPU
+  scalar_type * const d_xv = x.d_values;
+  scalar_type * const xv = x.values;
+  #if defined(HPCG_WITH_CUDA)
+  if (cudaSuccess != cudaMemcpy(xv, d_xv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_y\n" );
+  }
+  #else
+  if (hipSuccess != hipMemcpy(xv, d_xv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_y\n" );
+  }
+  #endif
+
   // Exchange Halo on HOST CPU
   ExchangeHalo(A, x);
-  #ifdef HPCG_DEBUG
-  if (A.geom->rank==0) {
-    HPCG_fout << A.geom->rank << " : ComputeGS(" << nrow << " x " << ncol << ") start" << std::endl;
+
+  // Copy non-local part of X (after Halo Exchange) to device
+  #ifdef HPCG_WITH_CUDA
+  if (cudaSuccess != cudaMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_y\n" );
+  }
+  #elif defined(HPCG_WITH_HIP)
+  if (hipSuccess != hipMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_y\n" );
   }
   #endif
 #endif
 
 #if 0
-  const scalar_type * const rv = r.values;
+  scalar_type * const rv = r.values;
   scalar_type * const xv = x.values;
   scalar_type ** matrixDiagonal = A.matrixDiagonal;  // An array of pointers to the diagonal entries A.matrixValues
 
+  // Copy input vectors from HOST CPU
+  #if defined(HPCG_WITH_CUDA)
+  scalar_type * const d_rv = r.d_values;
+  if (cudaSuccess != cudaMemcpy(rv, d_rv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_r\n" );
+  }
+  scalar_type * const d_xv = x.d_values;
+  if (cudaSuccess != cudaMemcpy(xv, d_xv, ncol*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #elif defined(HPCG_WITH_HIP)
+  scalar_type * const d_rv = r.d_values;
+  if (hipSuccess != hipMemcpy(rv, d_rv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_r\n" );
+  }
+  scalar_type * const d_xv = x.d_values;
+  if (hipSuccess != hipMemcpy(xv, d_xv, ncol*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #endif
+
+  // Perform GS on Host CPU
   for (local_int_t i=0; i < nrow; i++) {
     const scalar_type * const currentValues = A.matrixValues[i];
     const local_int_t * const currentColIndices = A.mtxIndL[i];
@@ -97,6 +138,16 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
     xv[i] = sum/currentDiagonal;
   }
 
+  // Copy output vector Y from HOST CPU
+  #if defined(HPCG_WITH_CUDA)
+  if (cudaSuccess != cudaMemcpy(d_xv, xv, nrow*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #elif defined(HPCG_WITH_HIP)
+  if (hipSuccess != hipMemcpy(d_xv, xv, nrow*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #endif
   return 0;
 #else
   {
@@ -108,6 +159,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
     double t0 = 0.0;
     const int nnzA = A.localNumberOfNonzeros;
+    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
     #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
     typename SparseMatrix_type::RowPtrView rowptr_view(A.d_row_ptr, nrow+1);
     typename SparseMatrix_type::ColIndView colidx_view(A.d_col_idx, nnzA);
@@ -115,11 +167,6 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
     typename SparseMatrix_type::ValuesView r_view(r.d_values, ncol);
     typename SparseMatrix_type::ValuesView x_view(x.d_values, nrow);
-    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
-    TICK();
-    KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
-      (handle, nrow, ncol, rowptr_view, colidx_view, values_view, x_view, r_view, init_zero_x_vector, update_y_vector, omega, num_sweeps);
-    TOCK(x.time2);
     #else
     typename SparseMatrix_type::RowPtrView rowptr_view(A.h_row_ptr, nrow+1);
     typename SparseMatrix_type::ColIndView colidx_view(A.h_col_idx, nnzA);
@@ -127,12 +174,11 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
     typename SparseMatrix_type::ValuesView r_view(r.values, ncol);
     typename SparseMatrix_type::ValuesView x_view(x.values, nrow);
-    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
+    #endif
     TICK();
     KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
       (handle, nrow, ncol, rowptr_view, colidx_view, values_view, x_view, r_view, init_zero_x_vector, update_y_vector, omega, num_sweeps);
     TOCK(x.time2);
-    #endif
     return 0;
   }
 #endif
@@ -148,6 +194,9 @@ int ComputeGS_Forward_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<d
 
 template
 int ComputeGS_Forward_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&);
+
+template
+int ComputeGS_Forward_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&);
 
 #endif
 

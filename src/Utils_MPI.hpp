@@ -5,6 +5,7 @@
 
 #ifndef HPCG_NO_MPI
 #include <mpi.h>
+#include "DataTypes.hpp"
 
 // MpiTypeTraits (from Teuchos)
 template<class T>
@@ -23,6 +24,9 @@ public:
   static MPI_Datatype getType () {
     return MPI_DOUBLE;
   }
+  static MPI_Op getSumOp () {
+    return MPI_SUM;
+  }
 };
 
 //! Specialization for T = float (from Teuchos).
@@ -33,7 +37,25 @@ public:
   static MPI_Datatype getType () {
     return MPI_FLOAT;
   }
+  static MPI_Op getSumOp () {
+    return MPI_SUM;
+  }
+};
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+//! Specialization for T = half
+template<>
+class MpiTypeTraits<half_t> {
+public:
+  //! MPI_Datatype corresponding to the type T.
+  static MPI_Datatype getType () {
+    return HPGMP_MPI_HALF;
+  }
+  static MPI_Op getSumOp () {
+    return MPI_SUM_HALF;
+  }
 };
 #endif
 
 #endif // ifndef HPCG_NO_MPI
+#endif

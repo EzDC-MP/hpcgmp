@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if 0 //defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS)
 
 #include "ComputeSPMV_ref.hpp"
 
@@ -53,19 +53,47 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
 
   const local_int_t nrow = A.localNumberOfRows;
+  const local_int_t ncol = A.localNumberOfColumns;
   scalar_type * const xv = x.values;
   scalar_type * const yv = y.values;
 
 #ifndef HPCG_NO_MPI
   if (A.geom->size > 1) {
+    #ifdef HPCG_WITH_CUDA
+    // Copy local part of X to HOST CPU
+    if (cudaSuccess != cudaMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
+      printf( " Failed to memcpy d_y\n" );
+    }
+    #elif defined(HPCG_WITH_HIP)
+    if (hipSuccess != hipMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
+      printf( " Failed to memcpy d_y\n" );
+    }
+    #endif
+
     ExchangeHalo(A, x);
+
+    // copy non-local part of X to device (after Halo exchange)
+    #if defined(HPCG_WITH_CUDA)
+    if (cudaSuccess != cudaMemcpy(&x.d_values[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
+      printf( " Failed to memcpy d_x\n" );
+    }
+    #elif defined(HPCG_WITH_HIP)
+    if (hipSuccess != hipMemcpy(&x.d_values[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), hipMemcpyHostToDevice)) {
+      printf( " Failed to memcpy d_x\n" );
+    }
+    #endif
   }
 #endif
 
-#if 1
-  #ifndef HPCG_NO_OPENMP
-  #pragma omp parallel for
+#if 0
+  // Copy input vectors from HOST CPU
+  #if defined(HPCG_WITH_CUDA)
+  scalar_type * const d_xv = x.d_values;
+  if (cudaSuccess != cudaMemcpy(xv, d_xv, ncol*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
   #endif
+
   for (local_int_t i=0; i< nrow; i++)  {
     scalar_type sum = 0.0;
     const scalar_type * const cur_vals = A.matrixValues[i];
@@ -76,18 +104,37 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
       sum += cur_vals[j]*xv[cur_inds[j]];
     yv[i] = sum;
   }
+
+  // Copy output vector Y from HOST CPU
+  #if defined(HPCG_WITH_CUDA)
+  if (cudaSuccess != cudaMemcpy(d_xv, xv, nrow*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
+    printf( " Failed to memcpy d_x\n" );
+  }
+  #endif
 #else
   {
     const int nnzA = A.localNumberOfNonzeros;
+    #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+    typename SparseMatrix_type::RowPtrView rowptr_view(A.d_row_ptr, nrow+1);
+    typename SparseMatrix_type::ColIndView colidx_view(A.d_col_idx, nnzA);
+    typename SparseMatrix_type::ValuesView values_view(A.d_nzvals,  nnzA);
+
+    typename SparseMatrix_type::ValuesView x_view(x.d_values, ncol);
+    typename SparseMatrix_type::ValuesView y_view(y.d_values, nrow);
+    #else
     typename SparseMatrix_type::RowPtrView rowptr_view(A.h_row_ptr, nrow+1);
     typename SparseMatrix_type::ColIndView colidx_view(A.h_col_idx, nnzA);
     typename SparseMatrix_type::ValuesView values_view(A.h_nzvals,  nnzA);
-    graph_t static_graph(column_view, rowmap_view);
-    crsmat_t crsmat("CrsMatrix", n, values_view, static_graph);
 
     typename SparseMatrix_type::ValuesView x_view(x.values, ncol);
     typename SparseMatrix_type::ValuesView y_view(y.values, nrow);
-    KokkosSparse::spmv(tran, one, A_view, x_view, one, y_view);
+    #endif
+    typename SparseMatrix_type::StaticGraphView static_graph(colidx_view, rowptr_view);
+    typename SparseMatrix_type::CrsMatView A_view("CrsMatrix", ncol, values_view, static_graph);
+
+    const scalar_type one  (1.0);
+    const scalar_type zero (0.0);
+    KokkosSparse::spmv(KokkosSparse::NoTranspose, one, A_view, x_view, zero, y_view);
   }
 #endif
   return 0;
@@ -99,9 +146,11 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
  * --------------- */
 
 template
-int ComputeSPMV_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> const&, Vector<double>&, Vector<double>&);
+int ComputeSPMV_ref< SparseMatrix<double>, Vector<double> >(const SparseMatrix<double> &, Vector<double>&, Vector<double>&);
 
 template
-int ComputeSPMV_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&, Vector<float>&);
+int ComputeSPMV_ref< SparseMatrix<float>, Vector<float> >(const SparseMatrix<float> &, Vector<float>&, Vector<float>&);
 
+template
+int ComputeSPMV_ref< SparseMatrix<half_t>, Vector<half_t> >(const SparseMatrix<half_t> &, Vector<half_t>&, Vector<half_t>&);
 #endif

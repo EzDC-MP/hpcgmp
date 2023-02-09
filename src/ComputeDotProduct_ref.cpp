@@ -47,13 +47,12 @@
 
   @see ComputeDotProduct
 */
-template<class Vector_type>
+template<class Vector_type, class scalar_type>
 int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vector_type & y,
-                          typename Vector_type::scalar_type & result, double & time_allreduce) {
+                          scalar_type & result, double & time_allreduce) {
   assert(x.localLength>=n); // Test vector lengths
   assert(y.localLength>=n);
 
-  typedef typename Vector_type::scalar_type scalar_type;
   scalar_type local_result (0.0);
 
   scalar_type * xv = x.values;
@@ -72,11 +71,14 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
 
 #ifndef HPCG_NO_MPI
   // Use MPI's reduce function to collect all partial sums
-  MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
   double t0 = mytimer();
-  scalar_type global_result (0.0);
-  MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
-  result = global_result;
+  int size; // Number of MPI processes, My process ID
+  MPI_Comm_size(x.comm, &size);
+  if (size > 1) {
+    scalar_type global_result (0.0);
+    MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
+    MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
+  }
   time_allreduce += mytimer() - t0;
 #else
   time_allreduce += 0.0;

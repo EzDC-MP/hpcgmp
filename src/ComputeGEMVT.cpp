@@ -23,7 +23,7 @@
 template<class MultiVector_type, class Vector_type, class SerialDenseMatrix_type>
 int ComputeGEMVT(const local_int_t m, const local_int_t n,
                  const typename MultiVector_type::scalar_type alpha, const MultiVector_type & A, const Vector_type & x,
-                 const typename      Vector_type::scalar_type beta,  SerialDenseMatrix_type & y,
+                 const typename SerialDenseMatrix_type::scalar_type beta, SerialDenseMatrix_type & y,
                  bool & isOptimized) {
 
   // This line and the next two lines should be removed and your version of ComputeGEMV should be used.
@@ -39,10 +39,18 @@ int ComputeGEMVT(const local_int_t m, const local_int_t n,
 // uniform
 template
 int ComputeGEMVT< MultiVector<double>, Vector<double>, SerialDenseMatrix<double> >
-  (int, int, double, MultiVector<double> const&, Vector<double> const&, double, SerialDenseMatrix<double> &, bool&);
+  (int, int, double, MultiVector<double> const&, Vector<double> const&, const double, SerialDenseMatrix<double> &, bool&);
 
 template
 int ComputeGEMVT< MultiVector<float>, Vector<float>, SerialDenseMatrix<float> >
-  (int, int, float, MultiVector<float> const&, Vector<float> const&, float, SerialDenseMatrix<float> &, bool&);
+  (int, int, float, MultiVector<float> const&, Vector<float> const&, const float, SerialDenseMatrix<float> &, bool&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeGEMVT< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<half_t> >
+  (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, const half_t, SerialDenseMatrix<half_t> &, bool&);
 
+template
+int ComputeGEMVT< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<float> >
+  (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, const float, SerialDenseMatrix<float> &, bool&);
+#endif

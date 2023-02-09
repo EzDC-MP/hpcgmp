@@ -260,8 +260,16 @@ void GenerateNonsymProblem_v1_ref< SparseMatrix<double>, Vector<double> >(Sparse
 template
 void GenerateNonsymProblem_v1_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float>&, Vector<float>*, Vector<float>*, Vector<float>*, bool);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+void GenerateNonsymProblem_v1_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t>&, Vector<half_t>*, Vector<half_t>*, Vector<half_t>*, bool);
+#endif
 
 // mixed
 template
 void GenerateNonsymProblem_v1_ref< SparseMatrix<float>, Vector<double> >(SparseMatrix<float>&, Vector<double>*, Vector<double>*, Vector<double>*, bool);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+void GenerateNonsymProblem_v1_ref< SparseMatrix<half_t>, Vector<double> >(SparseMatrix<half_t>&, Vector<double>*, Vector<double>*, Vector<double>*, bool);
+#endif

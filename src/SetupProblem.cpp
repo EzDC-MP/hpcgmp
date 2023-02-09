@@ -49,7 +49,7 @@ void SetupProblem(const char *title, int argc, char ** argv, comm_type comm, int
                   Vector_type & b, Vector_type & x, TestGMRESData_type & test_data) {
 
   HPCG_Params params;
-  HPCG_Init(title, &argc, &argv, params, comm);
+  HPCG_Init_Params(title, &argc, &argv, params, comm);
   int size = params.comm_size; // Number of MPI processes
   int rank = params.comm_rank; // My process ID
   test_data.runningTime = params.runningTime;
@@ -119,3 +119,14 @@ void SetupProblem< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>,
  (const char*, int, char**, comm_type, int, bool, Geometry*, SparseMatrix<double>&, GMRESData<double>&, SparseMatrix<float>&, GMRESData<float>&,
   Vector<double>&, Vector<double>&, TestGMRESData<double>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+void SetupProblem< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t>, Vector<double>, TestGMRESData<double> >
+ (const char*, int, char**, comm_type, int, bool, Geometry*, SparseMatrix<double>&, GMRESData<double>&, SparseMatrix<half_t>&, GMRESData<half_t>&,
+  Vector<double>&, Vector<double>&, TestGMRESData<double>&);
+
+template
+void SetupProblem< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t,float>, Vector<double>, TestGMRESData<double> >
+ (const char*, int, char**, comm_type, int, bool, Geometry*, SparseMatrix<double>&, GMRESData<double>&, SparseMatrix<half_t>&, GMRESData<half_t,float>&,
+  Vector<double>&, Vector<double>&, TestGMRESData<double>&);
+#endif

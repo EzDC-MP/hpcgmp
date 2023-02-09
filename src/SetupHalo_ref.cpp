@@ -194,3 +194,7 @@ void SetupHalo_ref< SparseMatrix<double> >(SparseMatrix<double>&);
 template
 void SetupHalo_ref< SparseMatrix<float> >(SparseMatrix<float>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+void SetupHalo_ref< SparseMatrix<half_t> >(SparseMatrix<half_t>&);
+#endif

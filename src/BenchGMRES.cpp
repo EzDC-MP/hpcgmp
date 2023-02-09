@@ -59,7 +59,7 @@ using std::endl;
  */
 
 
-template<class scalar_type, class scalar_type2, class TestGMRESSData_type>
+template<class TestGMRESSData_type, class scalar_type, class scalar_type2, class project_type>
 int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, bool runReference, TestGMRESSData_type & test_data) {
 
   typedef Vector<scalar_type> Vector_type;
@@ -68,7 +68,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
   typedef Vector<scalar_type2> Vector_type2;
   typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
-  typedef GMRESData<scalar_type2> GMRESData_type2;
+  typedef GMRESData<scalar_type2, project_type> GMRESData_type2;
 
   double total_benchmark_time = mytimer();
 
@@ -292,16 +292,25 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
 // uniform version
 template
-int BenchGMRES< double, double, TestGMRESData<double> >
+int BenchGMRES< TestGMRESData<double>, double, double, double >
   (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
 
 template
-int BenchGMRES< float, float, TestGMRESData<float> >
+int BenchGMRES< TestGMRESData<float>, float, float, float >
   (int, char**, comm_type, int, bool, bool, TestGMRESData<float>&);
 
 
 // mixed version
 template
-int BenchGMRES< double, float, TestGMRESData<double> >
+int BenchGMRES< TestGMRESData<double>, double, float, float >
   (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int BenchGMRES< TestGMRESData<double>, double, half_t, half_t >
+  (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
+
+template
+int BenchGMRES< TestGMRESData<double>, double, half_t, float >
+  (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
+#endif

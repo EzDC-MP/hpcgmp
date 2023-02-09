@@ -26,7 +26,7 @@
 #include "Vector.hpp"
 #include "GMRESData.hpp"
 
-template<class scalar_type, class scalar_type2, class TestGMRESData_type>
+template<class TestGMRESData_type, class scalar_type, class scalar_type2, class project_type = scalar_type2>
 extern int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool verbose, TestGMRESData_type & testcg_data);
 
 #endif  // BENCHGMRES_HPP

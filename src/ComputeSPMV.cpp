@@ -51,7 +51,12 @@ int ComputeSPMV(const SparseMatrix_type & A, Vector_type & x, Vector_type & y) {
  * --------------- */
 
 template
-int ComputeSPMV< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> const&, Vector<double>&, Vector<double>&);
+int ComputeSPMV< SparseMatrix<double>, Vector<double> >(const SparseMatrix<double> &, Vector<double>&, Vector<double>&);
 
 template
-int ComputeSPMV< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&, Vector<float>&);
+int ComputeSPMV< SparseMatrix<float>, Vector<float> >(const SparseMatrix<float> &, Vector<float>&, Vector<float>&);
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeSPMV< SparseMatrix<half_t>, Vector<half_t> >(const SparseMatrix<half_t> &, Vector<half_t>&, Vector<half_t>&);
+#endif

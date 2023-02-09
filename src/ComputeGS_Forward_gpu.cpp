@@ -203,7 +203,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
                                (const double*)&mone,  A.descrU,
                                                       (double*)A.d_Unzvals, A.d_Urow_ptr, A.d_Ucol_idx,
                                                       (double*)d_xv,
-                               (const double*)&one,  (double*)d_bv);
+                               (const double*)&one,   (double*)d_bv);
     } else if (std::is_same<scalar_type, float>::value) {
        status = cusparseScsrmv(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE,
                                nrow, ncol, A.nnzU,
@@ -363,5 +363,9 @@ int ComputeGS_Forward_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<d
 template
 int ComputeGS_Forward_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeGS_Forward_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&);
+#endif
 #endif
 

@@ -30,7 +30,7 @@
 template<class MultiVector_type, class Vector_type, class SerialDenseMatrix_type>
 int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
                      const typename MultiVector_type::scalar_type alpha, const MultiVector_type & A, const Vector_type & x,
-                     const typename      Vector_type::scalar_type beta,  SerialDenseMatrix_type & y) {
+                     const typename SerialDenseMatrix_type::scalar_type beta, SerialDenseMatrix_type & y) {
 
   typedef typename       MultiVector_type::scalar_type scalarA_type;
   typedef typename SerialDenseMatrix_type::scalar_type scalarX_type;
@@ -72,8 +72,12 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
 #ifndef HPCG_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   TICK();
-  MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
-  MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  int size; // Number of MPI processes, My process ID
+  MPI_Comm_size(A.comm, &size);
+  if (size > 1) {
+    MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
+    MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  }
   TIME(y.time2);
 #else
   y.time2 = 0.0;

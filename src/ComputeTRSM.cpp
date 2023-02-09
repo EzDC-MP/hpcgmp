@@ -53,3 +53,8 @@ int ComputeTRSM< SerialDenseMatrix<double> >(int, double, SerialDenseMatrix<doub
 
 template
 int ComputeTRSM< SerialDenseMatrix<float> >(int, float, SerialDenseMatrix<float> const&, SerialDenseMatrix<float>&);
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeTRSM< SerialDenseMatrix<half_t> >(int, half_t, SerialDenseMatrix<half_t> const&, SerialDenseMatrix<half_t>&);
+#endif

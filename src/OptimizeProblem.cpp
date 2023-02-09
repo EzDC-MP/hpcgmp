@@ -189,7 +189,8 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       free(h_row_ptr);
       free(h_col_ind);
       free(h_nzvals);
-      #elif defined(HPCG_WITH_KOKKOSKERNELS)
+      #endif
+      #if defined(HPCG_WITH_KOKKOSKERNELS)
       // store the matrix on host
       curLevelMatrix->h_row_ptr = h_row_ptr;
       curLevelMatrix->h_col_idx = h_col_ind;
@@ -206,14 +207,20 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         curLevelMatrix->kh.create_gs_handle(KokkosSparse::GS_TWOSTAGE);
         curLevelMatrix->kh.set_gs_twostage(!classic, nrow);
         #endif
-        // Perform Symbolic
         bool graph_symmetric = false;
+        #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+        typename SparseMatrix_type::RowPtrView rowptr_view(curLevelMatrix->d_row_ptr, nrow+1);
+        typename SparseMatrix_type::ColIndView colidx_view(curLevelMatrix->d_col_idx, nnz);
+        typename SparseMatrix_type::ValuesView values_view(curLevelMatrix->d_nzvals, nnz);
+        #else
         typename SparseMatrix_type::RowPtrView rowptr_view(curLevelMatrix->h_row_ptr, nrow+1);
         typename SparseMatrix_type::ColIndView colidx_view(curLevelMatrix->h_col_idx, nnz);
+        typename SparseMatrix_type::ValuesView values_view(curLevelMatrix->h_nzvals, nnz);
+        #endif
+        // Perform Symbolic
         KokkosSparse::Experimental::gauss_seidel_symbolic
           (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, graph_symmetric);
         // Numeric
-        typename SparseMatrix_type::ValuesView values_view(curLevelMatrix->h_nzvals, nnz);
         KokkosSparse::Experimental::gauss_seidel_numeric
           (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, values_view, graph_symmetric);
       }
@@ -388,9 +395,13 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       // create matrix
       cudaDataType computeType;
       if (std::is_same<SC, double>::value) {
-          computeType = CUDA_R_64F;
+        computeType = CUDA_R_64F;
       } else if (std::is_same<SC, float>::value) {
-          computeType = CUDA_R_32F;
+        computeType = CUDA_R_32F;
+      } else {
+        #if defined(HPCG_WITH_KOKKOSKERNELS)
+        computeType = CUDA_R_64F;
+        #endif
       }
       cusparseSpMatDescr_t A_cusparse;
       cusparseCreateCsr(&A_cusparse, nrow, ncol, nnz,
@@ -783,3 +794,8 @@ template
 int OptimizeProblem< SparseMatrix<float>, GMRESData<double>, Vector<double> >
   (SparseMatrix<float>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int OptimizeProblem< SparseMatrix<half_t>, GMRESData<double>, Vector<double> >
+  (SparseMatrix<half_t>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
+#endif

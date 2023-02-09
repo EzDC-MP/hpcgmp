@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) //& !defined(HPCG_WITH_KOKKOSKERNELS)
+#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_KOKKOSKERNELS)
 
 #include "ComputeSPMV_ref.hpp"
 
@@ -85,9 +85,9 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
  * --------------- */
 
 template
-int ComputeSPMV_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> const&, Vector<double>&, Vector<double>&);
+int ComputeSPMV_ref< SparseMatrix<double>, Vector<double> >(const SparseMatrix<double> &, Vector<double>&, Vector<double>&);
 
 template
-int ComputeSPMV_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&, Vector<float>&);
+int ComputeSPMV_ref< SparseMatrix<float>, Vector<float> >(const SparseMatrix<float> &, Vector<float>&, Vector<float>&);
 
 #endif

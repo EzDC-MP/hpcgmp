@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <cassert>
+#include "DataTypes.hpp"
 #include "Geometry.hpp"
 #include "Vector.hpp"
 #include "MGData.hpp"
@@ -48,10 +49,6 @@ using GlobalToLocalMap = std::unordered_map< global_int_t, local_int_t >;
  #include <rocsparse.h>
 #endif
 
-#ifdef HPCG_WITH_KOKKOSKERNELS
-#include <KokkosKernels_Handle.hpp>
-#include <KokkosSparse_gauss_seidel.hpp>
-#endif
 
 template <class SC = double>
 class SparseMatrix {
@@ -104,7 +101,7 @@ public:
   using KernelHandle    = KokkosKernels::Experimental::KokkosKernelsHandle<int, int, SC, execution_space, memory_space, memory_space>;
   using CrsMatView      = KokkosSparse::CrsMatrix<SC, int, execution_space, void, int>;
   using StaticGraphView = typename CrsMatView::StaticCrsGraphType;
-  #if 0
+  #if 1
    using RowPtrView = typename StaticGraphView::row_map_type::non_const_type;
    using ColIndView = typename StaticGraphView::entries_type::non_const_type;
    using ValuesView = typename CrsMatView::values_type::non_const_type;
@@ -169,7 +166,8 @@ public:
   // TODO: remove
   Vector<SC> x; // nrow
   Vector<SC> y; // ncol
-#elif defined(HPCG_WITH_KOKKOSKERNELS)
+#endif
+#if defined(HPCG_WITH_KOKKOSKERNELS)
   // to store the local matrix on host
   int *h_row_ptr;
   int *h_col_idx;

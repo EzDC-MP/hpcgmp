@@ -217,7 +217,6 @@ int TestGMRES< SparseMatrix<float>, GMRESData<float>, Vector<float>, TestGMRESDa
   (SparseMatrix<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, bool, bool, TestGMRESData<float>&);
 
 
-
 // uniform version
 template
 int TestGMRES< SparseMatrix<double>, SparseMatrix<double>, GMRESData<double>, GMRESData<double>, Vector<double>, TestGMRESData<double> >
@@ -227,8 +226,18 @@ template
 int TestGMRES< SparseMatrix<float>, SparseMatrix<float>, GMRESData<float>, GMRESData<float>, Vector<float>, TestGMRESData<float> >
   (SparseMatrix<float>&, SparseMatrix<float>&, GMRESData<float>&, GMRESData<float>&, Vector<float>&, Vector<float>&, bool, bool, TestGMRESData<float>&);
 
+
 // mixed version
 template
 int TestGMRES< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRESData<float>, Vector<double>, TestGMRESData<double> >
   (SparseMatrix<double>&, SparseMatrix<float>&, GMRESData<double>&, GMRESData<float>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int TestGMRES< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t>, Vector<double>, TestGMRESData<double> >
+  (SparseMatrix<double>&, SparseMatrix<half_t>&, GMRESData<double>&, GMRESData<half_t>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
+
+template
+int TestGMRES< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t, float>, Vector<double>, TestGMRESData<double> >
+  (SparseMatrix<double>&, SparseMatrix<half_t>&, GMRESData<double>&, GMRESData<half_t, float>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
+#endif

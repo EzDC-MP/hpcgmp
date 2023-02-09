@@ -31,6 +31,7 @@
  #include <hip/hip_runtime_api.h>
  #include <rocblas.h>
 #endif
+#include "DataTypes.hpp"
 
 template<class SC>
 class SerialDenseMatrix {

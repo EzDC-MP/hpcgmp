@@ -127,3 +127,8 @@ void GenerateNonsymCoarseProblem< SparseMatrix<double> >(SparseMatrix<double> co
 
 template
 void GenerateNonsymCoarseProblem< SparseMatrix<float> >(SparseMatrix<float> const&);
+
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+void GenerateNonsymCoarseProblem< SparseMatrix<half_t> >(SparseMatrix<half_t> const&);
+#endif

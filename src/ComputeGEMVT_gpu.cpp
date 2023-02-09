@@ -37,11 +37,11 @@
 template<class MultiVector_type, class Vector_type, class SerialDenseMatrix_type>
 int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
                      const typename MultiVector_type::scalar_type alpha, const MultiVector_type & A, const Vector_type & x,
-                     const typename      Vector_type::scalar_type beta,  SerialDenseMatrix_type & y) {
+                     const typename SerialDenseMatrix_type::scalar_type beta, SerialDenseMatrix_type & y) {
 
   typedef typename       MultiVector_type::scalar_type scalarA_type;
-  typedef typename SerialDenseMatrix_type::scalar_type scalarX_type;
-  typedef typename            Vector_type::scalar_type scalarY_type;
+  typedef typename            Vector_type::scalar_type scalarX_type;
+  typedef typename SerialDenseMatrix_type::scalar_type scalarY_type;
 
   assert(x.localLength >= m); // Test vector lengths
   assert(y.m >= n);
@@ -83,7 +83,24 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   scalarY_type * const d_yv = y.d_values;
 
   double t0; TICK();
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  {
+    using execution_space = Kokkos::DefaultExecutionSpace;
+    Kokkos::View<scalarA_type **, Kokkos::LayoutLeft, execution_space> A_view(d_Av, m, n);
+    Kokkos::View<scalarX_type *,  Kokkos::LayoutLeft, execution_space> x_view(d_xv, m);
+    Kokkos::View<scalarY_type *,  Kokkos::LayoutLeft, execution_space> y_view(d_yv, n);
+
+    // Call GEMV
+    KokkosBlas::gemv("T", alpha, A_view, x_view, beta, y_view);
+    TIME(y.time1);
+
+    // Copy output serial dense vector to host
+    TICK();
+    using host_execution_space = Kokkos::DefaultHostExecutionSpace;
+    Kokkos::View<scalarY_type *, Kokkos::LayoutLeft, host_execution_space> h_view(yv, n);
+    Kokkos::deep_copy(h_view, y_view);
+  }
+  #elif defined(HPCG_WITH_CUDA)
   // Perform GEMV on device
   if (std::is_same<scalarX_type, double>::value) {
     if (CUBLAS_STATUS_SUCCESS != cublasDgemv(x.handle, CUBLAS_OP_T,
@@ -139,8 +156,12 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
 
 #ifndef HPCG_NO_MPI
   // Use MPI's reduce function to collect all partial sums
-  MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
-  MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  int size; // Number of MPI processes
+  MPI_Comm_size(A.comm, &size);
+  if (size > 1) {
+      MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
+      MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+  }
   TIME(y.time2);
 #else
   y.time2 = 0.0;
@@ -163,4 +184,13 @@ template
 int ComputeGEMVT_ref< MultiVector<float>, Vector<float>, SerialDenseMatrix<float> >
   (int, int, float, MultiVector<float> const&, Vector<float> const&, float, SerialDenseMatrix<float> &);
 
+#if defined(HPCG_WITH_KOKKOSKERNELS)
+template
+int ComputeGEMVT_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<half_t> >
+  (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, half_t, SerialDenseMatrix<half_t> &);
+
+template
+int ComputeGEMVT_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<float> >
+  (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, float, SerialDenseMatrix<float> &);
+#endif
 #endif

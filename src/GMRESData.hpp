@@ -24,9 +24,11 @@
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
 
-template <class SC>
+template <class SC, class PSC = SC>
 class GMRESData {
 public:
+  using scalar_type  = SC;
+  using project_type = PSC;
   Vector<SC> r; //!< pointer to residual vector
   Vector<SC> z; //!< pointer to preconditioned residual vector
   Vector<SC> p; //!< pointer to direction vector
