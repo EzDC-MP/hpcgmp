@@ -184,7 +184,7 @@ template
 int ComputeGEMVT_ref< MultiVector<float>, Vector<float>, SerialDenseMatrix<float> >
   (int, int, float, MultiVector<float> const&, Vector<float> const&, float, SerialDenseMatrix<float> &);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
 template
 int ComputeGEMVT_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<half_t> >
   (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, half_t, SerialDenseMatrix<half_t> &);

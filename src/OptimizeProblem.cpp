@@ -794,7 +794,7 @@ template
 int OptimizeProblem< SparseMatrix<float>, GMRESData<double>, Vector<double> >
   (SparseMatrix<float>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
 template
 int OptimizeProblem< SparseMatrix<half_t>, GMRESData<double>, Vector<double> >
   (SparseMatrix<half_t>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);

@@ -151,7 +151,11 @@ inline void ScaleVectorValue(Vector_type & v, scalar_type value) {
 
 #if defined(HPCG_WITH_KOKKOSKERNELS)
     using execution_space = Kokkos::DefaultExecutionSpace;
+    #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
     Kokkos::View<vector_scalar_type *,  Kokkos::LayoutLeft, execution_space> v_view(v.d_values, localLength);
+    #else
+    Kokkos::View<vector_scalar_type *,  Kokkos::LayoutLeft, execution_space> v_view(v.values, localLength);
+    #endif
     //KokkosBlas::scal<Vector_type, scalar_type, Vector_type>(v_view, value, v_view);
     KokkosBlas::scal(v_view, value, v_view);
 #elif defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
@@ -241,8 +245,13 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
 
 #if defined(HPCG_WITH_KOKKOSKERNELS)
     using execution_space = Kokkos::DefaultExecutionSpace;
+    #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
     Kokkos::View<scalar_src *,  Kokkos::LayoutLeft, execution_space> v_view(v.d_values, localLength);
     Kokkos::View<scalar_dst *,  Kokkos::LayoutLeft, execution_space> w_view(w.d_values, localLength);
+    #else
+    Kokkos::View<scalar_src *,  Kokkos::LayoutLeft, execution_space> v_view(v.values, localLength);
+    Kokkos::View<scalar_dst *,  Kokkos::LayoutLeft, execution_space> w_view(w.values, localLength);
+    #endif
     const scalar_src one (1.0);
     KokkosBlas::scal(w_view, one, v_view);
 #elif defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)

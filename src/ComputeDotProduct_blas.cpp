@@ -59,7 +59,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   scalar_type* xv = x.values;
   scalar_type* yv = y.values;
 
-  // Compute dot on Nvidia GPU
+  // Compute dot with BLAS
   if (std::is_same<scalar_type, double>::value) {
     local_result = cblas_ddot(n, (double*)xv, 1, (double*)yv, 1);
   } else if (std::is_same<scalar_type, float>::value) {

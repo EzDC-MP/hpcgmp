@@ -74,15 +74,15 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   double t0 = mytimer();
   int size; // Number of MPI processes, My process ID
   MPI_Comm_size(x.comm, &size);
+
+  result = local_result;
   if (size > 1) {
-    scalar_type global_result (0.0);
     MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
-    MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
+    MPI_Allreduce(MPI_IN_PLACE, &result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
   }
   time_allreduce += mytimer() - t0;
 #else
   time_allreduce += 0.0;
-  result = local_result;
 #endif
 
   return 0;

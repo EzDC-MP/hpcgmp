@@ -128,7 +128,7 @@ void GenerateNonsymCoarseProblem< SparseMatrix<double> >(SparseMatrix<double> co
 template
 void GenerateNonsymCoarseProblem< SparseMatrix<float> >(SparseMatrix<float> const&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
 template
 void GenerateNonsymCoarseProblem< SparseMatrix<half_t> >(SparseMatrix<half_t> const&);
 #endif

@@ -324,9 +324,37 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       #else
       normr = std::abs(v2);
       #endif
-      if (verbose && A.geom->rank==0 && (k%print_freq == 0 || k+1 == restart_length)) {
-        HPCG_fout << "GMRES_IR Iteration = "<< k << " (" << niters << ")   Scaled Residual = "
-                  << normr << " / " << normr0 << " = " << normr/normr0 << std::endl;
+      if (verbose && (k%print_freq == 0 || k+1 == restart_length)) {
+        #if 1
+        // compute current approximation
+        CopyVector(x_hi, p_hi);                                 // using p_hi for x_hi
+        for (int i=0; i < k; i++) h.values[i] = t.values[i];   // using h for t
+        ComputeTRSM(k, one_pr, H, h);
+        if (doPreconditioning) {
+          ComputeGEMV (nrow, k, one, Q, h, zero, r, A.isGemvOptimized);          // r = Q*t (using h for t)
+          ComputeMG(A_lo, r, z, symmetric);                                        // z = M*r
+          ComputeWAXPBY(nrow, one_hi, p_hi, one, z, p_hi, A.isWaxpbyOptimized);    // x += z
+        } else {
+          ComputeGEMV (nrow, k, one_hi, Q, h, one_hi, p_hi, A.isGemvOptimized);    // x += Q*t
+        }
+        // compute residual norm
+        ComputeSPMV(A, p_hi, Ap_hi); // Ap = A*p
+        ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); // r = b - Ax (x stored in p)
+        ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized);
+        #ifdef HPCG_WITH_KOKKOSKERNELS
+        normr_hi = AT_hi::sqrt(normr_hi);
+        #else
+        normr_hi = sqrt(normr_hi);
+        #endif
+        #endif
+        if (A.geom->rank==0) {
+          HPCG_fout << "GMRES_IR Iteration = "<< k << " (" << niters << ")   Scaled Computed Residual = "
+                    << normr << " / " << normr0 << " = " << normr/normr0;
+          #if 1
+          HPCG_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
+          #endif
+          HPCG_fout << std::endl;
+        }
       }
       niters ++;
       k ++;
@@ -429,9 +457,9 @@ int GMRES_IR< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRE
    Vector<double> const&, Vector<double>&, const int, const int, double, int&, double&, double&, bool, bool,
    TestGMRESData<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
 template
-int GMRES_IR< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t>, Vector<double>, TestGMRESData<double> >
+int GMRES_IR< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t, half_t>, Vector<double>, TestGMRESData<double> >
   (SparseMatrix<double> const&, SparseMatrix<half_t> const&, GMRESData<double>&, GMRESData<half_t>&,
    Vector<double> const&, Vector<double>&, const int, const int, double, int&, double&, double&, bool, bool,
    TestGMRESData<double>&);

@@ -51,7 +51,7 @@ startswith(const char * s, const char * prefix) {
   return 1;
 }
 
-#ifndef HPCG_NO_MPI
+#if defined(HPCG_NO_MPI) & defined(HPCG_WITH_KOKKOSKERNELS)
 void HPGMP_FP16_SUM_FUNCTION(void* invec, void* inoutvec, int *len, MPI_Datatype *datatype) {
   half_t* in = (half_t*)invec;
   half_t* inout = (half_t*)inoutvec;
@@ -60,10 +60,8 @@ void HPGMP_FP16_SUM_FUNCTION(void* invec, void* inoutvec, int *len, MPI_Datatype
   }
 }
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
 MPI_Datatype    HPGMP_MPI_HALF;
 MPI_Op          MPI_SUM_HALF;
-#endif
 #endif
 
 int

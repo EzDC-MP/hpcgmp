@@ -172,7 +172,7 @@ int ComputeDotProduct_ref<Vector<double> >(int, Vector<double> const&, Vector<do
 template
 int ComputeDotProduct_ref<Vector<float> >(int, Vector<float> const&, Vector<float> const&, float&, double&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
 template
 int ComputeDotProduct_ref<Vector<half_t> >(int, Vector<half_t> const&, Vector<half_t> const&, half_t&, double&);
 
