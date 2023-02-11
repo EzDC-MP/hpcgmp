@@ -31,13 +31,6 @@
 #ifndef HPCG_NO_MPI
  #include <mpi.h>
 #endif
-#ifdef HPCG_WITH_CUDA
- #include <cuda_runtime.h>
- #include <cublas_v2.h>
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocblas.h>
-#endif
 
 #include "DataTypes.hpp"
 #include "hpgmp.hpp"

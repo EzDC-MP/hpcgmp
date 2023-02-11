@@ -125,7 +125,7 @@ void ExchangeHalo< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> c
 template
 void ExchangeHalo< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 void ExchangeHalo< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t>&);
 #endif

@@ -40,14 +40,6 @@ using GlobalToLocalMap = std::unordered_map< global_int_t, local_int_t >;
 #ifndef HPCG_NO_MPI
  #include <mpi.h>
 #endif
-#ifdef HPCG_WITH_CUDA
- #include <cuda.h>
- #include <cuda_runtime.h>
- #include <cusparse.h>
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocsparse.h>
-#endif
 
 
 template <class SC = double>

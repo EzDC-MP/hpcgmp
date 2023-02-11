@@ -61,6 +61,11 @@ double mytimer(void) {
   void fence() {
     cudaDeviceSynchronize();
   }
+ #elif defined(HPCG_WITH_HIP)
+  #include "hip/hip_runtime.h"
+  void fence() {
+    hipDeviceSynchronize();
+  }
  #endif
 #else
  void fence() {}

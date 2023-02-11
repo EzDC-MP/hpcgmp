@@ -22,14 +22,8 @@
 #ifndef HPCG_NO_MPI
  #include "Utils_MPI.hpp"
 #endif
-#ifdef HPCG_WITH_CUDA
- #include <cuda_runtime.h>
- #include <cublas_v2.h>
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocblas.h>
-#endif
 
+#include "DataTypes.hpp"
 #include "ComputeGEMVT_ref.hpp"
 #include "hpgmp.hpp"
 #include "mytimer.hpp"
@@ -184,7 +178,7 @@ template
 int ComputeGEMVT_ref< MultiVector<float>, Vector<float>, SerialDenseMatrix<float> >
   (int, int, float, MultiVector<float> const&, Vector<float> const&, float, SerialDenseMatrix<float> &);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeGEMVT_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<half_t> >
   (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, half_t, SerialDenseMatrix<half_t> &);

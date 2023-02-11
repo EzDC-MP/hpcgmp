@@ -19,21 +19,15 @@
  */
 #if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)) & !defined(HPCG_WITH_KOKKOSKERNELS)
 
+#include <cassert>
+#include <iostream>
+
 #ifndef HPCG_NO_MPI
  #include "ExchangeHalo.hpp"
 #endif
 #include "ComputeGS_Forward_ref.hpp"
-#include <cassert>
-#include <iostream>
 
-#if defined(HPCG_WITH_CUDA)
- #include <cuda_runtime.h>
- #include <cublas_v2.h>
-#else
- #include <hip/hip_runtime_api.h>
- #include <rocblas.h>
-#endif
-
+#include "DataTypes.hpp"
 #include "ComputeSPMV.hpp"
 #include "ComputeWAXPBY.hpp"
 #ifdef HPCG_DEBUG
@@ -363,7 +357,7 @@ int ComputeGS_Forward_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<d
 template
 int ComputeGS_Forward_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT)
 template
 int ComputeGS_Forward_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&);
 #endif

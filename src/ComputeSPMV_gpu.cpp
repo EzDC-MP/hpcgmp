@@ -19,22 +19,15 @@
  */
 #if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)) & !defined(HPCG_WITH_KOKKOSKERNELS)
 
-#include "ComputeSPMV_ref.hpp"
-#ifndef HPCG_NO_MPI
- #include "ExchangeHalo.hpp"
-#endif
-
 #ifndef HPCG_NO_OPENMP
  #include <omp.h>
 #endif
 #include <cassert>
 
-#if defined(HPCH_WITH_CUDA)
- #include <cuda_runtime.h>
- #include <cusparse.h>
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocblas.h>
+#include "DataTypes.hpp"
+#include "ComputeSPMV_ref.hpp"
+#ifndef HPCG_NO_MPI
+ #include "ExchangeHalo.hpp"
 #endif
 
 #if defined(HPCG_DEBUG) & !defined(HPCG_NO_MPI)
@@ -122,7 +115,6 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   }
 #endif
 
-  printf( " SPMV_gpu (nrow = %d)\n",nrow );
   #if defined(HPCG_WITH_CUDA)
   cusparseStatus_t status;
   #if CUDA_VERSION >= 11000

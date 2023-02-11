@@ -19,25 +19,21 @@
  */
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
 
+#ifndef HPCG_NO_OPENMP
+ #include <omp.h>
+#endif
+#include <cassert>
+
 #ifndef HPCG_NO_MPI
  #include <mpi.h>
  #include "mytimer.hpp"
  #include "Utils_MPI.hpp"
 #endif
+
 #include "ComputeDotProduct_ref.hpp"
 #include "hpgmp.hpp"
+#include "DataTypes.hpp"
 
-#ifndef HPCG_NO_OPENMP
- #include <omp.h>
-#endif
-#ifdef HPCG_WITH_CUDA
- #include <cuda_runtime.h>
- #include <cublas_v2.h>
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocblas.h>
-#endif
-#include <cassert>
 
 /*!
   Routine to compute the dot product of two vectors where:
@@ -172,7 +168,7 @@ int ComputeDotProduct_ref<Vector<double> >(int, Vector<double> const&, Vector<do
 template
 int ComputeDotProduct_ref<Vector<float> >(int, Vector<float> const&, Vector<float> const&, float&, double&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeDotProduct_ref<Vector<half_t> >(int, Vector<half_t> const&, Vector<half_t> const&, half_t&, double&);
 

@@ -181,7 +181,7 @@ int ValidGMRES< TestGMRESData<float>, float, float, float > (int, char**, comm_t
 template
 int ValidGMRES< TestGMRESData<double>, double, float, float > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ValidGMRES< TestGMRESData<double>, double, half_t, half_t > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
 

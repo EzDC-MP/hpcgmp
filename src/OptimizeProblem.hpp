@@ -15,6 +15,7 @@
 #ifndef OPTIMIZEPROBLEM_HPP
 #define OPTIMIZEPROBLEM_HPP
 
+#include "DataTypes.hpp"
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
 #include "GMRESData.hpp"

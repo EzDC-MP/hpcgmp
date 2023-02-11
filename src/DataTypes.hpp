@@ -15,4 +15,16 @@ extern void HPGMP_FP16_SUM_FUNCTION(void* invec, void* inoutvec, int *len, MPI_D
 #endif
 #endif
 
+#ifdef HPCG_WITH_CUDA
+ #include <cuda_runtime.h>
+ #include <cublas_v2.h>
+#elif defined(HPCG_WITH_HIP)
+ #include <hip/hip_runtime_api.h>
+ #include <rocblas.h>
+ #include <rocsparse.h>
+#endif
+
+//#ifdef HPCG_WITH_KOKKOSKERNELS
+//#include <Kokkos_Half.hpp>
+//#endif
 #endif

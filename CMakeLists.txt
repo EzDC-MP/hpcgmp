@@ -128,6 +128,20 @@ else ()
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_CUDA)
 endif ()
 
+if (HPCG_ENABLE_HIP)
+    find_package(HIP REQUIRED)
+    target_compile_definitions(xhpgmp PRIVATE HPCG_WITH_HIP)
+    target_compile_definitions(xhpgmp PRIVATE HPCG_USE_FENCE)
+    target_link_libraries(xhpgmp ${HIP_LIBRARIES})
+
+    target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_HIP)
+    target_compile_definitions(xhpgmp_time PRIVATE HPCG_USE_FENCE)
+    target_link_libraries(xhpgmp_time ${HIP_LIBRARIES})
+else ()
+    target_compile_definitions(xhpgmp PRIVATE HPCG_NO_HIP)
+    target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_HIP)
+endif ()
+
 
 if (HPCG_ENABLE_BLAS)
     target_compile_definitions(xhpgmp PRIVATE HPCG_WITH_BLAS)

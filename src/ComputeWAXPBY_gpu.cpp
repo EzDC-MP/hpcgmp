@@ -19,25 +19,19 @@
  */
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
 
-#include "ComputeWAXPBY_ref.hpp"
-#include "hpgmp.hpp"
 #include <cassert>
 #ifndef HPCG_NO_OPENMP
  #include <omp.h>
-#endif
-
-#if defined(HPCG_WITH_CUDA)
- #include <cuda_runtime.h>
- #include "cublas_v2.h"
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocblas.h>
 #endif
 
 #if defined(HPCG_DEBUG) & !defined(HPCG_NO_MPI)
  #include <mpi.h>
  #include "Utils_MPI.hpp"
 #endif
+
+#include "ComputeWAXPBY_ref.hpp"
+#include "hpgmp.hpp"
+#include "DataTypes.hpp"
 
 /*!
   Routine to compute the update of a vector with the sum of two
@@ -274,7 +268,7 @@ int ComputeWAXPBY_ref< Vector<double>, Vector<double>, Vector<double> >(int, dou
 template
 int ComputeWAXPBY_ref< Vector<float>, Vector<float>, Vector<float> >(int, float, Vector<float> const&, float, Vector<float> const&, Vector<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeWAXPBY_ref< Vector<half_t>, Vector<half_t>, Vector<half_t> >(int, half_t, Vector<half_t> const&, half_t, Vector<half_t> const&, Vector<half_t>&);
 #endif
@@ -283,7 +277,7 @@ int ComputeWAXPBY_ref< Vector<half_t>, Vector<half_t>, Vector<half_t> >(int, hal
 template
 int ComputeWAXPBY_ref< Vector<double>, Vector<float>, Vector<double> >(int, double, Vector<double> const&, float, Vector<float> const&, Vector<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeWAXPBY_ref< Vector<double>, Vector<half_t>, Vector<double> >(int, double, Vector<double> const&, half_t, Vector<half_t> const&, Vector<double>&);
 #endif

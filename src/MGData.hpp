@@ -22,16 +22,9 @@
 #define MGDATA_HPP
 
 #include <cassert>
+#include "DataTypes.hpp"
 #include "SparseMatrix.hpp"
 #include "Vector.hpp"
-
-#ifdef HPCG_WITH_CUDA
- #include <cuda_runtime.h>
- #include <cusparse.h>
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocsparse.h>
-#endif
 
 template<class SC>
 class MGData {

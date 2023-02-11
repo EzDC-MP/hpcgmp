@@ -18,16 +18,8 @@
  HPCG routine
  */
 
-#ifdef HPCG_WITH_CUDA
- #include <cuda.h>
- #include <cuda_runtime.h>
- #include <cublas_v2.h>
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocblas.h>
-#endif
-
 #include "OptimizeProblem.hpp"
+
 /*!
   Optimizes the data structures used for CG iteration to increase the
   performance of the benchmark version of the preconditioned CG algorithm.
@@ -794,8 +786,12 @@ template
 int OptimizeProblem< SparseMatrix<float>, GMRESData<double>, Vector<double> >
   (SparseMatrix<float>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & defined(KOKKOS_HALF_IS_FULL_TYPE_ON_ARCH) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int OptimizeProblem< SparseMatrix<half_t>, GMRESData<double>, Vector<double> >
   (SparseMatrix<half_t>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
+
+template
+int OptimizeProblem< SparseMatrix<half_t>, GMRESData<double, double>, Vector<double> >
+  (SparseMatrix<half_t>&, GMRESData<double, double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 #endif

@@ -67,7 +67,8 @@ typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
 
 #ifdef HPCG_WITH_KOKKOSKERNELS
-typedef Kokkos::Experimental::half_t scalar_type2;
+typedef float scalar_type2;
+//typedef Kokkos::Experimental::half_t scalar_type2;
 //typedef Kokkos::Experimental::half_t project_type;
 typedef float project_type;
 #else
@@ -107,15 +108,21 @@ int main(int argc, char * argv[]) {
   HPCG_Params params;
   HPCG_Init_Params(&argc, &argv, params, bench_comm);
   int size = params.comm_size, rank = params.comm_rank; // Number of MPI processes, My process ID
+  if (rank == 0) HPCG_fout << endl;
 #ifndef HPCG_NO_MPI
   if (rank == 0) HPCG_fout << "With MPI " << endl;
 #endif
 #ifdef HPCG_WITH_KOKKOSKERNELS
-  if (rank == 0) HPCG_fout << "With KK " << endl;
+  #ifdef KOKKOS_HALF_T_IS_FLOAT
+  if (rank == 0) HPCG_fout << "With KK (Half is float = " << sizeof(half_t) << " bytes)" << endl;
+  #else
+  if (rank == 0) HPCG_fout << "With KK (Half is FP16 = " << sizeof(half_t) << " bytes)" << endl;
+  #endif
 #endif
 #ifdef HPCG_WITH_CUDA
   if (rank == 0) HPCG_fout << "With Cuda " << endl;
 #endif
+  if (rank == 0) HPCG_fout << endl;
 
 #ifdef HPCG_DETAILED_DEBUG
   if (size < 100 && rank==0) HPCG_fout << "Process "<<rank<<" of "<<size<<" is alive with " << params.numThreads << " threads." <<endl;

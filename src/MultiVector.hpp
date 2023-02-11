@@ -21,15 +21,10 @@
 #ifndef MULTIVECTOR_HPP
 #define MULTIVECTOR_HPP
 
-#if defined(HPCG_WITH_CUDA)
- #include <cuda_runtime.h>
- #include <cublas_v2.h>
-#elif defined(HPCG_WITH_HIP)
- #include <hip/hip_runtime_api.h>
- #include <rocblas.h>
-#endif
 #include <cassert>
 #include <cstdlib>
+
+#include "DataTypes.hpp"
 #include "Vector.hpp"
 
 template<class SC>
