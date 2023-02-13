@@ -79,14 +79,13 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   Vector_type b, x;
   SetupProblem("valid_", argc, argv, comm, numberOfMgLevels, verbose, geom, A, data, A_lo, data_lo, b, x, test_data);
 
-
   //////////////////////////////////////////////////////////
   // Solver Parameters
   int MaxIters = 3000;
   int restart_length = test_data.restart_length;
   scalar_type tolerance = test_data.tolerance;
   if (A.geom->rank == 0 && verbose) {
-    HPCG_fout << endl << " >> In Validate GMRES( tol = " << tolerance << " and restart = " << restart_length << ") <<" << endl;
+    HPCG_fout << endl << " >> In Validate GMRES( tol = " << tolerance << " and restart = " << restart_length << " ) <<" << endl;
   }
 
 
@@ -187,4 +186,7 @@ int ValidGMRES< TestGMRESData<double>, double, half_t, half_t > (int, char**, co
 
 template
 int ValidGMRES< TestGMRESData<double>, double, half_t, float > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
+
+template
+int ValidGMRES< TestGMRESData<double>, double, half_t, double > (int, char**, comm_type, int, bool, TestGMRESData<double>&);
 #endif

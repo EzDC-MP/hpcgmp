@@ -132,8 +132,9 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   double t0 = mytimer();
   if (size > 1) {
       MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<output_scalar_type>::getType ();
+      MPI_Op MPI_SCALAR_SUM = MpiTypeTraits<output_scalar_type>::getSumOp ();
       output_scalar_type global_result (0.0);
-      MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
+      MPI_Allreduce(&local_result, &global_result, 1, MPI_SCALAR_TYPE, MPI_SCALAR_SUM, x.comm);
       result = global_result;
   } else {
       result = local_result;
@@ -174,6 +175,9 @@ int ComputeDotProduct_ref<Vector<half_t> >(int, Vector<half_t> const&, Vector<ha
 
 template
 int ComputeDotProduct_ref<Vector<half_t>, float >(int, Vector<half_t> const&, Vector<half_t> const&, float&, double&);
+
+template
+int ComputeDotProduct_ref<Vector<half_t>, double >(int, Vector<half_t> const&, Vector<half_t> const&, double&, double&);
 #endif
 
 #endif

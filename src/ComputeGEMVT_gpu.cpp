@@ -154,7 +154,8 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   MPI_Comm_size(A.comm, &size);
   if (size > 1) {
       MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
-      MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
+      MPI_Op MPI_SCALAR_SUM = MpiTypeTraits<scalarY_type>::getSumOp ();
+      MPI_Allreduce(MPI_IN_PLACE, yv, n, MPI_SCALAR_TYPE, MPI_SCALAR_SUM, A.comm);
   }
   TIME(y.time2);
 #else
@@ -186,5 +187,9 @@ int ComputeGEMVT_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<hal
 template
 int ComputeGEMVT_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<float> >
   (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, float, SerialDenseMatrix<float> &);
+
+template
+int ComputeGEMVT_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<double> >
+  (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, double, SerialDenseMatrix<double> &);
 #endif
 #endif

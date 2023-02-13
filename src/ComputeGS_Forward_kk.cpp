@@ -62,7 +62,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
   assert(x.localLength==A.localNumberOfColumns); // Make sure x contain space for halo values
 
-  typedef typename SparseMatrix_type::scalar_type scalar_type;
+  typedef typename Vector_type::scalar_type scalar_type;
   const local_int_t nrow = A.localNumberOfRows;
   const local_int_t ncol = A.localNumberOfColumns;
 
@@ -160,20 +160,22 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
     double t0 = 0.0;
     const int nnzA = A.localNumberOfNonzeros;
     typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
+    using execution_space = typename SparseMatrix_type::execution_space;
+    using VectorView = Kokkos::View<scalar_type *, Kokkos::LayoutLeft, execution_space>;
     #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
     typename SparseMatrix_type::RowPtrView rowptr_view(A.d_row_ptr, nrow+1);
     typename SparseMatrix_type::ColIndView colidx_view(A.d_col_idx, nnzA);
     typename SparseMatrix_type::ValuesView values_view(A.d_nzvals,  nnzA);
 
-    typename SparseMatrix_type::ValuesView r_view(r.d_values, ncol);
-    typename SparseMatrix_type::ValuesView x_view(x.d_values, nrow);
+    VectorView r_view(r.d_values, ncol);
+    VectorView x_view(x.d_values, nrow);
     #else
     typename SparseMatrix_type::RowPtrView rowptr_view(A.h_row_ptr, nrow+1);
     typename SparseMatrix_type::ColIndView colidx_view(A.h_col_idx, nnzA);
     typename SparseMatrix_type::ValuesView values_view(A.h_nzvals,  nnzA);
 
-    typename SparseMatrix_type::ValuesView r_view(r.values, ncol);
-    typename SparseMatrix_type::ValuesView x_view(x.values, nrow);
+    VectorView r_view(r.values, ncol);
+    VectorView x_view(x.values, nrow);
     #endif
     TICK();
     KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
@@ -198,6 +200,9 @@ int ComputeGS_Forward_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<flo
 #if !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeGS_Forward_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&);
+
+//template
+//int ComputeGS_Forward_ref< SparseMatrix<half_t>, Vector<double> >(SparseMatrix<half_t> const&, Vector<double> const&, Vector<double>&);
 #endif
 #endif
 

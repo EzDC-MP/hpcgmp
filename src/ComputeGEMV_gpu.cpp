@@ -226,12 +226,20 @@ int ComputeGEMV_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<floa
   (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<float> const&, half_t, Vector<half_t> const&);
 
 template
-int ComputeGEMV_ref< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<float> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<float> const&, double, Vector<double> const&);
+int ComputeGEMV_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<double> >
+  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<double> const&, half_t, Vector<half_t> const&);
 
 template
 int ComputeGEMV_ref< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<half_t> >
   (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<half_t> const&, double, Vector<double> const&);
+
+template
+int ComputeGEMV_ref< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<float> >
+  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<float> const&, double, Vector<double> const&);
+
+template
+int ComputeGEMV_ref< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<double> >
+  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<double> const&, double, Vector<double> const&);
 #endif
 
 #endif

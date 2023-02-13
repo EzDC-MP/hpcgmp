@@ -113,4 +113,9 @@ template
 void SetupMatrix< SparseMatrix<half_t>, GMRESData<half_t, float>, class Vector<double> >
  (int numberOfMgLevels, SparseMatrix<half_t> & A, Geometry * geom, GMRESData<half_t, float> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact,
   bool init_vect, comm_type comm);
+
+template
+void SetupMatrix< SparseMatrix<half_t>, GMRESData<half_t, double>, class Vector<double> >
+ (int numberOfMgLevels, SparseMatrix<half_t> & A, Geometry * geom, GMRESData<half_t, double> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact,
+  bool init_vect, comm_type comm);
 #endif

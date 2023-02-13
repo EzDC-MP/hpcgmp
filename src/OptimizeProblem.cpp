@@ -790,8 +790,4 @@ int OptimizeProblem< SparseMatrix<float>, GMRESData<double>, Vector<double> >
 template
 int OptimizeProblem< SparseMatrix<half_t>, GMRESData<double>, Vector<double> >
   (SparseMatrix<half_t>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
-
-template
-int OptimizeProblem< SparseMatrix<half_t>, GMRESData<double, double>, Vector<double> >
-  (SparseMatrix<half_t>&, GMRESData<double, double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 #endif

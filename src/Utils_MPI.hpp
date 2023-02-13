@@ -14,6 +14,9 @@ public:
   static MPI_Datatype getType () {
     return MPI_DATATYPE_NULL;
   }
+  static MPI_Op getSumOp () {
+    return MPI_NO_OP;
+  }
 };
 
 //! Specialization for T = double (from Teuchos)

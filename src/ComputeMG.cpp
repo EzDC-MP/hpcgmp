@@ -52,4 +52,7 @@ int ComputeMG< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, 
 #if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeMG< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&, bool);
+
+//template
+//int ComputeMG< SparseMatrix<half_t>, Vector<double> >(SparseMatrix<half_t> const&, Vector<double> const&, Vector<double>&, bool);
 #endif

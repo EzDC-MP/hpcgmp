@@ -64,4 +64,7 @@ int ComputeDotProduct< Vector<half_t> >(int, Vector<half_t> const&, Vector<half_
 
 template
 int ComputeDotProduct< Vector<half_t>, float >(int, Vector<half_t> const&, Vector<half_t> const&, float&, double&, bool&);
+
+template
+int ComputeDotProduct< Vector<half_t>, double >(int, Vector<half_t> const&, Vector<half_t> const&, double&, double&, bool&);
 #endif
