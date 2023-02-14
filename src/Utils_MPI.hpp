@@ -45,7 +45,7 @@ public:
   }
 };
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
 //! Specialization for T = half
 template<>
 class MpiTypeTraits<half_t> {

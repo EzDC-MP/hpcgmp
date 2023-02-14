@@ -80,7 +80,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   #endif
 
   double t_begin = mytimer();  // Start timing right away
-  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
+  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
          t7 = 0.0, t8 = 0.0, t9 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
 
@@ -270,7 +270,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
         flops_orth += (ifour*k*Nrow);
       }
       // beta = norm(Qk)
-      START_T(); ComputeDotProduct<Vector_type2, project_type>(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); STOP_T(t1);
+      START_T(); ComputeDotProduct<Vector_type2, project_type>(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); STOP_T(t1_);
       flops_orth += (itwo*Nrow);
       #ifdef HPCG_WITH_KOKKOSKERNELS
       beta = AT_pr::sqrt(beta);
@@ -432,16 +432,16 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   // Store times
   double tt = mytimer() - t_begin;
   if (test_data.times != NULL) {
-    test_data.times[0] += tt; // Total time. All done...
-    test_data.times[1] += t1; // dot-product time
-    test_data.times[2] += t2; // WAXPBY time
-    test_data.times[3] += t6; // Ortho
-    test_data.times[4] += t3; // SPMV time
-    test_data.times[5] += t4; // AllReduce time
-    test_data.times[6] += t5; // preconditioner apply time
-    test_data.times[7] += t7; // > SpTRSV for GS
-    test_data.times[8] += t8; // > SpMV for GS
-    test_data.times[9] += t9; // Vector update time
+    test_data.times[0] += tt;       // Total time. All done...
+    test_data.times[1] += t1 + t1_; // dot-product time
+    test_data.times[2] += t2;       // WAXPBY time
+    test_data.times[3] += t6;       // Ortho
+    test_data.times[4] += t3;       // SPMV time
+    test_data.times[5] += t4;       // AllReduce time
+    test_data.times[6] += t5;       // preconditioner apply time
+    test_data.times[7] += t7;       // > SpTRSV for GS
+    test_data.times[8] += t8;       // > SpMV for GS
+    test_data.times[9] += t9;       // Vector update time
 
     test_data.times_comp[1] += t1_comp; // dot-product time
     test_data.times_comm[1] += t1_comm; // dot-product time
@@ -502,7 +502,7 @@ int GMRES_IR< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRE
    Vector<double> const&, Vector<double>&, const int, const int, double, int&, double&, double&, bool, bool,
    TestGMRESData<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
 template
 int GMRES_IR< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t, half_t>, Vector<double>, TestGMRESData<double> >
   (SparseMatrix<double> const&, SparseMatrix<half_t> const&, GMRESData<double>&, GMRESData<half_t>&,

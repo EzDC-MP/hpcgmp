@@ -3,6 +3,37 @@
 #include "Kokkos_Random.hpp"
 #include "KokkosBlas2_gemv.hpp"
 
+//using scalar_type = double;
+//using scalar_type = float;
+using scalar_type = Kokkos::Experimental::half_t;
+using scalar_type2= float;
+
+#if 1
+// mixed-precision gemv
+using half_t = Kokkos::Experimental::half_t;
+using execution_space = typename Kokkos::DefaultExecutionSpace;
+using memory_space    = typename execution_space::memory_space;
+using AType  = Kokkos::View<scalar_type**, Kokkos::LayoutLeft, execution_space>;
+using VType  = Kokkos::View<scalar_type* , Kokkos::LayoutLeft, execution_space>;
+
+#include "KokkosBlas2_gemv_spec.hpp"
+namespace KokkosBlas {
+namespace Impl {
+template struct GEMV<                                              \
+    Kokkos::View<const half_t**, Kokkos::LayoutLeft,               \
+                 Kokkos::Device<execution_space, memory_space>,    \
+                 Kokkos::MemoryTraits<Kokkos::Unmanaged> >,        \
+    Kokkos::View<const half_t*, Kokkos::LayoutLeft,                \
+                 Kokkos::Device<execution_space, memory_space>,    \
+                 Kokkos::MemoryTraits<Kokkos::Unmanaged> >,        \
+    Kokkos::View<half_t*, Kokkos::LayoutLeft,                      \
+                 Kokkos::Device<execution_space, memory_space>,    \
+                 Kokkos::MemoryTraits<Kokkos::Unmanaged> >,        \
+    false, true>;
+}
+}
+#endif
+
 int main(int argc, char * argv[]) {
   Kokkos::initialize(argc, argv);
   {
@@ -33,7 +64,6 @@ int main(int argc, char * argv[]) {
       }
     }
 
-    using scalar_type = double;
     using execution_space = Kokkos::DefaultExecutionSpace;
     using memory_space = typename execution_space::memory_space;
     {
@@ -43,10 +73,21 @@ int main(int argc, char * argv[]) {
       std::cout << std::endl;
     }
 
-    const scalar_type one  (1.0);
-    const scalar_type zero (0.0);
-    using  MType = Kokkos::View<scalar_type**, Kokkos::LayoutLeft, execution_space>;
-    using  VType = Kokkos::View<scalar_type *, Kokkos::LayoutLeft, execution_space>;
+#if defined(KOKKOS_HALF_T_IS_FLOAT)
+  #if KOKKOS_HALF_T_IS_FLOAT
+  std::cout << " > " <<sizeof(Kokkos::Experimental::half_t) << std::endl;
+  #else
+  std::cout << " + " <<sizeof(Kokkos::Experimental::half_t) << std::endl;
+  #endif
+#else
+  std::cout << " x " <<sizeof(Kokkos::Experimental::half_t) << std::endl;
+#endif
+
+    const scalar_type  one  (1.0);
+    const scalar_type2 zero (0.0);
+    using  MType  = Kokkos::View<scalar_type**, Kokkos::LayoutLeft, execution_space>;
+    using  VType  = Kokkos::View<scalar_type *, Kokkos::LayoutLeft, execution_space>;
+    using  VType2 = Kokkos::View<scalar_type2*, Kokkos::LayoutLeft, execution_space>;
 
     Kokkos::Timer timer;
     printf( "\n" );
@@ -54,13 +95,13 @@ int main(int argc, char * argv[]) {
     printf( " ==================================================\n" );
     for (int m = M[0]; m <= M[1]; m+= M[2]) {
       for (int n = N[0]; n <= N[1]; n+= N[2]) {
-        MType  A ("V",   m, n);
-        VType  x ("V",   m);
-        VType  y ("V",   n);
+        MType  A ("A", m, n);
+        VType  x ("x", m);
+        VType2 y ("y", n);
         Kokkos::Random_XorShift64_Pool<execution_space> random(13718);
         Kokkos::fill_random(A, random, scalar_type(1));
-        Kokkos::fill_random(x, random, scalar_type(1));
-        Kokkos::fill_random(y, random, scalar_type(1));
+        Kokkos::deep_copy(x, one/scalar_type(m));
+        Kokkos::deep_copy(y, zero);
 
         for (int ii = 0; ii < warmup; ii++) {
           KokkosBlas::gemv("T", one, A, x, zero, y);
@@ -85,17 +126,16 @@ int main(int argc, char * argv[]) {
           double enorm_k = 0.0;
           Kokkos::deep_copy(A_host, A);
           Kokkos::deep_copy(x_host, x);
-          for (int i = 0; i < m; i++) {
-            double e = y_host(i);
-            for (int j = 0; j < n; j++) {
-              e -= (A_host(j,i) * x_host(j));
+          for (int i = 0; i < n; i++) {
+            double e = 0.0; //y_host(i);
+            for (int j = 0; j < m; j++) {
+              e += (A_host(j,i) * x_host(j));
             }
+            e = y_host(i) - e;
             enorm_k += e * e;
           }
           enorm += std::sqrt(enorm_k);
         }
-        gnorm/= warmup;
-        enorm/= warmup;
 
         for (int nloop = 0; nloop < loops; nloop++) {
           timer.reset();

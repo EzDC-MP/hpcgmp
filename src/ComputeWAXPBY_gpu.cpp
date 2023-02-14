@@ -268,7 +268,7 @@ int ComputeWAXPBY_ref< Vector<double>, Vector<double>, Vector<double> >(int, dou
 template
 int ComputeWAXPBY_ref< Vector<float>, Vector<float>, Vector<float> >(int, float, Vector<float> const&, float, Vector<float> const&, Vector<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
 template
 int ComputeWAXPBY_ref< Vector<half_t>, Vector<half_t>, Vector<half_t> >(int, half_t, Vector<half_t> const&, half_t, Vector<half_t> const&, Vector<half_t>&);
 #endif
@@ -277,7 +277,7 @@ int ComputeWAXPBY_ref< Vector<half_t>, Vector<half_t>, Vector<half_t> >(int, hal
 template
 int ComputeWAXPBY_ref< Vector<double>, Vector<float>, Vector<double> >(int, double, Vector<double> const&, float, Vector<float> const&, Vector<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
 template
 int ComputeWAXPBY_ref< Vector<double>, Vector<half_t>, Vector<double> >(int, double, Vector<double> const&, half_t, Vector<half_t> const&, Vector<double>&);
 #endif

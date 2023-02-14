@@ -112,7 +112,7 @@ int main(int argc, char * argv[]) {
   if (rank == 0) HPCG_fout << "With MPI " << endl;
 #endif
 #ifdef HPCG_WITH_KOKKOSKERNELS
-  #ifdef KOKKOS_HALF_T_IS_FLOAT
+  #if KOKKOS_HALF_T_IS_FLOAT
   if (rank == 0) HPCG_fout << "With KK (Half is float = " << sizeof(half_t) << " bytes)" << endl;
   #else
   if (rank == 0) HPCG_fout << "With KK (Half is FP16 = " << sizeof(half_t) << " bytes)" << endl;

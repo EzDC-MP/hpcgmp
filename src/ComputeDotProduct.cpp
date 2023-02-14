@@ -58,7 +58,7 @@ int ComputeDotProduct< Vector<double> >(int, Vector<double> const&, Vector<doubl
 template
 int ComputeDotProduct< Vector<float> >(int, Vector<float> const&, Vector<float> const&, float&, double&, bool&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
 template
 int ComputeDotProduct< Vector<half_t> >(int, Vector<half_t> const&, Vector<half_t> const&, half_t&, double&, bool&);
 

@@ -197,7 +197,7 @@ int ComputeGS_Forward_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<d
 template
 int ComputeGS_Forward_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&);
 
-#if !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
+#if !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
 template
 int ComputeGS_Forward_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&);
 
