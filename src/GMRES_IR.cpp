@@ -190,7 +190,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
                 << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi
                 << ", H(0,0) = " << normr << std::endl;
     }
-    if (normr_hi/normr0_hi <= tolerance) {
+    if (normr_hi/normr0_hi < tolerance) {
       converged = true;
       if (verbose && A.geom->rank==0) HPCG_fout << " > GMRES_IR converged " << std::endl;
       break;
@@ -209,7 +209,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     // Start restart cycle
     global_int_t k = 1;
     SetMatrixValue(t, 0, 0, normr);
-    while (k <= restart_length && normr/normr0 > tolerance) {
+    while (k <= restart_length && normr/normr0 >= tolerance) {
       GetVector(Q, k-1, Qkm1);
       GetVector(Q, k,   Qk);
 

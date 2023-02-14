@@ -144,7 +144,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
       HPCG_fout << "GMRES Residual at the start of restart cycle = "<< normr
                 << ", " << normr/normr0 << std::endl;
     }
-    if (normr/normr0 <= tolerance) {
+    if (normr/normr0 < tolerance) {
       converged = true;
       if (verbose && A.geom->rank==0) HPCG_fout << " > GMRES converged " << std::endl;
     }
@@ -155,7 +155,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     // Start restart cycle
     global_int_t k = 1;
     SetMatrixValue(t, 0, 0, normr);
-    while (k <= restart_length && normr/normr0 > tolerance) {
+    while (k <= restart_length && normr/normr0 >= tolerance) {
       GetVector(Q, k-1, Qkm1);
       GetVector(Q, k,   Qk);
 
@@ -199,7 +199,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
         GetMultiVector(Q, 0, k-1, P);
         START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1)
         START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
-	t1_comp += h.time1; t1_comm += h.time2;
+        t1_comp += h.time1; t1_comm += h.time2;
         for(int i = 0; i < k; i++) {
           SetMatrixValue(H, i, k-1, h.values[i]);
         }
@@ -207,7 +207,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
         // reorthogonalize
         START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1)
         START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
-	t1_comp += h.time1; t1_comm += h.time2;
+        t1_comp += h.time1; t1_comm += h.time2;
         for(int i = 0; i < k; i++) {
           AddMatrixValue(H, i, k-1, h.values[i]);
         }

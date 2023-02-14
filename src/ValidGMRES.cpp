@@ -99,7 +99,6 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     ZeroVector(x);
 
     double time_tic = mytimer();
-printf( " GMRES\n" );
     int ierr = GMRES(A, data, b, x, restart_length, MaxIters, tolerance, refNumIters, refResNorm, refResNorm0, true, verbose, test_data);
     refSolveTime = (mytimer() - time_tic);
 
@@ -127,7 +126,6 @@ printf( " GMRES\n" );
     ZeroVector(x);
 
     double time_tic = mytimer();
-printf( " GMRES-IR\n" );
     int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, MaxIters, tolerance, optNumIters, optResNorm, optResNorm0, true, verbose, test_data);
     optSolveTime = (mytimer() - time_tic);
 

@@ -55,7 +55,12 @@ double mytimer(void) {
 #endif
 
 #if defined(HPCG_USE_FENCE)
- #if defined(HPCG_WITH_CUDA)
+ #if defined(HPCG_WITH_KOKKOSKERNELS)
+  #include "Kokkos_Core.hpp"
+  void fence() {
+    Kokkos::fence();
+  }
+ #elif defined(HPCG_WITH_CUDA)
   #include <cuda_runtime.h>
   #include "cublas_v2.h"
   void fence() {

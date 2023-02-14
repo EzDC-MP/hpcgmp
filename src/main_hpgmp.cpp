@@ -58,13 +58,14 @@ typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
 
 #if defined(HPCG_WITH_KOKKOSKERNELS)
-//typedef float scalar_type2;
-typedef Kokkos::Experimental::half_t scalar_type2;
-typedef float project_type;
-//typedef double project_type;
+using scalar_type2 = float;
+//using scalar_type2 = Kokkos::Experimental::half_t;
+
+using project_type = float;
+//using project_type = double;
 #else
-typedef float scalar_type2;
-typedef float project_type;
+using scalar_type2 = float;
+using project_type = float;
 #endif
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
