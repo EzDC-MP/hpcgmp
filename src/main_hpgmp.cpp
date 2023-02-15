@@ -58,8 +58,8 @@ typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
 
 #if defined(HPCG_WITH_KOKKOSKERNELS)
-using scalar_type2 = float;
-//using scalar_type2 = Kokkos::Experimental::half_t;
+//using scalar_type2 = float;
+using scalar_type2 = Kokkos::Experimental::half_t;
 
 using project_type = float;
 //using project_type = double;
@@ -127,7 +127,7 @@ int main(int argc, char * argv[]) {
 
 
   // Use this array for collecting timing information
-  bool verbose = true; //false;
+  bool verbose = false;
   TestGMRESData_type test_data;
   test_data.times = NULL;
   test_data.flops = NULL;

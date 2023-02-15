@@ -70,7 +70,6 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
   const global_int_t ione  = 1;
   const global_int_t itwo  = 2;
   const global_int_t ifour = 4;
-  double t_begin = mytimer();  // Start timing right away
   double start_t = 0.0, t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
          t7 = 0.0, t8 = 0.9, t9 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
@@ -127,6 +126,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
   global_int_t numSpMVs_MG = 1+(A.mgData->numberOfPresmootherSteps + A.mgData->numberOfPostsmootherSteps);
   niters = 0;
   bool converged = false;
+  double t_begin = mytimer();  // Start timing right away
   while (niters <= max_iter && !converged) {
     // p is of length ncols, copy x to p for sparse MV operation
     CopyVector(x, p);
@@ -144,7 +144,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
       HPCG_fout << "GMRES Residual at the start of restart cycle = "<< normr
                 << ", " << normr/normr0 << std::endl;
     }
-    if (normr/normr0 < tolerance) {
+    if (normr/normr0 <= tolerance) { // Use "<=" to exit when res=zero (continuing will cause NaN)
       converged = true;
       if (verbose && A.geom->rank==0) HPCG_fout << " > GMRES converged " << std::endl;
     }
@@ -155,7 +155,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     // Start restart cycle
     global_int_t k = 1;
     SetMatrixValue(t, 0, 0, normr);
-    while (k <= restart_length && normr/normr0 >= tolerance) {
+    while (k <= restart_length && normr/normr0 > tolerance) { // Use ">" to exit when res=zero (continuing will cause NaN)
       GetVector(Q, k-1, Qkm1);
       GetVector(Q, k,   Qk);
 

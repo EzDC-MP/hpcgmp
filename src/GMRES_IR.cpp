@@ -79,7 +79,6 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   using AT_pr = Kokkos::Details::ArithTraits<project_type>;
   #endif
 
-  double t_begin = mytimer();  // Start timing right away
   double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
          t7 = 0.0, t8 = 0.0, t9 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
@@ -134,6 +133,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   if (print_freq>50) print_freq=50;
   if (print_freq<1)  print_freq=1;
   if (verbose && A.geom->rank==0) {
+    printf( " VERBOSE \n" );
     HPCG_fout << std::endl << " Running GMRES_IR(" << restart_length
                            << ") with max-iters = " << max_iter
                            << ", tol = " << tolerance
@@ -164,6 +164,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   global_int_t numSpMVs_MG = 1+(A.mgData->numberOfPresmootherSteps + A.mgData->numberOfPostsmootherSteps);
   niters = 0;
   bool converged = false;
+  double t_begin = mytimer();  // Start timing right away
   while (niters <= max_iter && !converged) {
     // > Compute residual vector (higher working precision)
     // p is of length ncols, copy x to p for sparse MV operation
@@ -190,7 +191,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
                 << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi
                 << ", H(0,0) = " << normr << std::endl;
     }
-    if (normr_hi/normr0_hi < tolerance) {
+    if (normr_hi/normr0_hi <= tolerance) { // Use "<=" to exit when res=zero (continuing will cause NaN)
       converged = true;
       if (verbose && A.geom->rank==0) HPCG_fout << " > GMRES_IR converged " << std::endl;
       break;
@@ -209,7 +210,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     // Start restart cycle
     global_int_t k = 1;
     SetMatrixValue(t, 0, 0, normr);
-    while (k <= restart_length && normr/normr0 >= tolerance) {
+    while (k <= restart_length && normr/normr0 > tolerance) { // Use ">" to exit when res=zero (continuing will cause NaN)
       GetVector(Q, k-1, Qkm1);
       GetVector(Q, k,   Qk);
 
@@ -326,7 +327,8 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       normr = std::abs(v2);
       #endif
       if (verbose && (k%print_freq == 0 || k+1 == restart_length)) {
-        #if 1
+        //#define HPCG_NUMERIC_CHECK
+        #ifdef HPCG_NUMERIC_CHECK
         {
           // compute current approximation
           CopyVector(x_hi, p_hi);                                 // using p_hi for x_hi
@@ -376,11 +378,11 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
             }
           }
         }
-        #endif
+        #endif // HPCG_NUMERIC_CHECK
         if (verbose && A.geom->rank==0) {
           HPCG_fout << "GMRES_IR Iteration = "<< k << " (" << niters << ")   Scaled Computed Residual = "
                     << normr << " / " << normr0 << " = " << normr/normr0;
-          #if 1
+          #ifdef HPCG_NUMERIC_CHECK
           HPCG_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
           HPCG_fout << "  Ortho Error = " << ortho_err;
           #endif
