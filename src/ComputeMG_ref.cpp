@@ -27,6 +27,7 @@
 #ifdef HPCG_DEBUG
 #include "hpgmp.hpp"
 #endif
+#include "mytimer.hpp"
 #include <cassert>
 #include <iostream>
 
@@ -44,7 +45,9 @@ template<class SparseMatrix_type, class Vector_type>
 int ComputeMG_ref(const SparseMatrix_type & A, const Vector_type & r, Vector_type & x, bool symmetric) {
   assert(x.localLength==A.localNumberOfColumns); // Make sure x contain space for halo values
 
+  #if !defined(HPCG_WITH_KOKKOSKERNELS)
   ZeroVector(x); // initialize x to zero
+  #endif
 
   int ierr = 0;
   if (A.mgData!=0) { // Go to next coarse level if defined
@@ -54,14 +57,30 @@ int ComputeMG_ref(const SparseMatrix_type & A, const Vector_type & r, Vector_typ
     } else {
       for (int i=0; i< numberOfPresmootherSteps; ++i) ierr += ComputeGS_Forward_ref(A, r, x);
     }
-
     if (ierr!=0) return ierr;
-    ierr = ComputeSPMV_ref(A, x, *A.mgData->Axf); if (ierr!=0) return ierr;
 
-    // Perform restriction operation using simple injection
+    // Compute residual vector
+    double t0 = 0.0; TICK();
+    ierr = ComputeSPMV_ref(A, x, *A.mgData->Axf); if (ierr!=0) return ierr;
+    TOCK(x.time1);
+
+    // Restriction operation
+    TICK();
     ierr = ComputeRestriction_ref(A, r);  if (ierr!=0) return ierr;
+    TOCK(x.time3);
+
+    // MG on coarser-grid
+    A.mgData->xc->time1 = A.mgData->xc->time2 = 0.0; A.mgData->xc->time3 = A.mgData->xc->time4 = 0.0;
     ierr = ComputeMG_ref(*A.Ac,*A.mgData->rc, *A.mgData->xc, symmetric);  if (ierr!=0) return ierr;
+    x.time1 += A.mgData->xc->time1; x.time2 += A.mgData->xc->time2;
+    x.time3 += A.mgData->xc->time3; x.time4 += A.mgData->xc->time4;
+
+    // Prolongation operation
+    TICK();
     ierr = ComputeProlongation_ref(A, x);  if (ierr!=0) return ierr;
+    TOCK(x.time4);
+
+    // Post-smoothing
     int numberOfPostsmootherSteps = A.mgData->numberOfPostsmootherSteps;
     if (symmetric) {
       for (int i=0; i< numberOfPostsmootherSteps; ++i) ierr += ComputeSYMGS_ref(A, r, x);
@@ -71,6 +90,7 @@ int ComputeMG_ref(const SparseMatrix_type & A, const Vector_type & r, Vector_typ
     if (ierr!=0) return ierr;
   }
   else {
+    // coarsest grid
     if (symmetric) {
       ierr = ComputeSYMGS_ref(A, r, x);
     } else {

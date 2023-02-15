@@ -80,7 +80,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   #endif
 
   double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
-         t7 = 0.0, t8 = 0.0, t9 = 0.0;
+         t7 = 0.0, t8 = 0.0, t9 = 0.0, t10 = 0.0, t11 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
 
   // vectors/matrices in scalar_type2 (lower)
@@ -133,7 +133,6 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   if (print_freq>50) print_freq=50;
   if (print_freq<1)  print_freq=1;
   if (verbose && A.geom->rank==0) {
-    printf( " VERBOSE \n" );
     HPCG_fout << std::endl << " Running GMRES_IR(" << restart_length
                            << ") with max-iters = " << max_iter
                            << ", tol = " << tolerance
@@ -170,8 +169,8 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     // p is of length ncols, copy x to p for sparse MV operation
     CopyVector(x_hi, p_hi);
     TICK(); ComputeSPMV(A, p_hi, Ap_hi); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3); // Ap = A*p
-    TICK(); ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow);  TOCK(t9); // r = b - Ax (x stored in p)
-    TICK(); ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t9);
+    TICK(); ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow);  TOCK(t11); // r = b - Ax (x stored in p)
+    TICK(); ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t11);
     #ifdef HPCG_WITH_KOKKOSKERNELS
     normr_hi = AT_hi::sqrt(normr_hi);
     #else
@@ -198,7 +197,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     }
 
     // > Scale to the residual vector in working precision
-    TICK(); ScaleVectorValue<Vector_type, scalar_type> (r_hi, one_hi/normr_hi); flops += Nrow; TOCK(t9);
+    TICK(); ScaleVectorValue<Vector_type, scalar_type> (r_hi, one_hi/normr_hi); flops += Nrow; TOCK(t11);
 
     // > Copy r as the initial basis vector (lower precision)
     GetVector(Q, 0, Qj);
@@ -216,10 +215,10 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
       TICK();
       if (doPreconditioning) {
-        z.time1 = z.time2 = 0.0;
+        z.time1 = z.time2 = z.time3 = z.time4 = 0.0;
         ComputeMG(A_lo, Qkm1, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros); // Apply preconditioner
         test_data.numOfMGCalls++;
-        t7 += z.time1; t8 += z.time2;
+        t7 += z.time1; t8 += z.time2; t9 += z.time3; t10 += z.time4;
       } else {
         CopyVector(Qkm1, z);       // copy r to z (no preconditioning)
       }
@@ -402,27 +401,27 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       #ifdef HPGMRES_IR_UPDATE_X_IN_HIGH
       ComputeGEMV (nrow, k-1, one, Q, t, zero_hi, r_hi, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // r = Q*t
 
-      z.time1 = z.time2 = 0.0;
+      z.time1 = z.time2 = z.time3 = z.time4 = 0.0;
       TICK();
       ComputeMG(A, r_hi, z_hi, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros);    // z = M*r
       TOCK(t5); // Preconditioner apply time
       test_data.numOfMGCalls++;
-      t7 += z.time1; t8 += z.time2;
+      t7 += z.time1; t8 += z.time2; t9 += z.time3; t10 += z.time4;
 
       // mixed-precision
-      TICK(); ComputeWAXPBY(nrow, one_hi, x_hi, one_hi, z_hi, x_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow); TOCK(t9); // x += z
+      TICK(); ComputeWAXPBY(nrow, one_hi, x_hi, one_hi, z_hi, x_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow); TOCK(t11); // x += z
       #else
       ComputeGEMV (nrow, k-1, one, Q, t, zero, r, A.isGemvOptimized); flops += (itwo*Nrow*(k-ione)); // r = Q*t
 
-      z.time1 = z.time2 = 0.0;
+      z.time1 = z.time2 = z.time3 = z.time4 = 0.0;
       TICK();
       ComputeMG(A_lo, r, z, symmetric); flops_gmg += (2*numSpMVs_MG*A.totalNumberOfMGNonzeros);    // z = M*r
       TOCK(t5); // Preconditioner apply time
       test_data.numOfMGCalls++;
-      t7 += z.time1; t8 += z.time2;
+      t7 += z.time1; t8 += z.time2; t9 += z.time3; t10 += z.time4;
 
       // mixed-precision
-      TICK(); ComputeWAXPBY(nrow, one_hi, x_hi, one, z, x_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow); TOCK(t9); // x += z
+      TICK(); ComputeWAXPBY(nrow, one_hi, x_hi, one, z, x_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow); TOCK(t11); // x += z
       #endif
     } else {
       // mixed-precision
@@ -434,16 +433,18 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   // Store times
   double tt = mytimer() - t_begin;
   if (test_data.times != NULL) {
-    test_data.times[0] += tt;       // Total time. All done...
-    test_data.times[1] += t1 + t1_; // dot-product time
-    test_data.times[2] += t2;       // WAXPBY time
-    test_data.times[3] += t6;       // Ortho
-    test_data.times[4] += t3;       // SPMV time
-    test_data.times[5] += t4;       // AllReduce time
-    test_data.times[6] += t5;       // preconditioner apply time
-    test_data.times[7] += t7;       // > SpTRSV for GS
-    test_data.times[8] += t8;       // > SpMV for GS
-    test_data.times[9] += t9;       // Vector update time
+    test_data.times[0]  += tt;       // Total time. All done...
+    test_data.times[1]  += t1 + t1_; // dot-product time
+    test_data.times[2]  += t2;       // WAXPBY time
+    test_data.times[3]  += t6;       // Ortho
+    test_data.times[4]  += t3;       // SPMV time
+    test_data.times[5]  += t4;       // AllReduce time
+    test_data.times[6]  += t5;       // preconditioner apply time
+    test_data.times[7]  += t7;       // > SpTRSV for GS
+    test_data.times[8]  += t8;       // > SpMV for GS
+    test_data.times[9]  += t9;       // > Restrict for GS
+    test_data.times[10] += t10;      // > Prolong for GS
+    test_data.times[11] += t11;      // Vector update time
 
     test_data.times_comp[1] += t1_comp; // dot-product time
     test_data.times_comm[1] += t1_comm; // dot-product time
