@@ -81,7 +81,7 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
   //////////////////////////////////////////////////////////
   // Solver Parameters
-  int MaxIters = 3000;
+  int MaxIters = 10000;
   int restart_length = test_data.restart_length;
   scalar_type tolerance = test_data.tolerance;
   if (A.geom->rank == 0 && verbose) {

@@ -280,6 +280,8 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     doc.get("Benchmark Time Summary")->add("VecUpdate", test_data.opt_times[11]);
     doc.get("Benchmark Time Summary")->add("Total",     test_data.opt_times[0]);
     if (test_data.refTotalTime > 0.0) {
+      doc.get("Benchmark Time Summary")->add(" - Num SpMVs  (reference)", test_data.refNumOfSPCalls);
+      doc.get("Benchmark Time Summary")->add(" - Num MGs    (reference)", test_data.refNumOfMGCalls);
       doc.get("Benchmark Time Summary")->add(" - Ortho   (reference)",test_data.ref_times[3]);
       doc.get("Benchmark Time Summary")->add(" -  DDOT   (reference)",test_data.ref_times[1]);
       doc.get("Benchmark Time Summary")->add(" -   DDOT (comp)",  test_data.ref_times_comp[1]);

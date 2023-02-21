@@ -154,6 +154,8 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     test_data.numOfSPCalls = 0;
     for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
     for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
+    for (int i=0; i<num_times; i++) test_data.times_comp[i] = 0.0;
+    for (int i=0; i<num_times; i++) test_data.times_comm[i] = 0.0;
     for (int i=0; i< numberOfGmresCalls; ++i) {
       ZeroVector(x); // Zero out x
 
@@ -225,6 +227,8 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     time_solve_total = 0.0;
     for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
     for (int i=0; i<num_times; i++) test_data.times[i] = 0.0;
+    for (int i=0; i<num_times; i++) test_data.times_comp[i] = 0.0;
+    for (int i=0; i<num_times; i++) test_data.times_comm[i] = 0.0;
     for (int i=0; i< numberOfGmresCalls; ++i) {
       ZeroVector(x); // Zero out x
 
