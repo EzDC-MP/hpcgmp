@@ -91,6 +91,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   const scalar_type2 one  (1.0);
   const scalar_type2 zero (0.0);
   const project_type one_pr  (1.0);
+  const project_type two_pr  (2.0);
   const project_type zero_pr (0.0);
   project_type normr, normr0;
   project_type alpha = zero_pr, beta = zero_pr;
@@ -124,10 +125,10 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   MultiVector_type2 V;
   SerialDenseMatrix_type T;
   SerialDenseMatrix_type G; // workspace
-  InitializeMatrix(T, restart_length,   restart_length);
+  SerialDenseMatrix_type w; // workspace
+  InitializeMatrix(T, restart_length, restart_length);
   InitializeMatrix(G, restart_length+1, 2);
-
-  bool single_reduce = true;
+  InitializeMatrix(w, restart_length+1, 1);
   #endif
 
   // vectors in scalar_type (higher)
@@ -253,6 +254,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       // orthogonalize z against Q(:,0:k-1), using dots
       bool use_mgs = false;
       bool renormalize = true;
+      bool single_reduce = true; //false;
       TICK();
       if (use_mgs) {
         // MGS2
@@ -278,21 +280,65 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
         // first orthogonalization
         #ifdef SINGLEREDUCE_GMRES_IR
         if (single_reduce) {
+          // Single-reduced CGS2
           GetMultiVector(Q, 0,   k, P);
           GetMultiVector(Q, k-1, k, V);
           ReshapeMatrix(G, k+1, 2);
-          START_T(); ComputeGEMMT (k, 2, nrow, one, P, V, zero_pr, G, A.isGemvOptimized); STOP_T(t1); // G = Q(1:k+1)'*Q(k:k+1), mul and add in proj_type
+
+          // G = Q(1:k+1)'*Q(k:k+1), mul and add in proj_type
+          START_T(); ComputeGEMMT (k+1, 2, nrow, one, P, V, zero_pr, G, A.isGemvOptimized); STOP_T(t1);
+          // T  := 2I-Q'*Q
+          // Q*H = A*Q
           for(int i = 0; i < k; i++) {
-            SetMatrixValue(T, i, k-1, GetMatrixValue(G, i, 0));
-	    h.values[i] = GetMatrixValue(G, i, 1);
+            // T(:,k-1) = Q(:,1:k)'*q(k)
+            project_type vi = GetMatrixValue(G, i, 0);
+            SetMatrixValue(T, i, k-1, -vi);
+            SetMatrixValue(T, k-1, i, -vi);
+
+            // H(:,k-1) = Q(:,1:k)'*q(k+1)
+            w.values[i] = GetMatrixValue(G, i, 1);
           }
-	  h.values[k] = project_type(GetMatrixValue(G, k, 1));;
-        } //else
+          w.values[k] = GetMatrixValue(G, k, 1);
+
+          project_type tkk = two_pr + GetMatrixValue(T, k-1, k-1);
+          SetMatrixValue(T, k-1, k-1, tkk);
+          // update H(:,k-1) = (2I-T) H(:,k-1)
+          // because (I-QQ')(I-QQ')q(k+1) = [I-Q(2I-T)Q']*q(k+1)
+          for (int i = 0; i < k; ++i) {
+            h.values[i] = zero_pr;
+            for (int j = 0; j < k; ++j) {
+              h.values[i] += GetMatrixValue(T, i, j) * w.values[j];
+            }
+          }
+	  h.values[k] = w.values[k];
+
+	  // q(k+1) = q(k+1) - Q(1:k)*h
+          GetMultiVector(Q, 0, k-1, P);
+          START_T(); ComputeGEMV (nrow, k, -one, P, h, one, Qk, A.isGemvOptimized); STOP_T(t2);
+          t1_comp += h.time1; t1_comm += h.time2;
+          for(int i = 0; i < k; i++) {
+            SetMatrixValue(H, i, k-1, h.values[i]);
+          }
+          flops_orth += (ifour*k*Nrow); // first ortho
+          flops_orth += (ifour*k*Nrow); // second ortho
+
+          #if 0
+	  //HPCG_fout << " T=[" << std::endl;
+          //for (int i = 0; i < k; ++i) {
+          //  for (int j = 0; j < k; ++j) HPCG_fout << GetMatrixValue(T, i, j) << " ";
+	  //  HPCG_fout << std::endl;
+	  //}
+	  //HPCG_fout << " ]'" << std::endl;
+          for (int i = 0; i <= k; ++i) HPCG_fout << " * h[" << i << "] = " << h.values[i] << std::endl;
+	  HPCG_fout << std::endl;
+          #endif
+        } else
         #endif
-	{
+        {
+          // CGS2
           GetMultiVector(Q, 0, k-1, P);
           START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1), mul and add in proj_type
-          START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one,    Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1), mul in proj, but add in low
+          START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one,    Qk, A.isGemvOptimized); STOP_T(t2); // q(k+1) = q(k+1) - Q(1:k)*h
           t1_comp += h.time1; t1_comm += h.time2;
           for(int i = 0; i < k; i++) {
             SetMatrixValue(H, i, k-1, h.values[i]);
@@ -302,24 +348,29 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
           // reorthogonalization
           START_T();
           if (renormalize) {
+            // h = Q(1:k+1)'*q(k+1)
+            // > include q(k+1) into Q(1:k+1) for dot-products
             GetMultiVector(Q, 0, k, P);
-            ComputeGEMVT (nrow, k+1,  one, P, Qk, zero_pr, h, A.isGemvOptimized); // h = Q(1:k+1)'*q(k+1)
+            ComputeGEMVT (nrow, k+1,  one, P, Qk, zero_pr, h, A.isGemvOptimized);
             GetMultiVector(Q, 0, k-1, P);
           } else {
-            ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized);   // h = Q(1:k)'*q(k+1)
+            // h = Q(1:k)'*q(k+1)
+            ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized);
           }
           STOP_T(t1);
-	}
 
-        START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
-        t1_comp += h.time1; t1_comm += h.time2;
-        for(int i = 0; i < k; i++) {
-          AddMatrixValue(H, i, k-1, h.values[i]);
+          START_T(); ComputeGEMV (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // q(k+1) = q(k+1) - Q(1:k)*h
+          t1_comp += h.time1; t1_comm += h.time2;
+          for(int i = 0; i < k; i++) {
+            AddMatrixValue(H, i, k-1, h.values[i]);
+          }
+          flops_orth += (ifour*k*Nrow);
         }
-        flops_orth += (ifour*k*Nrow);
-      }
+      } // end or CGS2
+
       // beta = norm(Qk)
-      if (renormalize) {
+      if (renormalize || single_reduce) {
+        // update norm based on pythagorean
         beta = h.values[k];
         for (int i = 0; i < k; ++i) {
           beta -= (h.values[i]*h.values[i]);
@@ -354,6 +405,10 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       }
       TOCK(t6); // Ortho time
       SetMatrixValue(H, k, k-1, beta);
+      #if 0
+      for (int i = 0; i <= k; ++i) HPCG_fout << " + h[" << i << "] = " << GetMatrixValue(H, i, k-1) << std::endl;
+      HPCG_fout << std::endl;
+      #endif
 
       // Given's rotation
       for(int j = 0; j < k-1; j++){

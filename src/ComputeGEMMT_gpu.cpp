@@ -22,9 +22,6 @@
 #ifndef HPCG_NO_MPI
  #include "Utils_MPI.hpp"
 #endif
-#if defined(HPCG_WITH_KOKKOSKERNELS)
- #include "KokkosBlas3_gemm.hpp"
-#endif
 
 #include "DataTypes.hpp"
 #include "ComputeGEMMT_ref.hpp"
