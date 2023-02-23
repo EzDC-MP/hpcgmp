@@ -184,11 +184,10 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
 
   time ( &rawtime );
   ptm = localtime(&rawtime);
-  sprintf( fname, "%shpgmp%04d%02d%02dT%02d%02d%02d.txt", title,
-      1900 + ptm->tm_year, ptm->tm_mon+1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec );
-
   HPCG_fout.close();
   if (0 == params.comm_rank) {
+    sprintf( fname, "%shpgmp%04d%02d%02dT%02d%02d%02d.txt", title,
+        1900 + ptm->tm_year, ptm->tm_mon+1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec );
     HPCG_fout.open(fname);
     #if defined(HPCG_DETAILED_PRINT)
     HPCG_vout.open(fname);
@@ -197,7 +196,7 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
     #endif
   } else {
 #if defined(HPCG_DEBUG) || defined(HPCG_DETAILED_DEBUG)
-    sprintf( fname, "hpgmp%04d%02d%02dT%02d%02d%02d_%d.txt",
+    sprintf( fname, "%shpgmp%04d%02d%02dT%02d%02d%02d_%d.txt", title,
         1900 + ptm->tm_year, ptm->tm_mon+1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec, params.comm_rank );
     HPCG_fout.open(fname);
 #else

@@ -51,8 +51,8 @@ using std::endl;
 #include "mytimer.hpp"
 
 typedef double scalar_type;
-typedef TestGMRESData<scalar_type> TestGMRESData_type;
 
+typedef TestGMRESData<scalar_type> TestGMRESData_type;
 typedef Vector<scalar_type> Vector_type;
 typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;

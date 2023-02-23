@@ -25,9 +25,11 @@ HPCG_DEPS = src/ComputeResidual.o \
 	 src/ComputeOptimalShapeXYZ.o src/MixedBaseCounter.o src/CheckAspectRatio.o src/OutputFile.o \
          \
          src/TestGMRES.o src/BenchGMRES.o src/ValidGMRES.o \
-         src/ComputeTRSM.o src/ComputeGEMV.o src/ComputeGEMVT.o \
+         src/ComputeTRSM.o \
+	 src/ComputeGEMV.o src/ComputeGEMVT.o \
          src/ComputeGEMV.o src/ComputeGEMV_ref.o src/ComputeGEMV_blas.o src/ComputeGEMV_gpu.o \
          src/ComputeGEMVT.o src/ComputeGEMVT_ref.o src/ComputeGEMVT_blas.o src/ComputeGEMVT_gpu.o \
+         src/ComputeGEMMT.o src/ComputeGEMMT_ref.o src/ComputeGEMVT_gpu.o \
          src/GMRES.o src/GMRES_IR.o \
          src/ComputeGS_Forward.o src/ComputeGS_Forward_ref.o src/ComputeGS_Forward_gpu.o \
 	 src/ComputeGS_Forward_kk.o \

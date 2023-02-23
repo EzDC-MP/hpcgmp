@@ -56,6 +56,10 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/GenerateNonsymProblem_v1_ref.o \
 	    src/GenerateNonsymCoarseProblem.o \
             \
+	    src/ComputeGEMMT.o \
+	    src/ComputeGEMMT_ref.o \
+	    src/ComputeGEMMT_gpu.o \
+            \
 	    src/ComputeDotProduct_blas.o \
 	    src/ComputeGEMV_blas.o \
 	    src/ComputeGEMVT_blas.o \

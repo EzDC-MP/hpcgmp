@@ -34,6 +34,10 @@ public:
 
   local_int_t m;        //!< number of rows
   local_int_t n;        //!< number of columns
+
+  local_int_t m_0;      //!< original number of rows
+  local_int_t n_0;      //!< original number of columns
+
   SC * values;          //!< array of values
 #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   SC * d_values;        //!< array of values
@@ -59,8 +63,8 @@ inline void InitializeMatrix(SerialDenseMatrix_type & A, local_int_t m, local_in
 
   typedef typename SerialDenseMatrix_type::scalar_type scalar_type;
 
-  A.m   = m;
-  A.n   = n;
+  A.m = A.m_0 = m;
+  A.n = A.n_0 = n;
   A.values = new scalar_type[m*n];
 #ifdef HPCG_WITH_CUDA
   if (cudaSuccess != cudaMalloc ((void**)&A.d_values, m*n*sizeof(scalar_type))) {
@@ -75,6 +79,12 @@ inline void InitializeMatrix(SerialDenseMatrix_type & A, local_int_t m, local_in
   return;
 }
 
+
+template<class SerialDenseMatrix_type>
+inline void ReshapeMatrix(SerialDenseMatrix_type & A, local_int_t m, local_int_t n) {
+  A.m = m;
+  A.n = n;
+}
 
 /*!
   Fill the input matrix with zero values.

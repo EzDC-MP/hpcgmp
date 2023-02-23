@@ -33,6 +33,7 @@ add_executable( xhpgmp src/main_hpgmp.cpp
     src/ComputeTRSM.cpp
     src/ComputeGEMV.cpp src/ComputeGEMV_ref.cpp src/ComputeGEMV_blas.cpp src/ComputeGEMV_gpu.cpp
     src/ComputeGEMVT.cpp src/ComputeGEMVT_ref.cpp src/ComputeGEMVT_blas.cpp src/ComputeGEMVT_gpu.cpp
+    src/ComputeGEMMT.cpp src/ComputeGEMMT_ref.cpp src/ComputeGEMMT_gpu.cpp
     src/finalize.cpp src/init.cpp src/mytimer.cpp
     src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp src/ComputeSPMV_ssl2.cpp src/ComputeSPMV_kk.cpp
     src/ComputeSYMGS.cpp src/ComputeSYMGS_ref.cpp
@@ -59,6 +60,7 @@ add_executable( xhpgmp_time src/main_time.cpp
     src/ComputeTRSM.cpp
     src/ComputeGEMV.cpp src/ComputeGEMV_ref.cpp src/ComputeGEMV_blas.cpp src/ComputeGEMV_gpu.cpp
     src/ComputeGEMVT.cpp src/ComputeGEMVT_ref.cpp src/ComputeGEMVT_blas.cpp src/ComputeGEMVT_gpu.cpp
+    src/ComputeGEMMT.cpp src/ComputeGEMMT_ref.cpp src/ComputeGEMMT_gpu.cpp
     src/finalize.cpp src/init.cpp src/mytimer.cpp
     src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp src/ComputeSPMV_ssl2.cpp src/ComputeSPMV_kk.cpp
     src/ComputeSYMGS.cpp src/ComputeSYMGS_ref.cpp

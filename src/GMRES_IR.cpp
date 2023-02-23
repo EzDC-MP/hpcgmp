@@ -32,6 +32,7 @@
 #include "ComputeTRSM.hpp"
 #include "ComputeGEMV.hpp"
 #include "ComputeGEMVT.hpp"
+#include "ComputeGEMMT.hpp"
 
 
 /*!
@@ -118,6 +119,16 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   InitializeMatrix(cs, restart_length+1, 1);
   InitializeMatrix(ss, restart_length+1, 1);
   InitializeMultiVector(Q, nrow, restart_length+1, A.comm);
+  #define SINGLEREDUCE_GMRES_IR
+  #ifdef SINGLEREDUCE_GMRES_IR
+  MultiVector_type2 V;
+  SerialDenseMatrix_type T;
+  SerialDenseMatrix_type G; // workspace
+  InitializeMatrix(T, restart_length,   restart_length);
+  InitializeMatrix(G, restart_length+1, 2);
+
+  bool single_reduce = true;
+  #endif
 
   // vectors in scalar_type (higher)
   const scalar_type zero_hi (0.0);
@@ -185,10 +196,21 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     normr = normr_hi;
 
     // Convergence check
+    #define HPCG_NUMERIC_CHECK
+    #ifdef HPCG_NUMERIC_CHECK
+    project_type ortho_err (0.0);
+    #endif
     if (verbose && A.geom->rank==0) {
       HPCG_fout << "GMRES_IR Residual at the start of restart cycle = "
                 << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi
                 << ", H(0,0) = " << normr << std::endl;
+      HPCG_fout << "GMRES_IR Iteration = "<< 0 << " (" << niters << ")   Scaled Computed Residual = "
+                << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi;
+      #ifdef HPCG_NUMERIC_CHECK
+      HPCG_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
+      HPCG_fout << "  Ortho Error = " << 0.0;
+      #endif
+      HPCG_fout << std::endl;
     }
     if (normr_hi/normr0_hi <= tolerance) { // Use "<=" to exit when res=zero (continuing will cause NaN)
       converged = true;
@@ -230,6 +252,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
       // orthogonalize z against Q(:,0:k-1), using dots
       bool use_mgs = false;
+      bool renormalize = true;
       TICK();
       if (use_mgs) {
         // MGS2
@@ -252,17 +275,43 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
         flops_orth += (ifour*k*Nrow);
       } else {
         // CGS2
-        GetMultiVector(Q, 0, k-1, P);
-        START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1), mul and add in proj_type
-        START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one,    Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1), mul in proj, but add in low
-        t1_comp += h.time1; t1_comm += h.time2;
-        for(int i = 0; i < k; i++) {
-          SetMatrixValue(H, i, k-1, h.values[i]);
-        }
-        flops_orth += (ifour*k*Nrow);
-        // reorthogonalize
-        START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1)
-        START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one,    Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
+        // first orthogonalization
+        #ifdef SINGLEREDUCE_GMRES_IR
+        if (single_reduce) {
+          GetMultiVector(Q, 0,   k, P);
+          GetMultiVector(Q, k-1, k, V);
+          ReshapeMatrix(G, k+1, 2);
+          START_T(); ComputeGEMMT (k, 2, nrow, one, P, V, zero_pr, G, A.isGemvOptimized); STOP_T(t1); // G = Q(1:k+1)'*Q(k:k+1), mul and add in proj_type
+          for(int i = 0; i < k; i++) {
+            SetMatrixValue(T, i, k-1, GetMatrixValue(G, i, 0));
+	    h.values[i] = GetMatrixValue(G, i, 1);
+          }
+	  h.values[k] = project_type(GetMatrixValue(G, k, 1));;
+        } //else
+        #endif
+	{
+          GetMultiVector(Q, 0, k-1, P);
+          START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1), mul and add in proj_type
+          START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one,    Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1), mul in proj, but add in low
+          t1_comp += h.time1; t1_comm += h.time2;
+          for(int i = 0; i < k; i++) {
+            SetMatrixValue(H, i, k-1, h.values[i]);
+          }
+          flops_orth += (ifour*k*Nrow);
+
+          // reorthogonalization
+          START_T();
+          if (renormalize) {
+            GetMultiVector(Q, 0, k, P);
+            ComputeGEMVT (nrow, k+1,  one, P, Qk, zero_pr, h, A.isGemvOptimized); // h = Q(1:k+1)'*q(k+1)
+            GetMultiVector(Q, 0, k-1, P);
+          } else {
+            ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized);   // h = Q(1:k)'*q(k+1)
+          }
+          STOP_T(t1);
+	}
+
+        START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // h = Q(1:k)'*q(k+1)
         t1_comp += h.time1; t1_comm += h.time2;
         for(int i = 0; i < k; i++) {
           AddMatrixValue(H, i, k-1, h.values[i]);
@@ -270,7 +319,14 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
         flops_orth += (ifour*k*Nrow);
       }
       // beta = norm(Qk)
-      START_T(); ComputeDotProduct<Vector_type2, project_type>(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); STOP_T(t1_);
+      if (renormalize) {
+        beta = h.values[k];
+        for (int i = 0; i < k; ++i) {
+          beta -= (h.values[i]*h.values[i]);
+        }
+      } else {
+          START_T(); ComputeDotProduct<Vector_type2, project_type>(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); STOP_T(t1_);
+      }
       flops_orth += (itwo*Nrow);
       #ifdef HPCG_WITH_KOKKOSKERNELS
       beta = AT_pr::sqrt(beta);
@@ -281,6 +337,21 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       // Qk = Qk / beta
       START_T(); ScaleVectorValue(Qk, one_pr/beta); STOP_T(t2);
       flops_orth += (Nrow);
+
+      // re-normalize if asked
+      if (renormalize) {
+        START_T(); ComputeDotProduct<Vector_type2, project_type>(nrow, Qk, Qk, alpha, t4, A.isDotProductOptimized); STOP_T(t1_);
+        //flops_orth += (itwo*Nrow); // don't count the extra flops
+        #ifdef HPCG_WITH_KOKKOSKERNELS
+        alpha = AT_pr::sqrt(alpha);
+        #else
+        alpha = sqrt(alpha);
+        #endif
+
+        START_T(); ScaleVectorValue(Qk, one_pr/alpha); STOP_T(t2);
+        //flops_orth += (Nrow); // don't count the extra flops
+        beta *= alpha;
+      }
       TOCK(t6); // Ortho time
       SetMatrixValue(H, k, k-1, beta);
 
@@ -326,15 +397,13 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       normr = std::abs(v2);
       #endif
       if (verbose && (k%print_freq == 0 || k+1 == restart_length)) {
-        //#define HPCG_NUMERIC_CHECK
         #ifdef HPCG_NUMERIC_CHECK
         {
           // compute current approximation
           CopyVector(x_hi, p_hi);                                 // using p_hi for x_hi
-          for (int i=0; i < k; i++) h.values[i] = t.values[i];   // using h for t
+          for (int i=0; i <= k; i++) h.values[i] = t.values[i];   // using h for t
           ComputeTRSM(k, one_pr, H, h);
           if (doPreconditioning) {
-            //#define HPGMRES_IR_UPDATE_X_IN_HIGH
             #ifdef HPGMRES_IR_UPDATE_X_IN_HIGH
             ComputeGEMV(nrow, k, one, Q, h, zero_hi, r_hi, A.isGemvOptimized);          // r = Q*t (using h for t)
             ComputeMG(A_lo, r_hi, z_hi, symmetric);                                     // z = M*r
@@ -357,7 +426,6 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
           normr_hi = sqrt(normr_hi);
           #endif
         }
-        project_type ortho_err (0.0);
         {
           GetMultiVector(Q, 0, k, P);
           for (int j=0; j<=k; j++) {
@@ -371,10 +439,10 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
               error_i = std::abs(error_i);
               #endif
               ortho_err = (error_i > ortho_err ? error_i : ortho_err);
-	      //if (std::is_same<scalar_type, double>::value && std::is_same<project_type, float>::value && doPreconditioning) {
-              //  if (verbose && A.geom->rank==0) HPCG_fout << "h(" << i << ", " << j << ")=" << h.values[i] << std::endl;
+              //if (std::is_same<scalar_type, double>::value && std::is_same<project_type, float>::value && doPreconditioning) {
+              //if (verbose && A.geom->rank==0 && k == restart_length) HPCG_fout << " " << (i == j ? h.values[i]-one_pr : h.values[i]);
               //}
-            }
+            } 
           }
         }
         #endif // HPCG_NUMERIC_CHECK
