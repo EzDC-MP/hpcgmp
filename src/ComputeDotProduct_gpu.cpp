@@ -100,7 +100,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
       printf( " Failed cublasDdot\n" );
     }
     local_result = double_result;
-  } else if (std::is_same<scalar_type, float>::value) {
+  } else if (std::is_same<input_scalar_type, float>::value) {
     float float_result;
     if (CUBLAS_STATUS_SUCCESS != cublasSdot (handle, n, (float*)d_x, 1,  (float*)d_y, 1,  (float*)&float_result)) {
       printf( " Failed cublasSdot\n" );
