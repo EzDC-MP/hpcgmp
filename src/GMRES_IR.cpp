@@ -254,7 +254,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       // orthogonalize z against Q(:,0:k-1), using dots
       bool use_mgs = false;
       bool renormalize = true;
-      bool single_reduce = true; //false;
+      bool single_reduce = false;
       TICK();
       if (use_mgs) {
         // MGS2
