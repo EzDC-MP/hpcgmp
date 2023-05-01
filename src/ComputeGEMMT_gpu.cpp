@@ -63,16 +63,16 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
   }
   #elif defined(HPCG_WITH_CUDA)
   // Perform GEMM on device
-  if (std::is_same<scalarX_type, double>::value) {
-    if (CUBLAS_STATUS_SUCCESS != cublasDgemv(x.handle, CUBLAS_OP_T,
+  if (std::is_same<scalarC_type, double>::value) {
+    if (CUBLAS_STATUS_SUCCESS != cublasDgemm(A.handle, CUBLAS_OP_T, CUBLAS_OP_N,
                                              m, n, k,
                                              (double*)&alpha, (double*)d_Av, k,
                                                               (double*)d_Bv, k,
                                              (double*)&beta,  (double*)d_Cv, m)){
       printf( " Failed cublasDgemv\n" );
     }
-  } else if (std::is_same<scalarX_type, float>::value) {
-    if (CUBLAS_STATUS_SUCCESS != cublasSgemv(x.handle, CUBLAS_OP_T,
+  } else if (std::is_same<scalarC_type, float>::value) {
+    if (CUBLAS_STATUS_SUCCESS != cublasSgemm(A.handle, CUBLAS_OP_T, CUBLAS_OP_N,
                                              m, n, k,
                                              (float*)&alpha, (float*)d_Av, k,
                                                              (float*)d_Bv, k,
@@ -80,29 +80,29 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
       printf( " Failed cublasSgemv\n" );
     }
   }
-  TIME(y.time1);
+  TIME(C.time1);
 
   // Copy input serial dense vector to host
   TICK();
-  if (cudaSuccess != cudaMemcpy(Cv, d_Cv, m*n*sizeof(scalarX_type), cudaMemcpyDeviceToHost)) {
+  if (cudaSuccess != cudaMemcpy(Cv, d_Cv, m*n*sizeof(scalarC_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_C\n" );
   }
   #elif defined(HPCG_WITH_HIP)
   // Perform GEMM on device
-  if (std::is_same<scalarX_type, double>::value) {
-    if (rocblas_status_success != rocblas_dgemv(x.handle,
+  if (std::is_same<scalarC_type, double>::value) {
+    if (rocblas_status_success != rocblas_dgemm(A.handle,
                                                 rocblas_operation_transpose,
-                                                rocblas_operation_transpose,
+                                                rocblas_operation_none,
                                                 m, n, k,
                                                 (double*)&alpha, (double*)d_Av, k,
                                                                  (double*)d_Bv, k,
                                                 (double*)&beta,  (double*)d_Cv, m)){
       printf( " Failed rocblas_dgemv\n" );
     }
-  } else if (std::is_same<scalarX_type, float>::value) {
-    if (rocblas_status_success != rocblas_sgemv(x.handle,
+  } else if (std::is_same<scalarC_type, float>::value) {
+    if (rocblas_status_success != rocblas_sgemm(A.handle,
                                                 rocblas_operation_transpose,
-                                                rocblas_operation_transpose,
+                                                rocblas_operation_none,
                                                 m, n, k,
                                                 (float*)&alpha, (float*)d_Av, k,
                                                                 (float*)d_Bv, k,
@@ -110,11 +110,11 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
       printf( " Failed rocblas_sgemv\n" );
     }
   }
-  TIME(y.time1);
+  TIME(C.time1);
 
   // Copy output serial dense vector to host
   TICK();
-  if (hipSuccess != hipMemcpy(Cv, d_Cv, m*n*sizeof(scalarX_type), hipMemcpyDeviceToHost)) {
+  if (hipSuccess != hipMemcpy(Cv, d_Cv, m*n*sizeof(scalarC_type), hipMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_C\n" );
   }
   #endif
@@ -124,8 +124,8 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
   int size; // Number of MPI processes
   MPI_Comm_size(A.comm, &size);
   if (size > 1) {
-      MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
-      MPI_Op MPI_SCALAR_SUM = MpiTypeTraits<scalarY_type>::getSumOp ();
+      MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarC_type>::getType ();
+      MPI_Op MPI_SCALAR_SUM = MpiTypeTraits<scalarC_type>::getSumOp ();
       MPI_Allreduce(MPI_IN_PLACE, Cv, m*n, MPI_SCALAR_TYPE, MPI_SCALAR_SUM, A.comm);
   }
   TIME(C.time2);

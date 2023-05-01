@@ -286,7 +286,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
           ReshapeMatrix(G, k+1, 2);
 
           // G = Q(1:k+1)'*Q(k:k+1), mul and add in proj_type
-          START_T(); ComputeGEMMT (k+1, 2, nrow, one, P, V, zero_pr, G, A.isGemvOptimized); STOP_T(t1);
+          START_T(); ComputeGEMMT (k+1, 2, nrow, one_pr, P, V, zero_pr, G, A.isGemvOptimized); STOP_T(t1);
           // T  := 2I-Q'*Q
           // Q*H = A*Q
           for(int i = 0; i < k; i++) {

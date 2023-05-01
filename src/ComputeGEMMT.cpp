@@ -39,11 +39,11 @@ int ComputeGEMMT(const local_int_t m, const local_int_t n, const local_int_t k,
 // uniform
 template
 int ComputeGEMMT< MultiVector<double>, SerialDenseMatrix<double> >
-  (int, int, int, double, MultiVector<double> const&, MultiVector<double> const&, const double, SerialDenseMatrix<double> &, bool&);
+  (const int, const int, const int, const double, MultiVector<double> const&, MultiVector<double> const&, const double, SerialDenseMatrix<double> &, bool&);
 
 template
 int ComputeGEMMT< MultiVector<float>, SerialDenseMatrix<float> >
-  (int, int, int, float, MultiVector<float> const&, MultiVector<float> const&, const float, SerialDenseMatrix<float> &, bool&);
+  (const int, const int, const int, const float, MultiVector<float> const&, MultiVector<float> const&, const float, SerialDenseMatrix<float> &, bool&);
 
 #if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
 template
