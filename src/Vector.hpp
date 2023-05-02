@@ -101,10 +101,7 @@ template<class Vector_type>
 inline void ZeroVector(Vector_type & v) {
   typedef typename Vector_type::scalar_type scalar_type;
   const int zero (0);
-
   local_int_t localLength = v.localLength;
-  scalar_type * vv = v.values;
-  for (int i=0; i<localLength; ++i) vv[i] = zero;
   #ifdef HPCG_WITH_CUDA
   if (cudaSuccess != cudaMemset(v.d_values, zero, localLength*sizeof(scalar_type))) {
     printf( " CopyVector :: Failed to memcpy d_v\n" );
@@ -113,6 +110,9 @@ inline void ZeroVector(Vector_type & v) {
   if (hipSuccess != hipMemset(v.d_values, zero, localLength*sizeof(scalar_type))) {
     printf( " CopyVector :: Failed to memcpy d_v\n" );
   }
+  #else
+  scalar_type * vv = v.values;
+  for (int i=0; i<localLength; ++i) vv[i] = zero;
   #endif
   return;
 }

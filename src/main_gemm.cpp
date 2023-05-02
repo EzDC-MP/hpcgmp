@@ -1,4 +1,12 @@
 
+#if !defined(HPCG_WITH_KOKKOSKERNELS)
+
+int main(int argc, char * argv[]) {
+  return 0;
+}
+
+#else //HPCG_WITH_KOKKOSKERNELS
+
 #include "Kokkos_Core.hpp"
 #include "Kokkos_Random.hpp"
 #include "KokkosBlas2_gemv.hpp"
@@ -146,3 +154,4 @@ int main(int argc, char * argv[]) {
   Kokkos::finalize();
   return 0;
 }
+#endif
