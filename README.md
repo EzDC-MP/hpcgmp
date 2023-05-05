@@ -1,23 +1,23 @@
-########################################################
-# High Performance Conjugate Gradient Benchmark (HPCG) #
-########################################################
+######################################################################################
+# High Performance Generalized minimal residual - Mixed-Precision (HPG-MxP) Benchmark
+######################################################################################
 
-Jack Dongarra and Michael Heroux and Piotr Luszczek
+Ichitaro Yamazaki, Jennifer Loe, Christian Glusa, Sivasankaran Rajamanickam
+Piotr Luszczek, and Jack Dongarra
 
-Revision: 3.1
+Revision: 1.0
 
-Date: March 28, 2019
+Date: May 5, 2023
 
 ## Introduction ##
 
-HPCG is a software package that performs a fixed number of multigrid preconditioned
-(using a symmetric Gauss-Seidel smoother) conjugate gradient (PCG) iterations using double
-precision (64 bit) floating point values.
+HPG-MxP is a software package that performs a fixed number of multigrid preconditioned
+(using a Gauss-Seidel smoother) Generalized minimal residual (PGMRES) iterations.
 
-The HPCG rating is is a weighted GFLOP/s (billion floating operations per second) value
-that is composed of the operations performed in the PCG iteration phase over
+The HPG-MxP rating is is a weighted GFLOP/s (billion floating operations per second) value
+that is composed of the operations performed in the PGMRES iteration phase over
 the time taken.  The overhead time of problem construction and any modifications to improve
-performance are divided by 500 iterations (the amortization weight) and added to the runtime.
+performance are amortized over several iterations (the amortization weight) and added to the runtime.
 
 Integer arrays have global and local
 scope (global indices are unique across the entire distributed memory system,
@@ -32,9 +32,9 @@ These various modes are required in order to address sufficiently big problems
 if the range of indexing goes above 2^31 (roughly 2.1B), or to conserve storage
 costs if the range of indexing is less than 2^31.
 
-The  HPCG  software  package requires the availibility on your system of an
+The  HPG-MxP  software  package requires the availibility on your system of an
 implementation of the  Message Passing Interface (MPI) if enabling the MPI
-build of HPCG, and a compiler that supports OpenMP syntax. An implementation
+build of HPG-MxP, and a compiler that supports OpenMP syntax. An implementation
 compliant with MPI version 1.1 is sufficient.
 
 ## Installation ##
@@ -43,7 +43,7 @@ See the file `INSTALL` in this directory.
 
 ## Valid Runs ##
 
-HPCG can be run in just a few minutes from start to finish.  However, official
+HPG-MxP can be run in just a few minutes from start to finish.  However, official
 runs must be at least 1800 seconds (30 minutes) as reported in the output file.
 The Quick Path option is an exception for machines that are in production mode
 prior to broad availability of an optimized version of HPCG 3.0 for a given platform.
