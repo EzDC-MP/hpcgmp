@@ -1,8 +1,18 @@
-======================================================================
- -- High Performance Conjugate Gradients (HPCG) Benchmark
-    HPCG - 3.1 - March 28, 2019
+========================================================================================
+ -- High Performance Generalized minimal residual - Mixed-Precision (HPG-MxP) Benchmark
+    HPG-MxP - 1.0 - May 5, 2023
 
-    Michael A. Heroux
+       Copyright (2022) National Technology & Engineering
+               Solutions of Sandia, LLC (NTESS).
+ 
+ Under the terms of Contract DE-NA0003525 with NTESS,
+ the U.S. Government retains certain rights in this software.
+========================================================================================
+
+    Ichitaro Yamazaki
+    Jennifer Loe
+    Christian Gulsa
+    Sivasankaran Rajamanickam
     Scalable Algorithms Group, Center for Computing Research
     Sandia National Laboratories, Albuquerque, NM
 
@@ -10,7 +20,6 @@
     Jack Dongarra
     University of Tennessee, Knoxville
     Innovative Computing Laboratory
-    (C) Copyright 2013-2019 All Rights Reserved
 
  -- Copyright notice and Licensing terms:
 
