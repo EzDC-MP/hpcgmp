@@ -1,9 +1,9 @@
-####################################################
-High Performance Conjugate Gradient Benchmark (HPCG)
-####################################################
+#########################################################################
+High Performance Generalized minimal residual - Mixed-Precision (HPG-MxP)
+#########################################################################
 
-:Author: Jack Dongarra and Michael Heroux and Piotr Luszczek
-:Revision: 3.1
-:Date: March 28, 2019
+:Author: Ichitaro Yamazaki, Jennifer Loe, Christian Glusa, Sivasankaran Rajamanickam Piotr Luszczek, and Jack Dongarra
+:Revision: 1.0
+:Date: May 5, 2023
 
-For overview of HPCG please see README.md file.
+For overview of HPG-MpX please see README.md file.
