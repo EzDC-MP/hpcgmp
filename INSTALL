@@ -1,10 +1,10 @@
-####################################################
-High Performance Conjugate Gradient Benchmark (HPCG)
-####################################################
+#########################################################################
+High Performance Generalized minimal residual - Mixed-Precision (HPG-MxP)
+#########################################################################
 
-:Author: Jack Dongarra and Michael Heroux and Piotr Luszczek
-:Revision: 3.1
-:Date: March 28, 2019
+:Author: Ichitaro Yamazaki, Jennifer Loe, Christian Glusa, Sivasankaran Rajamanickam Piotr Luszczek, and Jack Dongarra
+:Revision: 1.0
+:Date: May 5, 2023
 
 =================
 Clone from GitHub
@@ -32,7 +32,7 @@ directory in the text below.
 Configuration
 =============
 
-HPCG provides three methods of configuration: one based on make(1),
+HPG-MxP provides three methods of configuration: one based on make(1),
 one based on CMake, and one based on Autoconf. They are discussed in
 more details below.
 
@@ -40,7 +40,7 @@ more details below.
 Configuration based on Make
 ---------------------------
 
-HPCG configuration with a make-compatible file for configuring the
+HPG-MxP configuration with a make-compatible file for configuring the
 compilers, linkers, and their command line flags starts with creating a
 file ``Make.<arch>`` in the ``setup`` directory right under the
 top-level  directory. The suffix ``<arch>`` should be a name that you
@@ -88,7 +88,7 @@ are::
 * ``LINKERFLAGS`` specifies the flags passed to the linker that might
   indicate directories where to look for standard C++ and MPI libraries.
 
-HPCG supports in-source and out-of-source builds. In the case of the
+HPG-MpX supports in-source and out-of-source builds. In the case of the
 former, the object files and the binary reside in the same directory
 structure as the source files. There is no need for a seperate
 configuration step and the reader may skip the the Build section.
