@@ -232,12 +232,3 @@ template
 int TestGMRES< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRESData<float>, Vector<double>, TestGMRESData<double> >
   (SparseMatrix<double>&, SparseMatrix<float>&, GMRESData<double>&, GMRESData<float>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int TestGMRES< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, SparseMatrix<half_t>&, GMRESData<double>&, GMRESData<half_t>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
-
-template
-int TestGMRES< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t, float>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double>&, SparseMatrix<half_t>&, GMRESData<double>&, GMRESData<half_t, float>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
-#endif

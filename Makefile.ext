@@ -63,7 +63,6 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/ComputeDotProduct_blas.o \
 	    src/ComputeGEMV_blas.o \
 	    src/ComputeGEMVT_blas.o \
-	    src/ComputeSPMV_ssl2.o \
             \
 	    src/ComputeDotProduct_gpu.o \
 	    src/ComputeGEMV_gpu.o \
@@ -73,9 +72,6 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/ComputeGS_Forward_gpu.o \
 	    src/ComputeProlongation_gpu.o \
 	    src/ComputeRestriction_gpu.o \
-            \
-	    src/ComputeGS_Forward_kk.o \
-	    src/ComputeSPMV_kk.o 
 
 # These header files are included in many source files, so we recompile every file if one or more of these header is modified.
 PRIMARY_HEADERS = HPCG_SRC_PATH/src/Geometry.hpp HPCG_SRC_PATH/src/SparseMatrix.hpp HPCG_SRC_PATH/src/Vector.hpp HPCG_SRC_PATH/src/MultiVector.hpp \
@@ -173,9 +169,6 @@ src/ComputeSPMV.o: HPCG_SRC_PATH/src/ComputeSPMV.cpp HPCG_SRC_PATH/src/ComputeSP
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/ComputeSPMV_ref.o: HPCG_SRC_PATH/src/ComputeSPMV_ref.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)
-	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
-
-src/ComputeSPMV_ssl2.o: HPCG_SRC_PATH/src/ComputeSPMV_ssl2.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
 
 src/ComputeSPMV_gpu.o: HPCG_SRC_PATH/src/ComputeSPMV_gpu.cpp HPCG_SRC_PATH/src/ComputeSPMV_ref.hpp $(PRIMARY_HEADERS)

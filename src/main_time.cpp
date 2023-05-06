@@ -35,10 +35,6 @@ using std::endl;
 
 #include <vector>
 
-#ifdef HPCG_WITH_KOKKOSKERNELS
-#include "Kokkos_Core.hpp"
-#endif
-
 #include "hpgmp.hpp"
 
 #include "SetupMatrix.hpp"
@@ -66,14 +62,8 @@ typedef Vector<scalar_type> Vector_type;
 typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
 
-#ifdef HPCG_WITH_KOKKOSKERNELS
-//typedef float scalar_type2;
-typedef Kokkos::Experimental::half_t scalar_type2;
-typedef float project_type;
-#else
 typedef float scalar_type2;
 typedef float project_type;
-#endif
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
 typedef GMRESData<scalar_type2, project_type> GMRESData_type2;
@@ -94,10 +84,6 @@ int main(int argc, char * argv[]) {
   MPI_Init(&argc, &argv);
 #endif
   HPCG_Init(&argc, &argv);
-#ifdef HPCG_WITH_KOKKOSKERNELS
-  Kokkos::initialize();
-  {
-#endif
 #ifndef HPCG_NO_MPI
   MPI_Comm bench_comm = MPI_COMM_WORLD;
 #else
@@ -110,13 +96,6 @@ int main(int argc, char * argv[]) {
   if (rank == 0) HPCG_fout << endl;
 #ifndef HPCG_NO_MPI
   if (rank == 0) HPCG_fout << "With MPI " << endl;
-#endif
-#ifdef HPCG_WITH_KOKKOSKERNELS
-  #if KOKKOS_HALF_T_IS_FLOAT
-  if (rank == 0) HPCG_fout << "With KK (Half is float = " << sizeof(half_t) << " bytes)" << endl;
-  #else
-  if (rank == 0) HPCG_fout << "With KK (Half is FP16 = " << sizeof(half_t) << " bytes)" << endl;
-  #endif
 #endif
 #ifdef HPCG_WITH_CUDA
   if (rank == 0) HPCG_fout << "With Cuda " << endl;
@@ -261,10 +240,6 @@ int main(int argc, char * argv[]) {
   DeleteVector(b_computed);
   DeleteGMRESData(data);
   DeleteGMRESData(data2);
-#ifdef HPCG_WITH_KOKKOSKERNELS
-  }
-  Kokkos::finalize();
-#endif
   HPCG_Finalize();
 #ifndef HPCG_NO_MPI
   MPI_Finalize();

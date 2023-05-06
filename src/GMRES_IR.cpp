@@ -74,11 +74,6 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   // (lower) precision for storing projected matrix
   typedef typename GMRESData_type2::project_type project_type;
   typedef SerialDenseMatrix<project_type> SerialDenseMatrix_type;
-  #ifdef HPCG_WITH_KOKKOSKERNELS
-  using AT_hi = Kokkos::Details::ArithTraits<scalar_type>;
-  using AT_lo = Kokkos::Details::ArithTraits<scalar_type2>;
-  using AT_pr = Kokkos::Details::ArithTraits<project_type>;
-  #endif
 
   double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
          t7 = 0.0, t8 = 0.0, t9 = 0.0, t10 = 0.0, t11 = 0.0;
@@ -155,18 +150,10 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       HPCG_fout << " Inner-Iter precision : double" << std::endl;
     if (std::is_same<scalar_type2, float>::value) 
       HPCG_fout << " Inner-Iter precision : float" << std::endl;
-    #ifdef HPCG_WITH_KOKKOSKERNELS
-    if (std::is_same<scalar_type2, half_t>::value) 
-      HPCG_fout << " Inner-Iter precision : half_t" << std::endl;
-    #endif
     if (std::is_same<project_type, double>::value) 
       HPCG_fout << " Projection precision : double" << std::endl;
     if (std::is_same<project_type, float>::value) 
       HPCG_fout << " Projection precision : float" << std::endl;
-    #ifdef HPCG_WITH_KOKKOSKERNELS
-    if (std::is_same<project_type, half_t>::value) 
-      HPCG_fout << " Projection precision : half_t" << std::endl;
-    #endif
   }
   double flops = 0.0;
   double flops_gmg  = 0.0;
@@ -183,11 +170,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     TICK(); ComputeSPMV(A, p_hi, Ap_hi); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3); // Ap = A*p
     TICK(); ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow);  TOCK(t11); // r = b - Ax (x stored in p)
     TICK(); ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t11);
-    #ifdef HPCG_WITH_KOKKOSKERNELS
-    normr_hi = AT_hi::sqrt(normr_hi);
-    #else
     normr_hi = sqrt(normr_hi);
-    #endif
     test_data.numOfSPCalls++;
     // Record initial residual for convergence testing
     if (niters == 0) {
@@ -253,8 +236,6 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
       // orthogonalize z against Q(:,0:k-1), using dots
       bool use_mgs = false;
-      bool renormalize = true;
-      bool single_reduce = false;
       TICK();
       if (use_mgs) {
         // MGS2
@@ -278,131 +259,38 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       } else {
         // CGS2
         // first orthogonalization
-        #ifdef SINGLEREDUCE_GMRES_IR
-        if (single_reduce) {
-          // Single-reduced CGS2
-          GetMultiVector(Q, 0,   k, P);
-          GetMultiVector(Q, k-1, k, V);
-          ReshapeMatrix(G, k+1, 2);
-
-          // G = Q(1:k+1)'*Q(k:k+1), mul and add in proj_type
-          START_T(); ComputeGEMMT (k+1, 2, nrow, one_pr, P, V, zero_pr, G, A.isGemvOptimized); STOP_T(t1);
-          // T  := 2I-Q'*Q
-          // Q*H = A*Q
-          for(int i = 0; i < k; i++) {
-            // T(:,k-1) = Q(:,1:k)'*q(k)
-            project_type vi = GetMatrixValue(G, i, 0);
-            SetMatrixValue(T, i, k-1, -vi);
-            SetMatrixValue(T, k-1, i, -vi);
-
-            // H(:,k-1) = Q(:,1:k)'*q(k+1)
-            w.values[i] = GetMatrixValue(G, i, 1);
-          }
-          w.values[k] = GetMatrixValue(G, k, 1);
-
-          project_type tkk = two_pr + GetMatrixValue(T, k-1, k-1);
-          SetMatrixValue(T, k-1, k-1, tkk);
-          // update H(:,k-1) = (2I-T) H(:,k-1)
-          // because (I-QQ')(I-QQ')q(k+1) = [I-Q(2I-T)Q']*q(k+1)
-          for (int i = 0; i < k; ++i) {
-            h.values[i] = zero_pr;
-            for (int j = 0; j < k; ++j) {
-              h.values[i] += GetMatrixValue(T, i, j) * w.values[j];
-            }
-          }
-	  h.values[k] = w.values[k];
-
-	  // q(k+1) = q(k+1) - Q(1:k)*h
-          GetMultiVector(Q, 0, k-1, P);
-          START_T(); ComputeGEMV (nrow, k, -one, P, h, one, Qk, A.isGemvOptimized); STOP_T(t2);
-          t1_comp += h.time1; t1_comm += h.time2;
-          for(int i = 0; i < k; i++) {
-            SetMatrixValue(H, i, k-1, h.values[i]);
-          }
-          flops_orth += (ifour*k*Nrow); // first ortho
-          flops_orth += (ifour*k*Nrow); // second ortho
-
-          #if 0
-	  //HPCG_fout << " T=[" << std::endl;
-          //for (int i = 0; i < k; ++i) {
-          //  for (int j = 0; j < k; ++j) HPCG_fout << GetMatrixValue(T, i, j) << " ";
-	  //  HPCG_fout << std::endl;
-	  //}
-	  //HPCG_fout << " ]'" << std::endl;
-          for (int i = 0; i <= k; ++i) HPCG_fout << " * h[" << i << "] = " << h.values[i] << std::endl;
-	  HPCG_fout << std::endl;
-          #endif
-        } else
-        #endif
-        {
-          // CGS2
-          GetMultiVector(Q, 0, k-1, P);
-          START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1), mul and add in proj_type
-          START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one,    Qk, A.isGemvOptimized); STOP_T(t2); // q(k+1) = q(k+1) - Q(1:k)*h
-          t1_comp += h.time1; t1_comm += h.time2;
-          for(int i = 0; i < k; i++) {
-            SetMatrixValue(H, i, k-1, h.values[i]);
-          }
-          flops_orth += (ifour*k*Nrow);
-
-          // reorthogonalization
-          START_T();
-          if (renormalize) {
-            // h = Q(1:k+1)'*q(k+1)
-            // > include q(k+1) into Q(1:k+1) for dot-products
-            GetMultiVector(Q, 0, k, P);
-            ComputeGEMVT (nrow, k+1,  one, P, Qk, zero_pr, h, A.isGemvOptimized);
-            GetMultiVector(Q, 0, k-1, P);
-          } else {
-            // h = Q(1:k)'*q(k+1)
-            ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized);
-          }
-          STOP_T(t1);
-
-          START_T(); ComputeGEMV (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // q(k+1) = q(k+1) - Q(1:k)*h
-          t1_comp += h.time1; t1_comm += h.time2;
-          for(int i = 0; i < k; i++) {
-            AddMatrixValue(H, i, k-1, h.values[i]);
-          }
-          flops_orth += (ifour*k*Nrow);
+        GetMultiVector(Q, 0, k-1, P);
+        START_T(); ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized); STOP_T(t1); // h = Q(1:k)'*q(k+1), mul and add in proj_type
+        START_T(); ComputeGEMV  (nrow, k, -one, P, h,  one,    Qk, A.isGemvOptimized); STOP_T(t2); // q(k+1) = q(k+1) - Q(1:k)*h
+        t1_comp += h.time1; t1_comm += h.time2;
+        for(int i = 0; i < k; i++) {
+          SetMatrixValue(H, i, k-1, h.values[i]);
         }
+        flops_orth += (ifour*k*Nrow);
+
+        START_T();
+        // reorthogonalization
+        // h = Q(1:k)'*q(k+1)
+        ComputeGEMVT (nrow, k,  one, P, Qk, zero_pr, h, A.isGemvOptimized);
+        STOP_T(t1);
+
+        START_T(); ComputeGEMV (nrow, k, -one, P, h,  one, Qk, A.isGemvOptimized); STOP_T(t2); // q(k+1) = q(k+1) - Q(1:k)*h
+        t1_comp += h.time1; t1_comm += h.time2;
+        for(int i = 0; i < k; i++) {
+          AddMatrixValue(H, i, k-1, h.values[i]);
+        }
+        flops_orth += (ifour*k*Nrow);
       } // end or CGS2
 
       // beta = norm(Qk)
-      if (renormalize || single_reduce) {
-        // update norm based on pythagorean
-        beta = h.values[k];
-        for (int i = 0; i < k; ++i) {
-          beta -= (h.values[i]*h.values[i]);
-        }
-      } else {
-          START_T(); ComputeDotProduct<Vector_type2, project_type>(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); STOP_T(t1_);
-      }
+      START_T(); ComputeDotProduct<Vector_type2, project_type>(nrow, Qk, Qk, beta, t4, A.isDotProductOptimized); STOP_T(t1_);
       flops_orth += (itwo*Nrow);
-      #ifdef HPCG_WITH_KOKKOSKERNELS
-      beta = AT_pr::sqrt(beta);
-      #else
       beta = sqrt(beta);
-      #endif
 
       // Qk = Qk / beta
       START_T(); ScaleVectorValue(Qk, one_pr/beta); STOP_T(t2);
       flops_orth += (Nrow);
 
-      // re-normalize if asked
-      if (renormalize) {
-        START_T(); ComputeDotProduct<Vector_type2, project_type>(nrow, Qk, Qk, alpha, t4, A.isDotProductOptimized); STOP_T(t1_);
-        //flops_orth += (itwo*Nrow); // don't count the extra flops
-        #ifdef HPCG_WITH_KOKKOSKERNELS
-        alpha = AT_pr::sqrt(alpha);
-        #else
-        alpha = sqrt(alpha);
-        #endif
-
-        START_T(); ScaleVectorValue(Qk, one_pr/alpha); STOP_T(t2);
-        //flops_orth += (Nrow); // don't count the extra flops
-        beta *= alpha;
-      }
       TOCK(t6); // Ortho time
       SetMatrixValue(H, k, k-1, beta);
       #if 0
@@ -427,11 +315,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       project_type f2 = f*f;
       project_type g2 = g*g;
       project_type fg2 = f2 + g2;
-      #ifdef HPCG_WITH_KOKKOSKERNELS
-      project_type D1 = one_pr / AT_pr::sqrt(f2*fg2);
-      #else
-      project_type D1 = one / sqrt(f2*fg2);
-      #endif
+      project_type D1 = one_pr / sqrt(f2*fg2);
       project_type cj = f2*D1;
       fg2 = fg2 * D1;
       project_type sj = f*D1*g;
@@ -446,11 +330,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       SetMatrixValue(ss, k-1, 0, sj);
       SetMatrixValue(cs, k-1, 0, cj);
 
-      #ifdef HPCG_WITH_KOKKOSKERNELS
-      normr = AT_pr::abs(v2);
-      #else
       normr = std::abs(v2);
-      #endif
       if (verbose && (k%print_freq == 0 || k+1 == restart_length)) {
         #ifdef HPCG_NUMERIC_CHECK
         {
@@ -475,11 +355,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
           ComputeSPMV(A, p_hi, Ap_hi); // Ap = A*p
           ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); // r = b - Ax (x stored in p)
           ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized);
-          #ifdef HPCG_WITH_KOKKOSKERNELS
-          normr_hi = AT_hi::sqrt(normr_hi);
-          #else
           normr_hi = sqrt(normr_hi);
-          #endif
         }
         {
           GetMultiVector(Q, 0, k, P);
@@ -488,11 +364,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
             ComputeGEMVT (nrow, k+1, one, P, Qk, zero_pr, h, A.isGemvOptimized);
             for (int i=0; i<=k; i++) {
               project_type error_i = (i == j ? h.values[i]-one_pr : h.values[i]);
-              #ifdef HPCG_WITH_KOKKOSKERNELS
-              error_i = AT_pr::abs(error_i);
-              #else
               error_i = std::abs(error_i);
-              #endif
               ortho_err = (error_i > ortho_err ? error_i : ortho_err);
               //if (std::is_same<scalar_type, double>::value && std::is_same<project_type, float>::value && doPreconditioning) {
               //if (verbose && A.geom->rank==0 && k == restart_length) HPCG_fout << " " << (i == j ? h.values[i]-one_pr : h.values[i]);
@@ -627,23 +499,3 @@ int GMRES_IR< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRE
   (SparseMatrix<double> const&, SparseMatrix<float> const&, GMRESData<double>&, GMRESData<float>&,
    Vector<double> const&, Vector<double>&, const int, const int, double, int&, double&, double&, bool, bool,
    TestGMRESData<double>&);
-
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int GMRES_IR< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t, half_t>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double> const&, SparseMatrix<half_t> const&, GMRESData<double>&, GMRESData<half_t>&,
-   Vector<double> const&, Vector<double>&, const int, const int, double, int&, double&, double&, bool, bool,
-   TestGMRESData<double>&);
-
-template
-int GMRES_IR< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t, float>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double> const&, SparseMatrix<half_t> const&, GMRESData<double>&, GMRESData<half_t, float>&,
-   Vector<double> const&, Vector<double>&, const int, const int, double, int&, double&, double&, bool, bool,
-   TestGMRESData<double>&);
-
-template
-int GMRES_IR< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t, double>, Vector<double>, TestGMRESData<double> >
-  (SparseMatrix<double> const&, SparseMatrix<half_t> const&, GMRESData<double>&, GMRESData<half_t, double>&,
-   Vector<double> const&, Vector<double>&, const int, const int, double, int&, double&, double&, bool, bool,
-   TestGMRESData<double>&);
-#endif

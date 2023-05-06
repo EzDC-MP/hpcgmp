@@ -52,29 +52,8 @@ startswith(const char * s, const char * prefix) {
   return 1;
 }
 
-#if !defined(HPCG_NO_MPI) & defined(HPCG_WITH_KOKKOSKERNELS)
-void HPGMP_FP16_SUM_FUNCTION(void* invec, void* inoutvec, int *len, MPI_Datatype *datatype) {
-  half_t* in = (half_t*)invec;
-  half_t* inout = (half_t*)inoutvec;
-  for (int i = 0; i < *len; ++i) {
-    inout[i] = in[i] + inout[i];
-  }
-}
-
-MPI_Datatype    HPGMP_MPI_HALF;
-MPI_Op          MPI_SUM_HALF;
-#endif
-
 int
 HPCG_Init(int * argc_p, char ** *argv_p) {
-#ifndef HPCG_NO_MPI
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
-  MPI_Type_contiguous(2, MPI_BYTE, &HPGMP_MPI_HALF);
-  MPI_Type_commit(&HPGMP_MPI_HALF);
-
-  MPI_Op_create(&HPGMP_FP16_SUM_FUNCTION, 1, &MPI_SUM_HALF);
-  #endif
-#endif
   return 0;
 }
 

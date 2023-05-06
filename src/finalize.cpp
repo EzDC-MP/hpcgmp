@@ -27,11 +27,5 @@
 int
 HPCG_Finalize(void) {
   HPCG_fout.close();
-#ifndef HPCG_NO_MPI
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
-  MPI_Type_free(&HPGMP_MPI_HALF);
-  MPI_Op_free(&MPI_SUM_HALF);
-  #endif
-#endif
   return 0;
 }

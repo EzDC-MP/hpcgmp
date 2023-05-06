@@ -59,7 +59,3 @@ void SetupHalo< SparseMatrix<double> >(SparseMatrix<double>&);
 template
 void SetupHalo< SparseMatrix<float> >(SparseMatrix<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-void SetupHalo< SparseMatrix<half_t> >(SparseMatrix<half_t>&);
-#endif

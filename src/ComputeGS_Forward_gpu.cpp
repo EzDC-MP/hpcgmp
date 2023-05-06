@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)) & !defined(HPCG_WITH_KOKKOSKERNELS)
+#if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP))
 
 #include <cassert>
 #include <iostream>
@@ -130,30 +130,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
   const scalar_type  one ( 1.0);
   const scalar_type mone (-1.0);
-
   double t0 = 0.0;
-#ifdef HPCG_WITH_KOKKOSKERNELS
-  {
-    bool init_zero_x_vector = true;
-    bool update_y_vector = true;
-    const scalar_type omega (1.0);
-    int num_sweeps = 1;
-
-    const int nnzA = A.localNumberOfNonzeros;
-    typename SparseMatrix_type::RowPtrView rowptr_view(A.d_row_ptr, nrow+1);
-    typename SparseMatrix_type::ColIndView colidx_view(A.d_col_idx, nnzA);
-    typename SparseMatrix_type::ValuesView values_view(A.d_nzvals,  nnzA);
-
-    typename SparseMatrix_type::ValuesView r_view(r.d_values, ncol);
-    typename SparseMatrix_type::ValuesView x_view(x.d_values, nrow);
-    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
-    TICK();
-    KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply
-      (handle, nrow, ncol, rowptr_view, colidx_view, values_view, x_view, r_view, init_zero_x_vector, update_y_vector, omega, num_sweeps);
-    TOCK(x.time2);
-    return 0;
-  }
-#endif
 
   // b = r - Ux
   #if defined(HPCG_WITH_CUDA)
@@ -357,9 +334,5 @@ int ComputeGS_Forward_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<d
 template
 int ComputeGS_Forward_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT
-template
-int ComputeGS_Forward_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&);
-#endif
 #endif
 

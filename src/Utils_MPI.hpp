@@ -45,20 +45,5 @@ public:
   }
 };
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-//! Specialization for T = half
-template<>
-class MpiTypeTraits<half_t> {
-public:
-  //! MPI_Datatype corresponding to the type T.
-  static MPI_Datatype getType () {
-    return HPGMP_MPI_HALF;
-  }
-  static MPI_Op getSumOp () {
-    return MPI_SUM_HALF;
-  }
-};
-#endif
-
 #endif // ifndef HPCG_NO_MPI
 #endif

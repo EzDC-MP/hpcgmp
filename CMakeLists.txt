@@ -35,9 +35,9 @@ add_executable( xhpgmp src/main_hpgmp.cpp
     src/ComputeGEMVT.cpp src/ComputeGEMVT_ref.cpp src/ComputeGEMVT_blas.cpp src/ComputeGEMVT_gpu.cpp
     src/ComputeGEMMT.cpp src/ComputeGEMMT_ref.cpp src/ComputeGEMMT_gpu.cpp
     src/finalize.cpp src/init.cpp src/mytimer.cpp
-    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp src/ComputeSPMV_ssl2.cpp src/ComputeSPMV_kk.cpp
+    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp
     src/ComputeSYMGS.cpp src/ComputeSYMGS_ref.cpp
-    src/ComputeGS_Forward.cpp src/ComputeGS_Forward_ref.cpp src/ComputeGS_Forward_gpu.cpp src/ComputeGS_Forward_kk.cpp
+    src/ComputeGS_Forward.cpp src/ComputeGS_Forward_ref.cpp src/ComputeGS_Forward_gpu.cpp
     src/ComputeWAXPBY.cpp src/ComputeWAXPBY_ref.cpp src/ComputeWAXPBY_gpu.cpp
     src/ComputeMG.cpp src/ComputeMG_ref.cpp
     src/ComputeProlongation_ref.cpp src/ComputeRestriction_ref.cpp
@@ -62,9 +62,9 @@ add_executable( xhpgmp_time src/main_time.cpp
     src/ComputeGEMVT.cpp src/ComputeGEMVT_ref.cpp src/ComputeGEMVT_blas.cpp src/ComputeGEMVT_gpu.cpp
     src/ComputeGEMMT.cpp src/ComputeGEMMT_ref.cpp src/ComputeGEMMT_gpu.cpp
     src/finalize.cpp src/init.cpp src/mytimer.cpp
-    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp src/ComputeSPMV_ssl2.cpp src/ComputeSPMV_kk.cpp
+    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp
     src/ComputeSYMGS.cpp src/ComputeSYMGS_ref.cpp
-    src/ComputeGS_Forward.cpp src/ComputeGS_Forward_ref.cpp src/ComputeGS_Forward_gpu.cpp src/ComputeGS_Forward_kk.cpp
+    src/ComputeGS_Forward.cpp src/ComputeGS_Forward_ref.cpp src/ComputeGS_Forward_gpu.cpp 
     src/ComputeWAXPBY.cpp src/ComputeWAXPBY_ref.cpp src/ComputeWAXPBY_gpu.cpp
     src/ComputeMG.cpp src/ComputeMG_ref.cpp
     src/ComputeProlongation_ref.cpp src/ComputeRestriction_ref.cpp
@@ -72,8 +72,6 @@ add_executable( xhpgmp_time src/main_time.cpp
     src/GenerateNonsymCoarseProblem.cpp
     src/ComputeOptimalShapeXYZ.cpp src/MixedBaseCounter.cpp
     src/CheckAspectRatio.cpp src/OutputFile.cpp)
-
-add_executable( xtest_gemm src/main_gemm.cpp)
 
 if (HPCG_ENABLE_CONTIGUOUS_ARRAYS)
     target_compile_definitions(xhpgmp PRIVATE HPCG_CONTIGUOUS_ARRAYS)
@@ -98,17 +96,14 @@ if (HPCG_ENABLE_MPI)
     find_package(MPI REQUIRED)
     target_link_libraries(xhpgmp ${MPI_CXX_LIBRARIES})
     target_link_libraries(xhpgmp_time ${MPI_CXX_LIBRARIES})
-    target_link_libraries(xtest_gemm ${MPI_CXX_LIBRARIES})
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_MPI)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_MPI)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_MPI)
 endif ()
 
 if (NOT HPCG_ENABLE_LONG_LONG)
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_LONG_LONG)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_LONG_LONG)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_LONG_LONG)
 endif ()
 
 if (HPCG_ENABLE_OPENMP)
@@ -116,11 +111,9 @@ if (HPCG_ENABLE_OPENMP)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     target_link_libraries(xhpgmp ${OpenMP_CXX_LIBRARIES})
     target_link_libraries(xhpgmp_time ${OpenMP_CXX_LIBRARIES})
-    target_link_libraries(xtest_gemm ${OpenMP_CXX_LIBRARIES})
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_OPENMP)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_OPENMP)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_OPENMP)
 endif ()
 
 if (HPCG_ENABLE_CUDA)
@@ -132,14 +125,9 @@ if (HPCG_ENABLE_CUDA)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_CUDA)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_USE_FENCE)
     target_link_libraries(xhpgmp_time ${CUDA_LIBRARIES})
-
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_WITH_CUDA)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_USE_FENCE)
-    target_link_libraries(xtest_gemm ${CUDA_LIBRARIES})
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_CUDA)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_CUDA)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_CUDA)
 endif ()
 
 if (HPCG_ENABLE_HIP)
@@ -151,35 +139,13 @@ if (HPCG_ENABLE_HIP)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_HIP)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_USE_FENCE)
     target_link_libraries(xhpgmp_time ${HIP_LIBRARIES})
-
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_WITH_HIP)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_USE_FENCE)
-    target_link_libraries(xtest_gemm ${HIP_LIBRARIES})
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_HIP)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_HIP)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_HIP)
 endif ()
 
 
 if (HPCG_ENABLE_BLAS)
     target_compile_definitions(xhpgmp PRIVATE HPCG_WITH_BLAS)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_BLAS)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_WITH_BLAS)
-endif ()
-
-if (HPCG_ENABLE_KOKKOSKERNELS)
-    find_package(KokkosKernels REQUIRED)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_WITH_KOKKOSKERNELS)
-    target_link_libraries(xhpgmp Kokkos::kokkoskernels)
-
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_KOKKOSKERNELS)
-    target_link_libraries(xhpgmp_time Kokkos::kokkoskernels)
-
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_WITH_KOKKOSKERNELS)
-    target_link_libraries(xtest_gemm Kokkos::kokkoskernels)
-else ()
-    target_compile_definitions(xhpgmp PRIVATE HPCG_NO_KOKKOSKERNELS)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_KOKKOSKERNELS)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_KOKKOSKERNELS)
 endif ()

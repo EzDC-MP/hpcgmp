@@ -45,9 +45,8 @@ template<class SparseMatrix_type, class Vector_type>
 int ComputeMG_ref(const SparseMatrix_type & A, const Vector_type & r, Vector_type & x, bool symmetric) {
   assert(x.localLength==A.localNumberOfColumns); // Make sure x contain space for halo values
 
-  #if !defined(HPCG_WITH_KOKKOSKERNELS)
-  ZeroVector(x); // initialize x to zero
-  #endif
+  // initialize x to zero
+  ZeroVector(x);
 
   int ierr = 0;
   if (A.mgData!=0) { // Go to next coarse level if defined
@@ -112,10 +111,3 @@ int ComputeMG_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> c
 template
 int ComputeMG_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&, Vector<float>&, bool);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeMG_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&, Vector<half_t>&, bool);
-
-//template
-//int ComputeMG_ref< SparseMatrix<half_t>, Vector<double> >(SparseMatrix<half_t> const&, Vector<double> const&, Vector<double>&, bool);
-#endif

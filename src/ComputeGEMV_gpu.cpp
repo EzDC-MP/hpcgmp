@@ -69,21 +69,6 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
   scalarA_type * const d_Av = A.d_values;
   scalarX_type * const d_xv = x.d_values;
   scalarY_type * const d_yv = y.d_values;
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
-  {
-    using execution_space = Kokkos::DefaultExecutionSpace;
-    Kokkos::View<scalarA_type **, Kokkos::LayoutLeft, execution_space> A_view(d_Av, m, n);
-    Kokkos::View<scalarX_type *,  Kokkos::LayoutLeft, execution_space> x_view(d_xv, n);
-    Kokkos::View<scalarY_type *,  Kokkos::LayoutLeft, execution_space> y_view(d_yv, m);
-    // Copy input serial dense vector to device
-    using host_execution_space = Kokkos::DefaultHostExecutionSpace;
-    Kokkos::View<scalarX_type *, Kokkos::LayoutLeft, host_execution_space> h_view(xv, n);
-    Kokkos::deep_copy(x_view, h_view);
-
-    // Call GEMV
-    KokkosBlas::gemv("N", alpha, A_view, x_view, beta, y_view);
-  }
-  #else
   if ((std::is_same<scalarX_type, double>::value && std::is_same<scalarY_type, double>::value && std::is_same<scalarA_type, double>::value) ||
       (std::is_same<scalarX_type, float >::value && std::is_same<scalarY_type, float >::value && std::is_same<scalarA_type, float >::value)) {
 
@@ -190,7 +175,6 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
     }
     #endif
   }
-  #endif
 
   return 0;
 }
@@ -209,37 +193,10 @@ template
 int ComputeGEMV_ref< MultiVector<float>, Vector<float>, SerialDenseMatrix<float> >
   (int, int, float, MultiVector<float> const&, SerialDenseMatrix<float> const&, float, Vector<float> const&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeGEMV_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<half_t> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<half_t> const&, half_t, Vector<half_t> const&);
-#endif
 
 // mixed
 template
 int ComputeGEMV_ref< MultiVector<float>, Vector<double>, SerialDenseMatrix<float> >
   (int, int, float, MultiVector<float> const&, SerialDenseMatrix<float> const&, double, Vector<double> const&);
-
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeGEMV_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<float> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<float> const&, half_t, Vector<half_t> const&);
-
-template
-int ComputeGEMV_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<double> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<double> const&, half_t, Vector<half_t> const&);
-
-template
-int ComputeGEMV_ref< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<half_t> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<half_t> const&, double, Vector<double> const&);
-
-template
-int ComputeGEMV_ref< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<float> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<float> const&, double, Vector<double> const&);
-
-template
-int ComputeGEMV_ref< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<double> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<double> const&, double, Vector<double> const&);
-#endif
 
 #endif

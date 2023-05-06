@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)) & !defined(HPCG_WITH_KOKKOSKERNELS)
+#if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP))
 
 #ifndef HPCG_NO_OPENMP
  #include <omp.h>
@@ -245,8 +245,4 @@ int ComputeSPMV_ref< SparseMatrix<double>, Vector<double> >(const SparseMatrix<d
 template
 int ComputeSPMV_ref< SparseMatrix<float>, Vector<float> >(const SparseMatrix<float> &, Vector<float>&, Vector<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
-template
-int ComputeSPMV_ref< SparseMatrix<half_t>, Vector<half_t> >(const SparseMatrix<half_t> &, Vector<half_t>&, Vector<half_t>&);
-#endif
 #endif

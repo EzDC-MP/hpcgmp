@@ -309,16 +309,3 @@ template
 int BenchGMRES< TestGMRESData<double>, double, float, float >
   (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int BenchGMRES< TestGMRESData<double>, double, half_t, half_t >
-  (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
-
-template
-int BenchGMRES< TestGMRESData<double>, double, half_t, double >
-  (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
-
-template
-int BenchGMRES< TestGMRESData<double>, double, half_t, float >
-  (int, char**, comm_type, int, bool, bool, TestGMRESData<double>&);
-#endif

@@ -55,21 +55,7 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
   scalar_type * d_Axfv = A.mgData->Axf->d_values;
   scalar_type * d_rfv  = rf.d_values;
   scalar_type * d_rcv  = A.mgData->rc->d_values;
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
-  {
-    typename SparseMatrix_type::RowPtrView rowptr_view(A.mgData->d_row_ptr, nc+1);
-    typename SparseMatrix_type::ColIndView colidx_view(A.mgData->d_col_idx, nc);
-    typename SparseMatrix_type::ValuesView values_view(A.mgData->d_nzvals,  nc);
-    typename SparseMatrix_type::StaticGraphView static_graph(colidx_view, rowptr_view);
-    typename SparseMatrix_type::CrsMatView A_view("CrsMatrix", n, values_view, static_graph);
-
-    typename SparseMatrix_type::ValuesView x_view(d_rfv, n);
-    typename SparseMatrix_type::ValuesView y_view(d_rcv, nc);
-
-    typename SparseMatrix_type::KernelHandle *handle = const_cast<typename SparseMatrix_type::KernelHandle*>(&(A.kh));
-    KokkosSparse::spmv(KokkosSparse::NoTranspose, one, A_view, x_view, one, y_view);
-  }
-  #elif defined(HPCG_WITH_CUDA)
+  #if defined(HPCG_WITH_CUDA)
     cusparseStatus_t status;
     #if CUDA_VERSION >= 11000
     cudaDataType computeType;
@@ -182,10 +168,5 @@ int ComputeRestriction_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix<
 
 template
 int ComputeRestriction_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float> const&);
-
-#if defined(HPCG_WITH_KOKKOSKERNELS)
-template
-int ComputeRestriction_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t> const&);
-#endif
 
 #endif

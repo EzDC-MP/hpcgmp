@@ -75,23 +75,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   #ifdef HPCG_DEBUG
   output_scalar_type local_tmp = local_result;
   #endif
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
-  {
-    using execution_space = Kokkos::DefaultExecutionSpace;
-    #if 0
-    Kokkos::View<input_scalar_type  *, Kokkos::LayoutLeft, execution_space> x_view(d_x, n);
-    Kokkos::View<input_scalar_type  *, Kokkos::LayoutLeft, execution_space> y_view(d_y, n);
-    local_result = output_scalar_type(KokkosBlas::dot(x_view, y_view));
-    #else
-    Kokkos::View<input_scalar_type **, Kokkos::LayoutLeft, execution_space> x_view(d_x, n, 1);
-    Kokkos::View<input_scalar_type **, Kokkos::LayoutLeft, execution_space> y_view(d_y, n, 1);
-    using host_execution_space = Kokkos::DefaultHostExecutionSpace;
-    Kokkos::View<output_scalar_type *, Kokkos::LayoutLeft, host_execution_space> z_view(Kokkos::view_alloc(Kokkos::WithoutInitializing, "dot"), 1);
-    KokkosBlas::dot(z_view, x_view, y_view);
-    local_result = z_view(0);
-    #endif
-  }
-  #elif defined(HPCG_WITH_CUDA)
+  #if defined(HPCG_WITH_CUDA)
   // Compute dot on Nvidia GPU
   cublasHandle_t handle = x.handle;
   if (std::is_same<input_scalar_type, double>::value) {
@@ -168,16 +152,5 @@ int ComputeDotProduct_ref<Vector<double> >(int, Vector<double> const&, Vector<do
 
 template
 int ComputeDotProduct_ref<Vector<float> >(int, Vector<float> const&, Vector<float> const&, float&, double&);
-
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeDotProduct_ref<Vector<half_t> >(int, Vector<half_t> const&, Vector<half_t> const&, half_t&, double&);
-
-template
-int ComputeDotProduct_ref<Vector<half_t>, float >(int, Vector<half_t> const&, Vector<half_t> const&, float&, double&);
-
-template
-int ComputeDotProduct_ref<Vector<half_t>, double >(int, Vector<half_t> const&, Vector<half_t> const&, double&, double&);
-#endif
 
 #endif

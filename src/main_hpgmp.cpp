@@ -32,10 +32,6 @@ using std::endl;
 
 #include <vector>
 
-#ifdef HPCG_WITH_KOKKOSKERNELS
-#include "Kokkos_Core.hpp"
-#endif
-
 #include "hpgmp.hpp"
 
 #include "SetupProblem.hpp"
@@ -50,23 +46,15 @@ using std::endl;
 #include "BenchGMRES.hpp"
 #include "mytimer.hpp"
 
-typedef double scalar_type;
+using scalar_type =  double;
+using scalar_type2 = float;
+using project_type = float;
 
 typedef TestGMRESData<scalar_type> TestGMRESData_type;
 typedef Vector<scalar_type> Vector_type;
 typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
-//using scalar_type2 = float;
-using scalar_type2 = Kokkos::Experimental::half_t;
-
-using project_type = float;
-//using project_type = double;
-#else
-using scalar_type2 = float;
-using project_type = float;
-#endif
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
 typedef GMRESData<scalar_type2, project_type> GMRESData_type2;
@@ -86,10 +74,7 @@ int main(int argc, char * argv[]) {
   MPI_Init(&argc, &argv);
 #endif
   HPCG_Init(&argc, &argv);
-#ifdef HPCG_WITH_KOKKOSKERNELS
-  Kokkos::initialize();
-  {
-#endif
+
   int myRank = 0;
 #ifndef HPCG_NO_MPI
   int numRanks = 1;
@@ -193,10 +178,7 @@ int main(int argc, char * argv[]) {
     DeleteVector(x);
     DeleteVector(b);
   }
-#ifdef HPCG_WITH_KOKKOSKERNELS
-  }
-  Kokkos::finalize();
-#endif
+
   HPCG_Finalize();
 #ifndef HPCG_NO_MPI
   MPI_Finalize();

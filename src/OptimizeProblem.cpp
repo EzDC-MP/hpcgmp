@@ -98,7 +98,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
     colors[i] = counters[colors[i]]++;
 #endif
 
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP) | defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
   {
     typedef typename SparseMatrix_type::scalar_type SC;
 
@@ -181,41 +181,6 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       free(h_row_ptr);
       free(h_col_ind);
       free(h_nzvals);
-      #endif
-      #if defined(HPCG_WITH_KOKKOSKERNELS)
-      // store the matrix on host
-      curLevelMatrix->h_row_ptr = h_row_ptr;
-      curLevelMatrix->h_col_idx = h_col_ind;
-      curLevelMatrix->h_nzvals = h_nzvals;
-      {
-        // Create Handle
-        #if 1
-        // GS-MT
-        curLevelMatrix->kh.create_gs_handle();
-        #endif
-        #if 0
-        //GS2
-        bool classic = false;
-        curLevelMatrix->kh.create_gs_handle(KokkosSparse::GS_TWOSTAGE);
-        curLevelMatrix->kh.set_gs_twostage(!classic, nrow);
-        #endif
-        bool graph_symmetric = false;
-        #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
-        typename SparseMatrix_type::RowPtrView rowptr_view(curLevelMatrix->d_row_ptr, nrow+1);
-        typename SparseMatrix_type::ColIndView colidx_view(curLevelMatrix->d_col_idx, nnz);
-        typename SparseMatrix_type::ValuesView values_view(curLevelMatrix->d_nzvals, nnz);
-        #else
-        typename SparseMatrix_type::RowPtrView rowptr_view(curLevelMatrix->h_row_ptr, nrow+1);
-        typename SparseMatrix_type::ColIndView colidx_view(curLevelMatrix->h_col_idx, nnz);
-        typename SparseMatrix_type::ValuesView values_view(curLevelMatrix->h_nzvals, nnz);
-        #endif
-        // Perform Symbolic
-        KokkosSparse::Experimental::gauss_seidel_symbolic
-          (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, graph_symmetric);
-        // Numeric
-        KokkosSparse::Experimental::gauss_seidel_numeric
-          (&(curLevelMatrix->kh), nrow, ncol, rowptr_view, colidx_view, values_view, graph_symmetric);
-      }
       #endif
 
       #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
@@ -353,26 +318,6 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       InitializeVector(curLevelMatrix->y, ncol, curLevelMatrix->comm);
       #endif
  
-      #if defined(HPCG_WITH_SSL2)
-      const SC zero (0.0);
-      Ellpack_vals = (SC  *)malloc( 27*nrow * sizeof(SC));
-      Ellpack_cols = (int *)malloc( 27*nrow * sizeof(int));
-      for (local_int_t i=0; i<nrow; i++)  {
-        const SC * const cur_vals = curLevelMatrix->matrixValues[i];
-        const local_int_t * const cur_inds = curLevelMatrix->mtxIndL[i];
-
-        const int cur_nnz = curLevelMatrix->nonzerosInRow[i];
-        for (int j=0; j<cur_nnz; j++) {
-          Ellpack_vals[j] = cur_vals[j];
-          Ellpack_cols[j] = cur_inds[j];
-        }
-        for (int j=cur_nnz; j<27; j++) {
-          Ellpack_vals[j] = zero;
-          Ellpack_cols[j] = cur_inds[cur_nnz-1];
-        }
-      }
-      #endif
-
       #if defined(HPCG_WITH_CUDA)
       // -------------------------
       // create Handle (for each matrix)
@@ -390,10 +335,6 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         computeType = CUDA_R_64F;
       } else if (std::is_same<SC, float>::value) {
         computeType = CUDA_R_32F;
-      } else {
-        #if defined(HPCG_WITH_KOKKOSKERNELS)
-        computeType = CUDA_R_64F;
-        #endif
       }
       cusparseSpMatDescr_t A_cusparse;
       cusparseCreateCsr(&A_cusparse, nrow, ncol, nnz,
@@ -786,8 +727,3 @@ template
 int OptimizeProblem< SparseMatrix<float>, GMRESData<double>, Vector<double> >
   (SparseMatrix<float>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int OptimizeProblem< SparseMatrix<half_t>, GMRESData<double>, Vector<double> >
-  (SparseMatrix<half_t>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
-#endif

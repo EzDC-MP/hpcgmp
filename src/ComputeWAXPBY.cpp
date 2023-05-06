@@ -65,16 +65,8 @@ int ComputeWAXPBY< Vector<double>, Vector<double>, Vector<double> >(int, double,
 template
 int ComputeWAXPBY< Vector<float>, Vector<float>, Vector<float> >(int, float, Vector<float> const&, float, Vector<float> const&, Vector<float>&, bool&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeWAXPBY< Vector<half_t>, Vector<half_t>, Vector<half_t> >(int, half_t, Vector<half_t> const&, half_t, Vector<half_t> const&, Vector<half_t>&, bool&);
-#endif
 
 // mixed
 template
 int ComputeWAXPBY< Vector<double>, Vector<float>, Vector<double> >(int, double, Vector<double> const&, float, Vector<float> const&, Vector<double>&, bool&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeWAXPBY< Vector<double>, Vector<half_t>, Vector<double> >(int, double, Vector<double> const&, half_t, Vector<half_t> const&, Vector<double>&, bool&);
-#endif

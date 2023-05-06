@@ -33,19 +33,15 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
                      const typename SerialDenseMatrix_type::scalar_type beta, SerialDenseMatrix_type & C) {
 
   typedef typename       MultiVector_type::scalar_type scalarA_type;
-  typedef typename            Vector_type::scalar_type scalarC_type;
+  typedef typename SerialDenseMatrix_type::scalar_type scalarC_type;
 
   const scalarA_type one  (1.0);
   const scalarA_type zero (0.0);
 
-  assert(x.localLength >= m); // Test vector lengths
-  assert(y.m >= n);
-  assert(y.n == 1);
-
   // Input serial dense vector 
   scalarA_type * const Av = A.values;
-  scalarX_type * const Bv = B.values;
-  scalarY_type * const Cv = C.values;
+  scalarA_type * const Bv = B.values;
+  scalarC_type * const Cv = C.values;
 
   // GEMM on HOST CPU
   double t0; TICK();
@@ -72,7 +68,7 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
       }
     }
   }
-  TIME(y.time1);
+  TIME(C.time1);
 
 #ifndef HPCG_NO_MPI
   // Use MPI's reduce function to collect all partial sums
@@ -80,12 +76,12 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
   int size; // Number of MPI processes, My process ID
   MPI_Comm_size(A.comm, &size);
   if (size > 1) {
-    MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarY_type>::getType ();
+    MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalarC_type>::getType ();
     MPI_Allreduce(MPI_IN_PLACE, Cv, m*n, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
   }
-  TIME(y.time2);
+  TIME(C.time2);
 #else
-  y.time2 = 0.0;
+  C.time2 = 0.0;
 #endif
 
   return 0;
@@ -99,10 +95,10 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
 // uniform
 template
 int ComputeGEMMT_ref< MultiVector<double>, SerialDenseMatrix<double> >
-  (int, int, double, MultiVector<double> const&, MultiVector<double> const&, double, SerialDenseMatrix<double> &);
+  (int, int, int, double, MultiVector<double> const&, MultiVector<double> const&, double, SerialDenseMatrix<double> &);
 
 template
 int ComputeGEMMT_ref< MultiVector<float>, SerialDenseMatrix<float> >
-  (int, int, float, MultiVector<float> const&, MultiVector<float> const&, float, SerialDenseMatrix<float> &);
+  (int, int, int, float, MultiVector<float> const&, MultiVector<float> const&, float, SerialDenseMatrix<float> &);
 
 #endif

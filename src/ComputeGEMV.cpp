@@ -46,35 +46,9 @@ template
 int ComputeGEMV< MultiVector<float>, Vector<float>, SerialDenseMatrix<float> >
   (int, int, float, MultiVector<float> const&, SerialDenseMatrix<float> const&, float, Vector<float> const&, bool&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeGEMV< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<half_t> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<half_t> const&, half_t, Vector<half_t> const&, bool&);
-#endif
 
 // mixed
 template
 int ComputeGEMV< MultiVector<float>, Vector<double>, SerialDenseMatrix<float> >
   (int, int, float, MultiVector<float> const&, SerialDenseMatrix<float> const&, double, Vector<double> const&, bool&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeGEMV< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<half_t> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<half_t> const&, double, Vector<double> const&, bool&);
-
-template
-int ComputeGEMV< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<float> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<float> const&, half_t, Vector<half_t> const&, bool&);
-
-template
-int ComputeGEMV< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<double> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<double> const&, half_t, Vector<half_t> const&, bool&);
-
-template
-int ComputeGEMV< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<float> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<float> const&, double, Vector<double> const&, bool&);
-
-template
-int ComputeGEMV< MultiVector<half_t>, Vector<double>, SerialDenseMatrix<double> >
-  (int, int, half_t, MultiVector<half_t> const&, SerialDenseMatrix<double> const&, double, Vector<double> const&, bool&);
-#endif

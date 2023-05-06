@@ -85,12 +85,6 @@ void SetupMatrix< SparseMatrix<float>, GMRESData<float>, class Vector<float> >
  (int numberOfMgLevels, SparseMatrix<float> & A, Geometry * geom, GMRESData<float> & data, Vector<float> * b, Vector<float> * x, Vector<float> * xexact,
   bool init_vect, comm_type comm);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-void SetupMatrix< SparseMatrix<half_t>, GMRESData<half_t>, class Vector<half_t> >
- (int numberOfMgLevels, SparseMatrix<half_t> & A, Geometry * geom, GMRESData<half_t> & data, Vector<half_t> * b, Vector<half_t> * x, Vector<half_t> * xexact,
-  bool init_vect, comm_type comm);
-#endif
 
 // mixed
 template
@@ -98,24 +92,3 @@ void SetupMatrix< SparseMatrix<float>, GMRESData<float>, class Vector<double> >
  (int numberOfMgLevels, SparseMatrix<float> & A, Geometry * geom, GMRESData<float> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact,
   bool init_vect, comm_type comm);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-void SetupMatrix< SparseMatrix<half_t>, GMRESData<half_t>, class Vector<double> >
- (int numberOfMgLevels, SparseMatrix<half_t> & A, Geometry * geom, GMRESData<half_t> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact,
-  bool init_vect, comm_type comm);
-
-template
-void SetupMatrix< SparseMatrix<half_t>, GMRESData<half_t>, class Vector<float> >
- (int numberOfMgLevels, SparseMatrix<half_t> & A, Geometry * geom, GMRESData<half_t> & data, Vector<float> * b, Vector<float> * x, Vector<float> * xexact,
-  bool init_vect, comm_type comm);
-
-template
-void SetupMatrix< SparseMatrix<half_t>, GMRESData<half_t, float>, class Vector<double> >
- (int numberOfMgLevels, SparseMatrix<half_t> & A, Geometry * geom, GMRESData<half_t, float> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact,
-  bool init_vect, comm_type comm);
-
-template
-void SetupMatrix< SparseMatrix<half_t>, GMRESData<half_t, double>, class Vector<double> >
- (int numberOfMgLevels, SparseMatrix<half_t> & A, Geometry * geom, GMRESData<half_t, double> & data, Vector<double> * b, Vector<double> * x, Vector<double> * xexact,
-  bool init_vect, comm_type comm);
-#endif

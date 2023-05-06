@@ -44,24 +44,7 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
   scalarC_type * const d_Cv = C.d_values;
 
   double t0; TICK();
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
-  {
-    using execution_space = Kokkos::DefaultExecutionSpace;
-    Kokkos::View<scalarA_type **, Kokkos::LayoutLeft, execution_space> A_view(d_Av, k, m);
-    Kokkos::View<scalarA_type **, Kokkos::LayoutLeft, execution_space> B_view(d_Bv, k, n);
-    Kokkos::View<scalarC_type **, Kokkos::LayoutLeft, execution_space> C_view(d_Cv, m, n);
-
-    // Call GEMM
-    KokkosBlas::gemm("T", "N", alpha, A_view, B_view, beta, C_view);
-    TIME(C.time1);
-
-    // Copy output serial dense vector to host
-    TICK();
-    using host_execution_space = Kokkos::DefaultHostExecutionSpace;
-    Kokkos::View<scalarC_type **, Kokkos::LayoutLeft, host_execution_space> H_view(Cv, m, n);
-    Kokkos::deep_copy(H_view, C_view);
-  }
-  #elif defined(HPCG_WITH_CUDA)
+  #if defined(HPCG_WITH_CUDA)
   // Perform GEMM on device
   if (std::is_same<scalarC_type, double>::value) {
     if (CUBLAS_STATUS_SUCCESS != cublasDgemm(A.handle, CUBLAS_OP_T, CUBLAS_OP_N,
@@ -150,17 +133,4 @@ template
 int ComputeGEMMT_ref< MultiVector<float>, SerialDenseMatrix<float> >
   (int, int, int, float, MultiVector<float> const&, MultiVector<float> const&, float, SerialDenseMatrix<float> &);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
-template
-int ComputeGEMMT_ref< MultiVector<half_t>, SerialDenseMatrix<half_t> >
-  (int, int, int, half_t, MultiVector<half_t> const&, MultiVector<half_t> const&, half_t, SerialDenseMatrix<half_t> &);
-
-template
-int ComputeGEMMT_ref< MultiVector<half_t>, SerialDenseMatrix<float> >
-  (int, int, int, half_t, MultiVector<half_t> const&, MultiVector<half_t> const&, float, SerialDenseMatrix<float> &);
-
-template
-int ComputeGEMMT_ref< MultiVector<half_t>, SerialDenseMatrix<double> >
-  (int, int, int, half_t, MultiVector<half_t> const&, MultiVector<half_t> const&, double, SerialDenseMatrix<double> &);
-#endif
 #endif

@@ -16,8 +16,7 @@ HPCG_DEPS = src/ComputeResidual.o \
          src/ComputeDotProduct_blas.o src/ComputeDotProduct_gpu.o \
          src/finalize.o src/init.o src/mytimer.o \
          src/ComputeSPMV.o src/ComputeSPMV_ref.o \
-         src/ComputeSPMV_gpu.o src/ComputeSPMV_ssl2.o \
-	 src/ComputeSPMV_kk.o \
+         src/ComputeSPMV_gpu.o \
 	 src/ComputeSYMGS.o src/ComputeSYMGS_ref.o \
          src/ComputeWAXPBY.o src/ComputeWAXPBY_ref.o \
          src/ComputeMG_ref.o src/ComputeMG.o \
@@ -32,7 +31,6 @@ HPCG_DEPS = src/ComputeResidual.o \
          src/ComputeGEMMT.o src/ComputeGEMMT_ref.o src/ComputeGEMMT_gpu.o \
          src/GMRES.o src/GMRES_IR.o \
          src/ComputeGS_Forward.o src/ComputeGS_Forward_ref.o src/ComputeGS_Forward_gpu.o \
-	 src/ComputeGS_Forward_kk.o \
          src/SetupProblem.o src/SetupMatrix.o \
          src/GenerateNonsymProblem.o src/GenerateNonsymProblem_v1_ref.o \
          src/GenerateNonsymCoarseProblem.o 
