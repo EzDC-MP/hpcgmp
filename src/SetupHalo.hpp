@@ -6,9 +6,10 @@
 //        - Mixed-Precision
 //
 // Contact:
-// Michael A. Heroux ( maherou@sandia.gov)
-// Jack Dongarra     (dongarra@eecs.utk.edu)
-// Piotr Luszczek    (luszczek@eecs.utk.edu)
+// Ichitaro Yamazaki         (iyamaza@sandia.gov)
+// Sivasankaran Rajamanickam (srajama@sandia.gov)
+// Piotr Luszczek            (luszczek@eecs.utk.edu)
+// Jack Dongarra             (dongarra@eecs.utk.edu)
 //
 // ***************************************************
 //@HEADER
