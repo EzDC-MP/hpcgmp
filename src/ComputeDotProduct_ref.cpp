@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,11 +16,11 @@
 /*!
  @file ComputeDotProduct_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if !defined(HPCG_WITH_BLAS) & !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)
+#if !defined(HPGMP_WITH_BLAS) & !defined(HPGMP_WITH_CUDA) & !defined(HPGMP_WITH_HIP)
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include <mpi.h>
  #include "mytimer.hpp"
  #include "Utils_MPI.hpp"
@@ -27,7 +28,7 @@
 #include "ComputeDotProduct_ref.hpp"
 #include "hpgmp.hpp"
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
  #include <omp.h>
 #endif
 #include <cassert>
@@ -58,18 +59,18 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   scalar_type * xv = x.values;
   scalar_type * yv = y.values;
   if (yv==xv) {
-    #ifndef HPCG_NO_OPENMP
+    #ifndef HPGMP_NO_OPENMP
     #pragma omp parallel for reduction (+:local_result)
     #endif
     for (local_int_t i=0; i<n; i++) local_result += xv[i]*xv[i];
   } else {
-    #ifndef HPCG_NO_OPENMP
+    #ifndef HPGMP_NO_OPENMP
     #pragma omp parallel for reduction (+:local_result)
     #endif
     for (local_int_t i=0; i<n; i++) local_result += xv[i]*yv[i];
   }
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   double t0 = mytimer();
   int size; // Number of MPI processes, My process ID

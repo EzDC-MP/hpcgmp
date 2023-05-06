@@ -31,7 +31,7 @@ if test -d $mkfile -o -f $mkfile ; then
   rm -rf $mkfile
 fi
 
-sed -e "s:HPCG_ROOT_PATH:${bld_path}:g" ${src_path}/Makefile.ext | sed -e "s:HPCG_SRC_PATH:${src_path}:g" | sed -e "s:UNKNOWN:${arg_arch}:" > $mkfile
+sed -e "s:HPGMP_ROOT_PATH:${bld_path}:g" ${src_path}/Makefile.ext | sed -e "s:HPGMP_SRC_PATH:${src_path}:g" | sed -e "s:UNKNOWN:${arg_arch}:" > $mkfile
 
 # creating missing directories
 for path in src testing bin setup

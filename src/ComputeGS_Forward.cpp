@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file ComputeSYMGS.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 #include "ComputeGS_Forward.hpp"

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,26 +16,26 @@
 /*!
  @file ComputeResidual.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #include "Utils_MPI.hpp"
 #endif
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
 #include <omp.h>
 #endif
 
 #include "Vector.hpp"
 
-#ifdef HPCG_DETAILED_DEBUG
+#ifdef HPGMP_DETAILED_DEBUG
 #include <fstream>
 #include "hpgmp.hpp"
 #endif
 
 #include <cmath>  // needed for fabs
 #include "ComputeResidual.hpp"
-#ifdef HPCG_DETAILED_DEBUG
+#ifdef HPGMP_DETAILED_DEBUG
 #include <iostream>
 #endif
 
@@ -55,7 +56,7 @@ int ComputeResidual(const local_int_t n, const Vector_type & v1, const Vector_ty
   scalar_type * v2v = v2.values;
   scalar_type local_residual (0.0);
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
   #pragma omp parallel shared(local_residual, v1v, v2v)
   {
     scalar_type threadlocal_residual (0.0);
@@ -73,13 +74,13 @@ int ComputeResidual(const local_int_t n, const Vector_type & v1, const Vector_ty
   for (local_int_t i=0; i<n; i++) {
     scalar_type diff = std::fabs(v1v[i] - v2v[i]);
     if (diff > local_residual) local_residual = diff;
-#ifdef HPCG_DETAILED_DEBUG
-    HPCG_fout << " Computed, exact, diff = " << v1v[i] << " " << v2v[i] << " " << diff << std::endl;
+#ifdef HPGMP_DETAILED_DEBUG
+    HPGMP_fout << " Computed, exact, diff = " << v1v[i] << " " << v2v[i] << " " << diff << std::endl;
 #endif
   }
 #endif
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   scalar_type global_residual = 0;
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();

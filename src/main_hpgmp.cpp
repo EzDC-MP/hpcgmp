@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -21,7 +22,7 @@
 // Main routine of a program that calls the HPGMP GMRES and GMRES-IR 
 // solvers to solve the problem, and then prints results.
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #endif
 
@@ -70,13 +71,13 @@ typedef GMRESData<scalar_type2, project_type> GMRESData_type2;
 */
 int main(int argc, char * argv[]) {
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   MPI_Init(&argc, &argv);
 #endif
-  HPCG_Init(&argc, &argv);
+  HPGMP_Init(&argc, &argv);
 
   int myRank = 0;
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   int numRanks = 1;
   MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
   MPI_Comm_size(MPI_COMM_WORLD, &numRanks);
@@ -86,7 +87,7 @@ int main(int argc, char * argv[]) {
   // Create Communicators //
   //////////////////////////
   int sizeValidComm = 4;
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   int color = 0;
   if (sizeValidComm > numRanks) {
     #if 1
@@ -141,7 +142,7 @@ int main(int argc, char * argv[]) {
     bool runReference = true;
     BenchGMRES<TestGMRESData_type, scalar_type, scalar_type2, project_type>
         (argc, argv, benchmark_comm, numberOfMgLevels, verbose, runReference, test_data);
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
   }
@@ -179,8 +180,8 @@ int main(int argc, char * argv[]) {
     DeleteVector(b);
   }
 
-  HPCG_Finalize();
-#ifndef HPCG_NO_MPI
+  HPGMP_Finalize();
+#ifndef HPGMP_NO_MPI
   MPI_Finalize();
 #endif
   return 0;

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,11 +16,11 @@
 /*!
  @file ComputeGS_Forward_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)
+#if !defined(HPGMP_WITH_CUDA) & !defined(HPGMP_WITH_HIP)
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include "ExchangeHalo.hpp"
 #endif
 #include "ComputeGS_Forward_ref.hpp"
@@ -61,7 +62,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   scalar_type * const xv = x.values;
 
   double t0 = 0.0;
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Exchange Halo on HOST CPU
   ExchangeHalo(A, x);
 #endif

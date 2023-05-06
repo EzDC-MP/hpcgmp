@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,11 +16,11 @@
 /*!
  @file ComputeGEMMT_ref.cpp
 
- HPCG routine for computing GEMM transpose (dot-products)
+ HPGMP routine for computing GEMM transpose (dot-products)
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_BLAS)
+#if !defined(HPGMP_WITH_CUDA) & !defined(HPGMP_WITH_HIP) & !defined(HPGMP_WITH_BLAS)
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include "Utils_MPI.hpp"
 #endif
 
@@ -70,7 +71,7 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
   }
   TIME(C.time1);
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   TICK();
   int size; // Number of MPI processes, My process ID

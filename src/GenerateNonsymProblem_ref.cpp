@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,18 +16,18 @@
 /*!
  @file GenerateProblem_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #endif
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
 #include <omp.h>
 #endif
 
-#if defined(HPCG_DEBUG) || defined(HPCG_DETAILED_DEBUG)
+#if defined(HPGMP_DEBUG) || defined(HPGMP_DETAILED_DEBUG)
 #include <fstream>
 using std::endl;
 #include "hpcg.hpp"
@@ -101,7 +102,7 @@ void GenerateNonsymProblem_ref(SparseMatrix_type & A, Vector_type * b, Vector_ty
 
   // Use a parallel loop to do initial assignment:
   // distributes the physical placement of arrays of pointers across the memory system
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
   #pragma omp parallel for
 #endif
   for (local_int_t i=0; i< localNumberOfRows; ++i) {
@@ -111,7 +112,7 @@ void GenerateNonsymProblem_ref(SparseMatrix_type & A, Vector_type * b, Vector_ty
     mtxIndL[i] = 0;
   }
 
-#ifndef HPCG_CONTIGUOUS_ARRAYS
+#ifndef HPGMP_CONTIGUOUS_ARRAYS
   // Now allocate the arrays pointed to
   for (local_int_t i=0; i< localNumberOfRows; ++i)
     mtxIndL[i] = new local_int_t[numberOfNonzerosPerRow];
@@ -137,7 +138,7 @@ void GenerateNonsymProblem_ref(SparseMatrix_type & A, Vector_type * b, Vector_ty
   matrix_scalar_type gamma (10.0); //one;
   local_int_t localNumberOfNonzeros = 0;
   // TODO:  This triply nested loop could be flattened or use nested parallelism
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
   #pragma omp parallel for
 #endif
   for (local_int_t iz=0; iz<nz; iz++) {
@@ -148,15 +149,15 @@ void GenerateNonsymProblem_ref(SparseMatrix_type & A, Vector_type * b, Vector_ty
         global_int_t gix = gix0+ix;
         local_int_t currentLocalRow = iz*(nx*ny) + iy*(nx) + ix;
         global_int_t currentGlobalRow = giz*(gnx*gny) + giy*(gnx) + gix;
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
 // C++ std::map is not threadsafe for writing
         #pragma omp critical
 #endif
         A.globalToLocalMap[currentGlobalRow] = currentLocalRow;
 
         A.localToGlobalMap[currentLocalRow] = currentGlobalRow;
-#ifdef HPCG_DETAILED_DEBUG
-        HPCG_fout << " rank, globalRow, localRow = " << A.geom->rank << " " << currentGlobalRow << " " << A.globalToLocalMap[currentGlobalRow] << endl;
+#ifdef HPGMP_DETAILED_DEBUG
+        HPGMP_fout << " rank, globalRow, localRow = " << A.geom->rank << " " << currentGlobalRow << " " << A.globalToLocalMap[currentGlobalRow] << endl;
 #endif
         char numberOfNonzerosInRow = 0;
         matrix_scalar_type * currentValuePointer = matrixValues[currentLocalRow]; // Pointer to current value in current row
@@ -203,7 +204,7 @@ void GenerateNonsymProblem_ref(SparseMatrix_type & A, Vector_type * b, Vector_ty
           } // end z bounds test
         } // end sz loop
         nonzerosInRow[currentLocalRow] = numberOfNonzerosInRow;
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
         #pragma omp critical
 #endif
         localNumberOfNonzeros += numberOfNonzerosInRow; // Protect this with an atomic
@@ -215,15 +216,15 @@ void GenerateNonsymProblem_ref(SparseMatrix_type & A, Vector_type * b, Vector_ty
       } // end ix loop
     } // end iy loop
   } // end iz loop
-#ifdef HPCG_DETAILED_DEBUG
-  HPCG_fout     << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfRows    << " rows."     << endl
+#ifdef HPGMP_DETAILED_DEBUG
+  HPGMP_fout     << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfRows    << " rows."     << endl
       << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfNonzeros<< " nonzeros." <<endl;
 #endif
 
   global_int_t totalNumberOfNonzeros = 0;
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to sum all nonzeros
-#ifdef HPCG_NO_LONG_LONG
+#ifdef HPGMP_NO_LONG_LONG
   MPI_Allreduce(&localNumberOfNonzeros, &totalNumberOfNonzeros, 1, MPI_INT, MPI_SUM, A.comm);
 #else
   long long lnnz = localNumberOfNonzeros, gnnz = 0; // convert to 64 bit for MPI call

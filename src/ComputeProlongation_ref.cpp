@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,11 +16,11 @@
 /*!
  @file ComputeProlongation_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)
+#if !defined(HPGMP_WITH_CUDA) & !defined(HPGMP_WITH_HIP)
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
 #include <omp.h>
 #endif
 
@@ -46,7 +47,7 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
   local_int_t * f2c = Af.mgData->f2cOperator;
   local_int_t nc = Af.mgData->rc->localLength;
 
-  #ifndef HPCG_NO_OPENMP
+  #ifndef HPGMP_NO_OPENMP
   #pragma omp parallel for
   #endif
   // TODO: Somehow note that this loop can be safely vectorized since f2c has no repeated indices

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,22 +16,22 @@
 /*!
  @file ComputeSPMV_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP))
+#if (defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP))
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
  #include <omp.h>
 #endif
 #include <cassert>
 
 #include "DataTypes.hpp"
 #include "ComputeSPMV_ref.hpp"
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include "ExchangeHalo.hpp"
 #endif
 
-#if defined(HPCG_DEBUG) & !defined(HPCG_NO_MPI)
+#if defined(HPGMP_DEBUG) & !defined(HPGMP_NO_MPI)
  #include <mpi.h>
  #include "Utils_MPI.hpp"
  #include "hpgmp.hpp"
@@ -69,14 +70,14 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   scalar_type * const d_xv = x.d_values;
   scalar_type * const d_yv = y.d_values;
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   if (A.geom->size > 1) {
-    #ifdef HPCG_WITH_CUDA
+    #ifdef HPGMP_WITH_CUDA
     // Copy local part of X to HOST CPU
     if (cudaSuccess != cudaMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_y\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (hipSuccess != hipMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_y\n" );
     }
@@ -85,11 +86,11 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
     ExchangeHalo(A, x);
 
     // copy non-local part of X to device (after Halo exchange)
-    #if defined(HPCG_WITH_CUDA)
+    #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
       printf( " Failed to memcpy d_x\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (hipSuccess != hipMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), hipMemcpyHostToDevice)) {
       printf( " Failed to memcpy d_x\n" );
     }
@@ -97,10 +98,10 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   }
 #endif
 
-#if defined(HPCG_DEBUG)
+#if defined(HPGMP_DEBUG)
   scalar_type * const yv = y.values;
 
-  #ifndef HPCG_NO_OPENMP
+  #ifndef HPGMP_NO_OPENMP
   #pragma omp parallel for
   #endif
   for (local_int_t i=0; i< nrow; i++)  {
@@ -115,7 +116,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   }
 #endif
 
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   cusparseStatus_t status;
   #if CUDA_VERSION >= 11000
   cudaDataType computeType;
@@ -166,7 +167,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
      printf( " Failed cusparseDcsrmv for SpMV\n" );
   }
   #endif
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
   if (std::is_same<scalar_type, float>::value) {
     rocsparse_compute_type = rocsparse_datatype_f32_r;
@@ -183,13 +184,13 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   }
   #endif
   
-  #ifdef HPCG_DEBUG
+  #ifdef HPGMP_DEBUG
   scalar_type * tv = (scalar_type *)malloc(nrow * sizeof(scalar_type));
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   if (cudaSuccess != cudaMemcpy(tv, d_yv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_y\n" );
   }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   if (hipSuccess != hipMemcpy(tv, d_yv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_y\n" );
   }
@@ -209,7 +210,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   scalar_type xnorm = 0.0;
   scalar_type ynorm = 0.0;
   scalar_type tnorm = 0.0;
-  #ifndef HPCG_NO_MPI
+  #ifndef HPGMP_NO_MPI
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
   MPI_Allreduce(&l_enorm, &enorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
   MPI_Allreduce(&l_xnorm, &xnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
@@ -226,7 +227,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   ynorm = sqrt(ynorm);
   tnorm = sqrt(tnorm);
   if (A.geom->rank == 0) {
-    HPCG_fout << A.geom->rank << " : SpMV(" << nrow << " x " << ncol << "): error = " << enorm << " (x=" << xnorm << ", y=" << ynorm << ", t=" << tnorm << ")" << std::endl;
+    HPGMP_fout << A.geom->rank << " : SpMV(" << nrow << " x " << ncol << "): error = " << enorm << " (x=" << xnorm << ", y=" << ynorm << ", t=" << tnorm << ")" << std::endl;
   }
   free(tv);
   #endif

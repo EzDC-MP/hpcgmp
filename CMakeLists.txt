@@ -1,23 +1,23 @@
 #
-# HPCG Benchmark CMake configuration
+# HPGMP Benchmark CMake configuration
 #
 cmake_minimum_required( VERSION 3.0 FATAL_ERROR )
 
 project( hpgmp
     VERSION 3.1
     LANGUAGES CXX
-    DESCRIPTION "High Performance Conjugate Gradient Benchmark (HPCG) " )
+    DESCRIPTION "High Performance Conjugate Gradient Benchmark (HPGMP) " )
 
 #
 # Options
 #
-option(HPCG_ENABLE_CONTIGUOUS_ARRAYS "Enable contiguous arrays for better cache pre-fetch" OFF)
-option(HPCG_ENABLE_CUBIC_RADICAL_SEARCH "Enable faster search for optimal 3D process grid" OFF)
-option(HPCG_ENABLE_DEBUG "Enable debug build" OFF)
-option(HPCG_ENABLE_DETAILED_DEBUG "Enable detailed debug build" OFF)
-option(HPCG_ENABLE_MPI "Enable MPI support" OFF)
-option(HPCG_ENABLE_LONG_LONG "Enable use of 'long long' type for global indices" ON)
-option(HPCG_ENABLE_OPENMP "Enable OpenMP support" OFF)
+option(HPGMP_ENABLE_CONTIGUOUS_ARRAYS "Enable contiguous arrays for better cache pre-fetch" OFF)
+option(HPGMP_ENABLE_CUBIC_RADICAL_SEARCH "Enable faster search for optimal 3D process grid" OFF)
+option(HPGMP_ENABLE_DEBUG "Enable debug build" OFF)
+option(HPGMP_ENABLE_DETAILED_DEBUG "Enable detailed debug build" OFF)
+option(HPGMP_ENABLE_MPI "Enable MPI support" OFF)
+option(HPGMP_ENABLE_LONG_LONG "Enable use of 'long long' type for global indices" ON)
+option(HPGMP_ENABLE_OPENMP "Enable OpenMP support" OFF)
 
 add_executable( xhpgmp src/main_hpgmp.cpp
     src/GMRES.cpp src/GMRES_IR.cpp src/TestGMRES.cpp
@@ -73,79 +73,79 @@ add_executable( xhpgmp_time src/main_time.cpp
     src/ComputeOptimalShapeXYZ.cpp src/MixedBaseCounter.cpp
     src/CheckAspectRatio.cpp src/OutputFile.cpp)
 
-if (HPCG_ENABLE_CONTIGUOUS_ARRAYS)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_CONTIGUOUS_ARRAYS)
+if (HPGMP_ENABLE_CONTIGUOUS_ARRAYS)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_CONTIGUOUS_ARRAYS)
 endif ()
 
-if (HPCG_ENABLE_CUBIC_RADICAL_SEARCH)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_CUBIC_RADICAL_SEARCH)
+if (HPGMP_ENABLE_CUBIC_RADICAL_SEARCH)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_CUBIC_RADICAL_SEARCH)
 endif ()
 
-if (HPCG_ENABLE_DEBUG)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_DEBUG)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_DEBUG)
+if (HPGMP_ENABLE_DEBUG)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_DEBUG)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_DEBUG)
 endif ()
 
-if (HPCG_ENABLE_DETAILED_DEBUG)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_DETAILED_DEBUG)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_DETAILED_DEBUG)
+if (HPGMP_ENABLE_DETAILED_DEBUG)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_DETAILED_DEBUG)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_DETAILED_DEBUG)
 endif ()
 
-if (HPCG_ENABLE_MPI)
+if (HPGMP_ENABLE_MPI)
     set(MPI_CXX_SKIP_MPICXX ON)
     find_package(MPI REQUIRED)
     target_link_libraries(xhpgmp ${MPI_CXX_LIBRARIES})
     target_link_libraries(xhpgmp_time ${MPI_CXX_LIBRARIES})
 else ()
-    target_compile_definitions(xhpgmp PRIVATE HPCG_NO_MPI)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_MPI)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_NO_MPI)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_NO_MPI)
 endif ()
 
-if (NOT HPCG_ENABLE_LONG_LONG)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_NO_LONG_LONG)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_LONG_LONG)
+if (NOT HPGMP_ENABLE_LONG_LONG)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_NO_LONG_LONG)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_NO_LONG_LONG)
 endif ()
 
-if (HPCG_ENABLE_OPENMP)
+if (HPGMP_ENABLE_OPENMP)
     find_package(OpenMP REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     target_link_libraries(xhpgmp ${OpenMP_CXX_LIBRARIES})
     target_link_libraries(xhpgmp_time ${OpenMP_CXX_LIBRARIES})
 else ()
-    target_compile_definitions(xhpgmp PRIVATE HPCG_NO_OPENMP)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_OPENMP)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_NO_OPENMP)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_NO_OPENMP)
 endif ()
 
-if (HPCG_ENABLE_CUDA)
+if (HPGMP_ENABLE_CUDA)
     find_package(CUDA REQUIRED)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_WITH_CUDA)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_USE_FENCE)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_WITH_CUDA)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_USE_FENCE)
     target_link_libraries(xhpgmp ${CUDA_LIBRARIES})
 
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_CUDA)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_USE_FENCE)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_WITH_CUDA)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_USE_FENCE)
     target_link_libraries(xhpgmp_time ${CUDA_LIBRARIES})
 else ()
-    target_compile_definitions(xhpgmp PRIVATE HPCG_NO_CUDA)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_CUDA)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_NO_CUDA)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_NO_CUDA)
 endif ()
 
-if (HPCG_ENABLE_HIP)
+if (HPGMP_ENABLE_HIP)
     find_package(HIP REQUIRED)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_WITH_HIP)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_USE_FENCE)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_WITH_HIP)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_USE_FENCE)
     target_link_libraries(xhpgmp ${HIP_LIBRARIES})
 
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_HIP)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_USE_FENCE)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_WITH_HIP)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_USE_FENCE)
     target_link_libraries(xhpgmp_time ${HIP_LIBRARIES})
 else ()
-    target_compile_definitions(xhpgmp PRIVATE HPCG_NO_HIP)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_HIP)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_NO_HIP)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_NO_HIP)
 endif ()
 
 
-if (HPCG_ENABLE_BLAS)
-    target_compile_definitions(xhpgmp PRIVATE HPCG_WITH_BLAS)
-    target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_BLAS)
+if (HPGMP_ENABLE_BLAS)
+    target_compile_definitions(xhpgmp PRIVATE HPGMP_WITH_BLAS)
+    target_compile_definitions(xhpgmp_time PRIVATE HPGMP_WITH_BLAS)
 endif ()

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file WriteProblem.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 #include <cstdio>
@@ -76,7 +77,7 @@ int WriteProblem(const Geometry & geom, const SparseMatrix_type & A,
     const global_int_t * const currentRowIndices = A.mtxIndG[i];
     const int currentNumberOfNonzeros = A.nonzerosInRow[i];
     for (int j=0; j< currentNumberOfNonzeros; j++)
-#ifdef HPCG_NO_LONG_LONG
+#ifdef HPGMP_NO_LONG_LONG
       fprintf(fA, " %d %d %22.16e\n",i+1,(global_int_t)(currentRowIndices[j]+1),currentRowValues[j]);
 #else
       fprintf(fA, " %lld %lld %22.16e\n",i+1,(global_int_t)(currentRowIndices[j]+1),currentRowValues[j]);

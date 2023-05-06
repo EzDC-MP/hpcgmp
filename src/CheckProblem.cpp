@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,18 +16,18 @@
 /*!
  @file CheckProblem.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #endif
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
 #include <omp.h>
 #endif
 
-#if defined(HPCG_DEBUG) || defined(HPCG_DETAILED_DEBUG)
+#if defined(HPGMP_DEBUG) || defined(HPGMP_DETAILED_DEBUG)
 #include <fstream>
 using std::endl;
 #include "hpgmp.hpp"
@@ -75,7 +76,7 @@ void CheckProblem(SparseMatrix_type & A, Vector_type * b, Vector_type * x, Vecto
 
   local_int_t localNumberOfNonzeros = 0;
   // TODO:  This triply nested loop could be flattened or use nested parallelism
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
   #pragma omp parallel for
 #endif
   for (local_int_t iz=0; iz<nz; iz++) {
@@ -87,8 +88,8 @@ void CheckProblem(SparseMatrix_type & A, Vector_type * b, Vector_type * x, Vecto
         local_int_t currentLocalRow = iz*nx*ny+iy*nx+ix;
         global_int_t currentGlobalRow = giz*gnx*gny+giy*gnx+gix;
         assert(A.localToGlobalMap[currentLocalRow] == currentGlobalRow);
-#ifdef HPCG_DETAILED_DEBUG
-        HPCG_fout << " rank, globalRow, localRow = " << A.geom->rank << " " << currentGlobalRow << " " << A.globalToLocalMap.find(currentGlobalRow)->second << endl;
+#ifdef HPGMP_DETAILED_DEBUG
+        HPGMP_fout << " rank, globalRow, localRow = " << A.geom->rank << " " << currentGlobalRow << " " << A.globalToLocalMap.find(currentGlobalRow)->second << endl;
 #endif
         char numberOfNonzerosInRow = 0;
         scalar_type * currentValuePointer = A.matrixValues[currentLocalRow]; // Pointer to current value in current row
@@ -115,7 +116,7 @@ void CheckProblem(SparseMatrix_type & A, Vector_type * b, Vector_type * x, Vecto
           } // end z bounds test
         } // end sz loop
         assert(A.nonzerosInRow[currentLocalRow] == numberOfNonzerosInRow);
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
         #pragma omp critical
 #endif
         localNumberOfNonzeros += numberOfNonzerosInRow; // Protect this with an atomic
@@ -125,15 +126,15 @@ void CheckProblem(SparseMatrix_type & A, Vector_type * b, Vector_type * x, Vecto
       } // end ix loop
     } // end iy loop
   } // end iz loop
-#ifdef HPCG_DETAILED_DEBUG
-  HPCG_fout     << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfRows    << " rows."     << endl
+#ifdef HPGMP_DETAILED_DEBUG
+  HPGMP_fout     << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfRows    << " rows."     << endl
       << "Process " << A.geom->rank << " of " << A.geom->size <<" has " << localNumberOfNonzeros<< " nonzeros." <<endl;
 #endif
 
   global_int_t totalNumberOfNonzeros = 0;
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to sum all nonzeros
-#ifdef HPCG_NO_LONG_LONG
+#ifdef HPGMP_NO_LONG_LONG
   MPI_Allreduce(&localNumberOfNonzeros, &totalNumberOfNonzeros, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 #else
   long long lnnz = localNumberOfNonzeros, gnnz = 0; // convert to 64 bit for MPI call

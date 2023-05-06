@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,10 +16,10 @@
 /*!
  @file ReportResults.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #endif
 
@@ -27,7 +28,7 @@
 #include "OutputFile.hpp"
 #include "OptimizeProblem.hpp"
 
-#ifdef HPCG_DEBUG
+#ifdef HPGMP_DEBUG
 #include <fstream>
 using std::endl;
 
@@ -35,7 +36,7 @@ using std::endl;
 #endif
 
 /*!
- Creates a YAML file and writes the information about the HPCG run, its results, and validity.
+ Creates a YAML file and writes the information about the HPGMP run, its results, and validity.
 
   @param[in] geom The description of the problem's geometry.
   @param[in] A    The known system matrix
@@ -151,7 +152,7 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
       fnbytes_Af += fnrow_Af*numberOfNonzerosPerRow*((double) sizeof(global_int_t)); // mtxIndG[1..nrows]
 
       // Model for SetupHalo_ref.cpp
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
       fnbytes_Af += ((double) sizeof(double)*Af->totalToBeSent); //sendBuffer
       fnbytes_Af += ((double) sizeof(local_int_t)*Af->totalToBeSent); // elementsToSend
       fnbytes_Af += ((double) sizeof(int)*Af->numberOfSendNeighbors); // neighbors
@@ -367,13 +368,13 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
         doc.get("Final Summary")->add("Official results execution time (sec) must be at least",test_data.minOfficialTime);
       }
     } else {
-      doc.get("Final Summary")->add("HPCG result is","INVALID.");
+      doc.get("Final Summary")->add("HPGMP result is","INVALID.");
       doc.get("Final Summary")->add("Please review the YAML file contents","You may NOT submit these results for consideration.");
     }
 
     std::string yaml = doc.generate();
-#ifdef HPCG_DEBUG
-    HPCG_fout << yaml;
+#ifdef HPGMP_DEBUG
+    HPGMP_fout << yaml;
 #endif
   }
   return;

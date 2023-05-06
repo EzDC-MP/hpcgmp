@@ -1,6 +1,6 @@
-####################################################
-High Performance Conjugate Gradient Benchmark (HPCG)
-####################################################
+########################################################################
+High Performance Generalized minimal residual - Mixed-Precision (HPGMP)
+########################################################################
 
 :Author: Ichitaro Yamazaki, Jennifer Loe, Christian Glusa, Sivasankaran Rajamanickam Piotr Luszczek, and Jack Dongarra
 :Revision: 1.0

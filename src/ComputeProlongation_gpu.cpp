@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,11 +16,11 @@
 /*!
  @file ComputeProlongation_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
 #include <omp.h>
 #endif
 
@@ -51,7 +52,7 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
   scalar_type * d_xfv = xf.d_values;
   scalar_type * d_xcv = Af.mgData->xc->d_values;
 
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
     cusparseStatus_t status;
     #if CUDA_VERSION >= 11000
     cudaDataType computeType;
@@ -99,7 +100,7 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
       printf( " Failed cusparseDcsrmv for Prolongation\n" );
     }
     #endif
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
   if (std::is_same<scalar_type, float>::value) {
     rocsparse_compute_type = rocsparse_datatype_f32_r;

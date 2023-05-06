@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file Output_File.hpp
 
- HPCG output file classes
+ HPGMP output file classes
  */
 
 #ifndef OUTPUTFILE_HPP
@@ -24,12 +25,12 @@
 #include <list>
 #include <string>
 
-//! The OutputFile class for the uniform collecting and reporting of performance data for HPCG
+//! The OutputFile class for the uniform collecting and reporting of performance data for HPGMP
 
 /*!
 
   The OutputFile class facilitates easy collecting and reporting of
-  key-value-formatted data that can be then registered with the HPCG results
+  key-value-formatted data that can be then registered with the HPGMP results
   collection website. The keys may have hierarchy key1::key2::key3=val with
   double colon :: as a separator. A sample output may look like this (note how
   "major" and "micro" keys repeat with different ancestor keys):
@@ -117,7 +118,7 @@ public:
   */
    void add(const std::string & key, int value);
 
-#ifndef HPCG_NO_LONG_LONG
+#ifndef HPGMP_NO_LONG_LONG
   //! Create and add a descendant element with value of type "long long"
   /*!
   Create and add a descendant element identified by "key" and associated with

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file ComputeGEMMT_ref.hpp
 
- HPCG routine for computing GEMM transpose (dot-products)
+ HPGMP routine for computing GEMM transpose (dot-products)
  */
 
 #ifndef COMPUTE_GEMMT_REF_HPP

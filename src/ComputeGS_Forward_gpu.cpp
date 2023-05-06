@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,14 +16,14 @@
 /*!
  @file ComputeGS_Forward_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if (defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP))
+#if (defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP))
 
 #include <cassert>
 #include <iostream>
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include "ExchangeHalo.hpp"
 #endif
 #include "ComputeGS_Forward_ref.hpp"
@@ -30,7 +31,7 @@
 #include "DataTypes.hpp"
 #include "ComputeSPMV.hpp"
 #include "ComputeWAXPBY.hpp"
-#ifdef HPCG_DEBUG
+#ifdef HPGMP_DEBUG
  #include <mpi.h>
  #include "Utils_MPI.hpp"
  #include "hpgmp.hpp"
@@ -75,9 +76,9 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   scalar_type * const d_bv = b.d_values;
   scalar_type * const d_xv = x.d_values;
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Copy local part of X to HOST CPU
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   if (cudaSuccess != cudaMemcpy(xv, d_xv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_y\n" );
   }
@@ -91,23 +92,23 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   ExchangeHalo(A, x);
 
   // Copy non-local part of X (after Halo Exchange) to device
-  #ifdef HPCG_WITH_CUDA
+  #ifdef HPGMP_WITH_CUDA
   if (cudaSuccess != cudaMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
     printf( " Failed to memcpy d_y\n" );
   }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   if (hipSuccess != hipMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), hipMemcpyHostToDevice)) {
     printf( " Failed to memcpy d_y\n" );
   }
   #endif
-  #ifdef HPCG_DEBUG
+  #ifdef HPGMP_DEBUG
   if (A.geom->rank==0) {
-    HPCG_fout << A.geom->rank << " : ComputeGS(" << nrow << " x " << ncol << ") start" << std::endl;
+    HPGMP_fout << A.geom->rank << " : ComputeGS(" << nrow << " x " << ncol << ") start" << std::endl;
   }
   #endif
 #endif
 
-#if defined(HPCG_DEBUG)
+#if defined(HPGMP_DEBUG)
   const scalar_type * const rv = r.values;
   scalar_type ** matrixDiagonal = A.matrixDiagonal;  // An array of pointers to the diagonal entries A.matrixValues
 
@@ -133,7 +134,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   double t0 = 0.0;
 
   // b = r - Ux
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(d_bv, r.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToDevice)) {
       printf( " Failed to memcpy d_r\n" );
     }
@@ -188,7 +189,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
       printf( " Failed cusparseDcsrmv for GS\n" );
     }
     #endif
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   if (hipSuccess != hipMemcpy(d_bv, r.d_values, nrow*sizeof(scalar_type), hipMemcpyDeviceToDevice)) {
     printf( " Failed to memcpy d_r\n" );
   }
@@ -212,7 +213,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
   // x = L^{-1}b
   TICK();
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
     if (std::is_same<scalar_type, double>::value) {
       #if CUDA_VERSION >= 11000
       status = cusparseDcsrsv2_solve(A.cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, nrow, A.nnzL,
@@ -255,7 +256,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
       if (status == CUSPARSE_STATUS_INTERNAL_ERROR)             printf( " > CUSPARSE_STATUS_INTERNAL_ERROR <\n" );
       if (status == CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED ) printf( " > CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED <\n" );
     }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   buffer_size = A.buffer_size_L;
   rocsparse_create_dnvec_descr(&vecX, nrow, (void*)d_bv, rocsparse_compute_type);
   rocsparse_create_dnvec_descr(&vecY, nrow, (void*)d_xv, rocsparse_compute_type);
@@ -273,10 +274,10 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   #endif
   TOCK(x.time2);
 
-  #ifdef HPCG_DEBUG
+  #ifdef HPGMP_DEBUG
   scalar_type * tv = (scalar_type *)malloc(nrow * sizeof(scalar_type));
   // copy x to host for check inside WAXPBY (debug)
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   if (cudaSuccess != cudaMemcpy(tv, d_xv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_b\n" );
   }
@@ -299,7 +300,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   scalar_type enorm = 0.0;
   scalar_type xnorm = 0.0;
   scalar_type rnorm = 0.0;
-  #ifndef HPCG_NO_MPI
+  #ifndef HPGMP_NO_MPI
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
   MPI_Allreduce(&l_enorm, &enorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
   MPI_Allreduce(&l_xnorm, &xnorm, 1, MPI_SCALAR_TYPE, MPI_SUM, A.comm);
@@ -315,7 +316,7 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   int rank = 0;
   MPI_Comm_rank(A.comm, &rank);
   if (rank == 0) {
-    HPCG_fout << rank << " : GS_forward(" << nrow << " x " << ncol << "): error = " << enorm << " (x=" << xnorm << ", r=" << rnorm << ")" << std::endl;
+    HPGMP_fout << rank << " : GS_forward(" << nrow << " x " << ncol << "): error = " << enorm << " (x=" << xnorm << ", r=" << rnorm << ")" << std::endl;
   }
   free(tv);
   #endif

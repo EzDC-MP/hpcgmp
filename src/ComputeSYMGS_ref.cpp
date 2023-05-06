@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,10 +16,10 @@
 /*!
  @file ComputeSYMGS_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include "ExchangeHalo.hpp"
 #endif
 #include "ComputeSYMGS_ref.hpp"
@@ -57,7 +58,7 @@ int ComputeSYMGS_ref(const SparseMatrix_type & A, const Vector_type & r, Vector_
   assert(x.localLength==A.localNumberOfColumns); // Make sure x contain space for halo values
 
   typedef typename SparseMatrix_type::scalar_type scalar_type;
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   ExchangeHalo(A,x);
 #endif
 

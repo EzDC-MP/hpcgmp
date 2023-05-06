@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,11 +16,11 @@
 /*!
  @file ComputeGEMVT_gpu.cpp
 
- HPCG routine for computing GEMV transpose (dot-products)
+ HPGMP routine for computing GEMV transpose (dot-products)
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include "Utils_MPI.hpp"
 #endif
 
@@ -44,7 +45,7 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   // Output serial dense vector 
   scalarY_type * const yv = y.values;
 
-#if defined(HPCG_DEBUG)
+#if defined(HPGMP_DEBUG)
   const scalarA_type one  (1.0);
   const scalarA_type zero (0.0);
 
@@ -77,7 +78,7 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   scalarY_type * const d_yv = y.d_values;
 
   double t0; TICK();
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   // Perform GEMV on device
   if (std::is_same<scalarX_type, double>::value) {
     if (CUBLAS_STATUS_SUCCESS != cublasDgemv(x.handle, CUBLAS_OP_T,
@@ -103,7 +104,7 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   if (cudaSuccess != cudaMemcpy(yv, d_yv, n*sizeof(scalarX_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_x\n" );
   }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   // Perform GEMV on device
   if (std::is_same<scalarX_type, double>::value) {
     if (rocblas_status_success != rocblas_dgemv(x.handle, rocblas_operation_transpose,
@@ -131,7 +132,7 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   }
   #endif
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   int size; // Number of MPI processes
   MPI_Comm_size(A.comm, &size);

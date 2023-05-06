@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file Geometry.hpp
 
- HPCG data structure for problem geometry
+ HPGMP data structure for problem geometry
  */
 
 #ifndef GEOMETRY_HPP
@@ -34,7 +35,7 @@ typedef int local_int_t;
 
   Define as "long long" when global problem dimension is > 2^31
 */
-#ifdef HPCG_NO_LONG_LONG
+#ifdef HPGMP_NO_LONG_LONG
 typedef int global_int_t;
 #else
 typedef long long global_int_t;
@@ -42,7 +43,7 @@ typedef long long global_int_t;
 
 // This macro should be defined if the global_int_t is not long long
 // in order to stop complaints from non-C++11 compliant compilers.
-//#define HPCG_NO_LONG_LONG
+//#define HPGMP_NO_LONG_LONG
 
 /*!
   This is a data structure to contain all processor geometry information

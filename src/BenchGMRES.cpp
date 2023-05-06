@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file BenchGMRES.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 // Changelog
@@ -104,9 +105,9 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     double t_begin = mytimer();
     for (int i=0; i< numberOfCalls; ++i) {
       ierr = ComputeSPMV_ref(A, x_overlap, b_computed); // b_computed = A*x_overlap
-      if (ierr) HPCG_fout << "Error in call to SpMV: " << ierr << ".\n" << endl;
+      if (ierr) HPGMP_fout << "Error in call to SpMV: " << ierr << ".\n" << endl;
       ierr = ComputeMG_ref(A, b_computed, x_overlap); // b_computed = Minv*y_overlap
-      if (ierr) HPCG_fout << "Error in call to MG: " << ierr << ".\n" << endl;
+      if (ierr) HPGMP_fout << "Error in call to MG: " << ierr << ".\n" << endl;
     }
     test_data.SpmvMgTime = (mytimer() - t_begin)/((double) numberOfCalls);  // Total time divided by number of calls.
 
@@ -146,7 +147,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     ZeroVector(x); // Zero out x
     GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
     if (verbose && A.geom->rank==0) {
-      HPCG_fout << "Warm-up runs" << endl;
+      HPGMP_fout << "Warm-up runs" << endl;
     }
 
     //benchmark runs
@@ -168,7 +169,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
           int numberOfGmresCalls_min = ceil(test_data.runningTime / time_toc);
           if (numberOfGmresCalls_min > numberOfGmresCalls) {
             if (verbose && A.geom->rank==0) {
-              HPCG_fout << " numberOfGmresCalls = runningTime / time_toc = "
+              HPGMP_fout << " numberOfGmresCalls = runningTime / time_toc = "
                         << test_data.runningTime << " / " << time_toc << " = " << numberOfGmresCalls << endl;
             }
           }
@@ -176,25 +177,25 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
           int numberOfGmresCalls_min = ceil(test_data.minOfficialTime / time_toc);
           if (numberOfGmresCalls_min > numberOfGmresCalls) {
             numberOfGmresCalls = numberOfGmresCalls_min;
-            HPCG_fout << " numberOfGmresCalls = minOfficialTime / time_toc = "
+            HPGMP_fout << " numberOfGmresCalls = minOfficialTime / time_toc = "
                       << test_data.minOfficialTime << " / " << time_toc << " = " << numberOfGmresCalls << endl;
           }
         }
       }
 
-      if (ierr) HPCG_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
+      if (ierr) HPGMP_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
       if (verbose && A.geom->rank==0)
       {
-        HPCG_fout << "Call [" << i << " / " << numberOfGmresCalls << "] Number of GMRES-IR Iterations ["
+        HPGMP_fout << "Call [" << i << " / " << numberOfGmresCalls << "] Number of GMRES-IR Iterations ["
                   << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
-        HPCG_fout << " Time        " << time_toc << endl;
-        HPCG_fout << " Time/itr    " << time_toc / niters << endl;
+        HPGMP_fout << " Time        " << time_toc << endl;
+        HPGMP_fout << " Time/itr    " << time_toc / niters << endl;
       }
     }
     if (verbose && A.geom->rank==0) {
       double flops = test_data.flops[0];
-      HPCG_fout << "  Accumulated Time " << time_solve_total << " seconds." << endl;
-      HPCG_fout << "  Final Gflop/s    " << flops/1000000000.0 << "/" << time_solve_total << " = " << (flops/1000000000.0)/time_solve_total
+      HPGMP_fout << "  Accumulated Time " << time_solve_total << " seconds." << endl;
+      HPGMP_fout << "  Final Gflop/s    " << flops/1000000000.0 << "/" << time_solve_total << " = " << (flops/1000000000.0)/time_solve_total
                 << " (n = " << A.totalNumberOfRows << ")" << endl;
     }
     test_data.optTotalFlops = test_data.flops[0];
@@ -237,19 +238,19 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
       double time_toc = (mytimer() - time_tic);
       time_solve_total += time_toc;
 
-      if (ierr) HPCG_fout << "Error in call to GMRES: " << ierr << ".\n" << endl;
+      if (ierr) HPGMP_fout << "Error in call to GMRES: " << ierr << ".\n" << endl;
       if (verbose && A.geom->rank==0) {
-        HPCG_fout << "Call [" << i << " / " << numberOfGmresCalls << "]";
-        HPCG_fout << " Number of GMRES Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
-        HPCG_fout << " Time        " << time_toc << endl;
-        HPCG_fout << " Time/itr    " << time_toc / niters << endl;
+        HPGMP_fout << "Call [" << i << " / " << numberOfGmresCalls << "]";
+        HPGMP_fout << " Number of GMRES Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
+        HPGMP_fout << " Time        " << time_toc << endl;
+        HPGMP_fout << " Time/itr    " << time_toc / niters << endl;
       }
     }
     if (verbose && A.geom->rank==0)
     {
       double flops = test_data.flops[0];
-      HPCG_fout << "  Accumulated Time " << time_solve_total << " seconds." << endl;
-      HPCG_fout << "  Final Gflop/s    " << flops/1000000000.0 << "/" << time_solve_total << " = " << (flops/1000000000.0)/time_solve_total 
+      HPGMP_fout << "  Accumulated Time " << time_solve_total << " seconds." << endl;
+      HPGMP_fout << "  Final Gflop/s    " << flops/1000000000.0 << "/" << time_solve_total << " = " << (flops/1000000000.0)/time_solve_total 
                 << " (n = " << A.totalNumberOfRows << ")" << endl;
     }
     test_data.refTotalFlops = test_data.flops[0];
@@ -284,7 +285,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
   if (verbose && A.geom->rank==0) {
     total_benchmark_time = (mytimer() - total_benchmark_time);
-    HPCG_fout << " Total benchmark time : " << total_benchmark_time << " seconds." << endl;
+    HPGMP_fout << " Total benchmark time : " << total_benchmark_time << " seconds." << endl;
   }
   return 0;
 }

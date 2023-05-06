@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,9 +16,9 @@
 /*!
  @file ComputeGEMV_gpu.cpp
 
- HPCG routine for computing GEMV (vector-update)
+ HPGMP routine for computing GEMV (vector-update)
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
 
 #include "ComputeGEMV_ref.hpp"
 #include "hpgmp.hpp"
@@ -45,7 +46,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
   scalarA_type * const Av = A.values;
   scalarY_type * const yv = y.values;
 
-#if defined(HPCG_DEBUG)
+#if defined(HPGMP_DEBUG)
   // GEMV on HOST CPU
   if (beta == zero) {
     for (local_int_t i = 0; i < m; i++) yv[i] = zero;
@@ -72,7 +73,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
   if ((std::is_same<scalarX_type, double>::value && std::is_same<scalarY_type, double>::value && std::is_same<scalarA_type, double>::value) ||
       (std::is_same<scalarX_type, float >::value && std::is_same<scalarY_type, float >::value && std::is_same<scalarA_type, float >::value)) {
 
-    #if defined(HPCG_WITH_CUDA)
+    #if defined(HPGMP_WITH_CUDA)
     // Copy input serial dense vector to device
     if (cudaSuccess != cudaMemcpy(d_xv, xv, n*sizeof(scalarX_type), cudaMemcpyHostToDevice)) {
       printf( " Failed to memcpy d_x\n" );
@@ -96,7 +97,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
         printf( " Failed cublasSgemv\n" );
       }
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     // Copy input serial dense vector to device
     if (hipSuccess != hipMemcpy(d_xv, xv, n*sizeof(scalarX_type), hipMemcpyHostToDevice)) {
       printf( " Failed to memcpy d_x\n" );
@@ -122,10 +123,10 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
     }
     #endif
   } else {
-    HPCG_vout << " Mixed-precision GEMV not supported" << std::endl;
+    HPGMP_vout << " Mixed-precision GEMV not supported" << std::endl;
 
     // Copy input matrix A from HOST CPU
-    #if defined(HPCG_WITH_CUDA)
+    #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(Av, d_Av, m*n*sizeof(scalarA_type), cudaMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_y\n" );
     }
@@ -134,7 +135,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
         printf( " Failed to memcpy d_y\n" );
       }
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (hipSuccess != hipMemcpy(Av, d_Av, m*n*sizeof(scalarA_type), hipMemcpyDeviceToHost)) {
       printf( " Failed to memcpy d_y\n" );
     }
@@ -165,11 +166,11 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
     }
 
     // Copy output vector Y from HOST CPU
-    #if defined(HPCG_WITH_CUDA)
+    #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(d_yv, yv, m*sizeof(scalarY_type), cudaMemcpyHostToDevice)) {
       printf( " Failed to memcpy d_y\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (hipSuccess != hipMemcpy(d_yv, yv, m*sizeof(scalarY_type), hipMemcpyHostToDevice)) {
       printf( " Failed to memcpy d_y\n" );
     }

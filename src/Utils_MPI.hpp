@@ -3,7 +3,7 @@
 #ifndef HPGMP_UTILS_HPP
 #define HPGMP_UTILS_HPP
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #include "DataTypes.hpp"
 
@@ -45,5 +45,5 @@ public:
   }
 };
 
-#endif // ifndef HPCG_NO_MPI
+#endif // ifndef HPGMP_NO_MPI
 #endif

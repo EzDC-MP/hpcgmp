@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,20 +16,20 @@
 /*!
  @file main.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
-// Main routine of a program that calls the HPCG conjugate gradient
+// Main routine of a program that calls the HPGMP conjugate gradient
 // solver to solve the problem, and then prints results.
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #endif
 
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
-#ifdef HPCG_DETAILED_DEBUG
+#ifdef HPGMP_DETAILED_DEBUG
 using std::cin;
 #endif
 using std::endl;
@@ -80,37 +81,37 @@ typedef GMRESData<scalar_type2, project_type> GMRESData_type2;
 */
 int main(int argc, char * argv[]) {
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   MPI_Init(&argc, &argv);
 #endif
-  HPCG_Init(&argc, &argv);
-#ifndef HPCG_NO_MPI
+  HPGMP_Init(&argc, &argv);
+#ifndef HPGMP_NO_MPI
   MPI_Comm bench_comm = MPI_COMM_WORLD;
 #else
   comm_type bench_comm = 0;
 #endif
 
-  HPCG_Params params;
-  HPCG_Init_Params(&argc, &argv, params, bench_comm);
+  HPGMP_Params params;
+  HPGMP_Init_Params(&argc, &argv, params, bench_comm);
   int size = params.comm_size, rank = params.comm_rank; // Number of MPI processes, My process ID
-  if (rank == 0) HPCG_fout << endl;
-#ifndef HPCG_NO_MPI
-  if (rank == 0) HPCG_fout << "With MPI " << endl;
+  if (rank == 0) HPGMP_fout << endl;
+#ifndef HPGMP_NO_MPI
+  if (rank == 0) HPGMP_fout << "With MPI " << endl;
 #endif
-#ifdef HPCG_WITH_CUDA
-  if (rank == 0) HPCG_fout << "With Cuda " << endl;
+#ifdef HPGMP_WITH_CUDA
+  if (rank == 0) HPGMP_fout << "With Cuda " << endl;
 #endif
-  if (rank == 0) HPCG_fout << endl;
+  if (rank == 0) HPGMP_fout << endl;
 
-#ifdef HPCG_DETAILED_DEBUG
-  if (size < 100 && rank==0) HPCG_fout << "Process "<<rank<<" of "<<size<<" is alive with " << params.numThreads << " threads." <<endl;
+#ifdef HPGMP_DETAILED_DEBUG
+  if (size < 100 && rank==0) HPGMP_fout << "Process "<<rank<<" of "<<size<<" is alive with " << params.numThreads << " threads." <<endl;
 
   if (rank==0) {
     char c;
     std::cout << "Press key to continue"<< std::endl;
     std::cin.get(c);
   }
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   MPI_Barrier(MPI_COMM_WORLD);
 #endif
 #endif
@@ -129,7 +130,7 @@ int main(int argc, char * argv[]) {
   // Problem setup Phase //
   /////////////////////////
 
-#ifdef HPCG_DEBUG
+#ifdef HPGMP_DEBUG
   double t1 = mytimer();
 #endif
 
@@ -166,8 +167,8 @@ int main(int argc, char * argv[]) {
   times[7] = t7;
 
   if (A.geom->rank==0) {
-    HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
-    HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
+    HPGMP_fout << " Setup    Time     " << setup_time << " seconds." << endl;
+    HPGMP_fout << " Optimize Time     " << t7 << " seconds." << endl;
   }
 
   ////////////////////////////////////
@@ -196,13 +197,13 @@ int main(int argc, char * argv[]) {
   bool test_noprecond = true;
   TestGMRESData_type test_data;
 
-#ifdef HPCG_DEBUG
+#ifdef HPGMP_DEBUG
   t1 = mytimer();
-  if (rank==0) HPCG_fout << endl << "Running Uniform-precision Test" << endl;
+  if (rank==0) HPGMP_fout << endl << "Running Uniform-precision Test" << endl;
 #endif
   TestGMRES(A, data, b, x, test_diagonal_exaggeration, test_noprecond, test_data);
-#ifdef HPCG_DEBUG
-  if (rank==0) HPCG_fout << "Total validation (uniform-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
+#ifdef HPGMP_DEBUG
+  if (rank==0) HPGMP_fout << "Total validation (uniform-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
 #endif
 
   setup_time = mytimer();
@@ -217,17 +218,17 @@ int main(int argc, char * argv[]) {
   t7 = mytimer() - t7;
 
   if (A.geom->rank==0) {
-    HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
-    HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
+    HPGMP_fout << " Setup    Time     " << setup_time << " seconds." << endl;
+    HPGMP_fout << " Optimize Time     " << t7 << " seconds." << endl;
   }
 
 
-#ifdef HPCG_DEBUG
+#ifdef HPGMP_DEBUG
   t1 = mytimer();
 #endif
   TestGMRES(A, A2, data, data2, b, x, test_diagonal_exaggeration, test_noprecond, test_data);
-#ifdef HPCG_DEBUG
-  if (rank==0) HPCG_fout << "Total validation (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
+#ifdef HPGMP_DEBUG
+  if (rank==0) HPGMP_fout << "Total validation (mixed-precision TestGMRES) execution time in main (sec) = " << mytimer() - t1 << endl;
 #endif
 
   // free
@@ -240,8 +241,8 @@ int main(int argc, char * argv[]) {
   DeleteVector(b_computed);
   DeleteGMRESData(data);
   DeleteGMRESData(data2);
-  HPCG_Finalize();
-#ifndef HPCG_NO_MPI
+  HPGMP_Finalize();
+#ifndef HPGMP_NO_MPI
   MPI_Finalize();
 #endif
   return 0;

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file OptimizeProblem.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 #include "OptimizeProblem.hpp"
@@ -41,7 +42,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
   // This function can be used to completely transform any part of the data structures.
   // Right now it does nothing, so compiling with a check for unused variables results in complaints
 
-#if defined(HPCG_USE_MULTICOLORING)
+#if defined(HPGMP_USE_MULTICOLORING)
   const local_int_t nrow = A.localNumberOfRows;
   std::vector<local_int_t> colors(nrow, nrow); // value `nrow' means `uninitialized'; initialized colors go from 0 to nrow-1
   int totalColors = 1;
@@ -98,7 +99,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
     colors[i] = counters[colors[i]]++;
 #endif
 
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   {
     typedef typename SparseMatrix_type::scalar_type SC;
 
@@ -133,7 +134,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       }
 
       // copy CSR(A) to device
-      #if defined(HPCG_WITH_CUDA)
+      #if defined(HPGMP_WITH_CUDA)
       if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_row_ptr), (nrow+1)*sizeof(int))) {
         printf( " Failed to allocate A.d_row_ptr(nrow=%d)\n",nrow );
       }
@@ -157,7 +158,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       free(h_row_ptr);
       free(h_col_ind);
       free(h_nzvals);
-      #elif defined(HPCG_WITH_HIP)
+      #elif defined(HPGMP_WITH_HIP)
       if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_row_ptr), (nrow+1)*sizeof(int))) {
         printf( " Failed to allocate A.d_row_ptr(nrow=%d)\n",nrow );
       }
@@ -183,7 +184,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       free(h_nzvals);
       #endif
 
-      #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+      #if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
       // -------------------------
       // Extract lower/upper-triangular matrix
       global_int_t nnzU = nnz-nnzL;
@@ -220,7 +221,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       curLevelMatrix->nnzU = nnzU;
 
       // copy CSR(L) to device
-      #if defined(HPCG_WITH_CUDA)
+      #if defined(HPGMP_WITH_CUDA)
       if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_Lrow_ptr), (nrow+1)*sizeof(int))) {
         printf( " Failed to allocate A.d_Lrow_ptr\n" );
       }
@@ -240,7 +241,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (cudaSuccess != cudaMemcpy(curLevelMatrix->d_Lnzvals,  h_Lnzvals,  nnzL*sizeof(SC),  cudaMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_Lrow_ptr\n" );
       }
-      #elif defined(HPCG_WITH_HIP)
+      #elif defined(HPGMP_WITH_HIP)
       if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_Lrow_ptr), (nrow+1)*sizeof(int))) {
         printf( " Failed to allocate A.d_Lrow_ptr\n" );
       }
@@ -263,7 +264,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       #endif
 
       // copy CSR(U) to device
-      #if defined(HPCG_WITH_CUDA)
+      #if defined(HPGMP_WITH_CUDA)
       if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_Urow_ptr), (nrow+1)*sizeof(int))) {
         printf( " Failed to allocate A.d_Urow_ptr(nrow=%d)\n",nrow );
       }
@@ -283,7 +284,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (cudaSuccess != cudaMemcpy(curLevelMatrix->d_Unzvals,  h_Unzvals,  nnzU*sizeof(SC),  cudaMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_Urow_ptr\n" );
       }
-      #elif defined(HPCG_WITH_HIP)
+      #elif defined(HPGMP_WITH_HIP)
       if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_Urow_ptr), (nrow+1)*sizeof(int))) {
         printf( " Failed to allocate A.d_Urow_ptr(nrow=%d)\n",nrow );
       }
@@ -318,7 +319,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       InitializeVector(curLevelMatrix->y, ncol, curLevelMatrix->comm);
       #endif
  
-      #if defined(HPCG_WITH_CUDA)
+      #if defined(HPGMP_WITH_CUDA)
       // -------------------------
       // create Handle (for each matrix)
       cusparseCreate(&(curLevelMatrix->cusparseHandle));
@@ -437,7 +438,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
                               computeType, CUSPARSE_MV_ALG_DEFAULT, &curLevelMatrix->buffer_size_U);
       cudaMalloc(&curLevelMatrix->buffer_U, curLevelMatrix->buffer_size_U);
       #endif
-      #elif defined(HPCG_WITH_HIP)
+      #elif defined(HPGMP_WITH_HIP)
       // -------------------------
       // create Handle (for each matrix)
       rocsparse_create_handle(&(curLevelMatrix->rocsparseHandle));
@@ -510,7 +511,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       hipMalloc(&curLevelMatrix->buffer_U, curLevelMatrix->buffer_size_U);
       #endif
 
-      #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+      #if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
       if (curLevelMatrix->mgData!=0) {
         // -------------------------
         // store restriction as CRS
@@ -528,7 +529,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         }
 
         // copy CSR(R) to device
-        #if defined(HPCG_WITH_CUDA)
+        #if defined(HPGMP_WITH_CUDA)
         if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->mgData->d_row_ptr), (nc+1)*sizeof(int))) {
           printf( " Failed to allocate A.d_row_ptr(nc=%d)\n",nc );
         }
@@ -548,7 +549,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         if (cudaSuccess != cudaMemcpy(curLevelMatrix->mgData->d_nzvals,  h_nzvals,  nc*sizeof(SC),  cudaMemcpyHostToDevice)) {
           printf( " Failed to memcpy A.d_nzvals\n" );
         }
-        #elif defined(HPCG_WITH_HIP)
+        #elif defined(HPGMP_WITH_HIP)
         if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->mgData->d_row_ptr), (nc+1)*sizeof(int))) {
           printf( " Failed to allocate A.d_row_ptr(nc=%d)\n",nc );
         }
@@ -607,7 +608,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
 
         // -------------------------
         // descriptor for restrictor
-        #if defined(HPCG_WITH_CUDA)
+        #if defined(HPGMP_WITH_CUDA)
         cusparseCreateMatDescr(&(curLevelMatrix->mgData->descrR));
         cusparseSetMatType(curLevelMatrix->mgData->descrR, CUSPARSE_MATRIX_TYPE_GENERAL);
         cusparseSetMatIndexBase(curLevelMatrix->mgData->descrR, CUSPARSE_INDEX_BASE_ZERO);
@@ -631,7 +632,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
                                 computeType, CUSPARSE_MV_ALG_DEFAULT, &curLevelMatrix->mgData->buffer_size_P);
         cudaMalloc(&curLevelMatrix->mgData->buffer_P, curLevelMatrix->mgData->buffer_size_P);
         #endif
-        #elif defined(HPCG_WITH_HIP)
+        #elif defined(HPGMP_WITH_HIP)
         rocsparse_create_csr_descr(&(curLevelMatrix->mgData->descrR), nc, nrow, nc,
                                    curLevelMatrix->mgData->d_row_ptr, curLevelMatrix->mgData->d_col_idx, curLevelMatrix->mgData->d_nzvals,
                                    rocsparse_indextype_i32, rocsparse_indextype_i32, rocsparse_index_base_zero, rocsparse_compute_type);
@@ -672,14 +673,14 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
   }
   {
     typedef typename Vector_type::scalar_type vector_SC;
-    #if defined(HPCG_WITH_CUDA)
+    #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(b.d_values,  b.values, (b.localLength)*sizeof(vector_SC),  cudaMemcpyHostToDevice)) {
       printf( " Failed to memcpy b\n" );
     }
     if (cudaSuccess != cudaMemcpy(x.d_values,  x.values, (x.localLength)*sizeof(vector_SC),  cudaMemcpyHostToDevice)) {
       printf( " Failed to memcpy x\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (hipSuccess != hipMemcpy(b.d_values,  b.values, (b.localLength)*sizeof(vector_SC),  hipMemcpyHostToDevice)) {
       printf( " Failed to memcpy b\n" );
     }

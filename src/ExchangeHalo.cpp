@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,11 +16,11 @@
 /*!
  @file ExchangeHalo.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 // Compile this routine only if running with MPI
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #include "Utils_MPI.hpp"
 #include "Geometry.hpp"
@@ -125,4 +126,4 @@ void ExchangeHalo< SparseMatrix<double>, Vector<double> >(SparseMatrix<double> c
 template
 void ExchangeHalo< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&);
 
-#endif // ifndef HPCG_NO_MPI
+#endif // ifndef HPGMP_NO_MPI

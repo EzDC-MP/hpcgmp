@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -12,9 +13,9 @@
 // ***************************************************
 //@HEADER
 
-#ifndef READHPCGDAT_HPP
-#define READHPCGDAT_HPP
+#ifndef READHPGMPDAT_HPP
+#define READHPGMPDAT_HPP
 
 int ReadHpcgDat(int *localDimensions, int *secondsPerRun, int *localProcDimensions);
 
-#endif // READHPCGDAT_HPP
+#endif // READHPGMPDAT_HPP

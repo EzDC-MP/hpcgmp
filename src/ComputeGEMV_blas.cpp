@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,9 +16,9 @@
 /*!
  @file ComputeGEMV_blas.cpp
 
- HPCG routine for computing GEMV (vector-update)
+ HPGMP routine for computing GEMV (vector-update)
  */
-#if defined(HPCG_WITH_BLAS)
+#if defined(HPGMP_WITH_BLAS)
 
 #include "cblas.h"
 #include "ComputeGEMV_ref.hpp"
@@ -63,7 +64,7 @@ int ComputeGEMV_ref(const local_int_t m, const local_int_t n,
     }
   } else
   {
-    //HPCG_vout << " Mixed-precision GEMV not supported" << std::endl;
+    //HPGMP_vout << " Mixed-precision GEMV not supported" << std::endl;
     // GEMV on HOST CPU
     if (beta == zero) {
       for (local_int_t i = 0; i < m; i++) yv[i] = zero;

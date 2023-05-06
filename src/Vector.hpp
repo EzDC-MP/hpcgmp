@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file Vector.hpp
 
- HPCG data structures for dense vectors
+ HPGMP data structures for dense vectors
  */
 
 #ifndef VECTOR_HPP
@@ -25,10 +26,10 @@
 #include <cassert>
 #include <cstdlib>
 
-#ifdef HPCG_WITH_BLAS
+#ifdef HPGMP_WITH_BLAS
  #include "cblas.h"
 #endif
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include <mpi.h>
 #endif
 
@@ -45,11 +46,11 @@ public:
 
   // communicator
   comm_type comm;
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   SC * d_values;   //!< array of values
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   cublasHandle_t handle;
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   rocblas_handle handle;
   #endif
 #endif
@@ -73,14 +74,14 @@ inline void InitializeVector(Vector_type & v, local_int_t localLength, comm_type
   v.localLength = localLength;
   v.values = new scalar_type[localLength];
   v.comm = comm;
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   if (CUBLAS_STATUS_SUCCESS != cublasCreate(&v.handle)) {
     printf( " InitializeVector :: Failed to create Handle\n" );
   }
   if (cudaSuccess != cudaMalloc ((void**)&v.d_values, localLength*sizeof(scalar_type))) {
     printf( " InitializeVector :: Failed to allocate d_values\n" );
   }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   if (rocblas_status_success != rocblas_create_handle(&v.handle)) {
     printf( " InitializeVector :: Failed to create Handle\n" );
   }
@@ -102,11 +103,11 @@ inline void ZeroVector(Vector_type & v) {
   typedef typename Vector_type::scalar_type scalar_type;
   const int zero (0);
   local_int_t localLength = v.localLength;
-  #ifdef HPCG_WITH_CUDA
+  #ifdef HPGMP_WITH_CUDA
   if (cudaSuccess != cudaMemset(v.d_values, zero, localLength*sizeof(scalar_type))) {
     printf( " CopyVector :: Failed to memcpy d_v\n" );
   }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   if (hipSuccess != hipMemset(v.d_values, zero, localLength*sizeof(scalar_type))) {
     printf( " CopyVector :: Failed to memcpy d_v\n" );
   }
@@ -142,24 +143,24 @@ inline void ScaleVectorValue(Vector_type & v, scalar_type value) {
   typedef typename Vector_type::scalar_type vector_scalar_type;
   local_int_t localLength = v.localLength;
 
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   scalar_type * d_vv = v.d_values;
   if (std::is_same<scalar_type, double>::value) {
-    #ifdef HPCG_WITH_CUDA
+    #ifdef HPGMP_WITH_CUDA
     if (CUBLAS_STATUS_SUCCESS != cublasDscal (v.handle, localLength, (const double*)&value, (double*)d_vv, 1)) {
       printf( " Failed cublasDscal\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (rocblas_status_success != rocblas_dscal (v.handle, localLength, (const double*)&value, (double*)d_vv, 1)) {
       printf( " Failed rocblas_dscal\n" );
     }
     #endif
   } else if (std::is_same<scalar_type, float>::value) {
-    #ifdef HPCG_WITH_CUDA
+    #ifdef HPGMP_WITH_CUDA
     if (CUBLAS_STATUS_SUCCESS != cublasSscal (v.handle, localLength, (const float*)&value, (float*)d_vv, 1)) {
       printf( " Failed cublasSscal\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (rocblas_status_success != rocblas_sscal (v.handle, localLength, (const float*)&value, (float*)d_vv, 1)) {
       printf( " Failed rocblas_sscal\n" );
     }
@@ -168,7 +169,7 @@ inline void ScaleVectorValue(Vector_type & v, scalar_type value) {
 #else
   // host CPU
   vector_scalar_type * vv = v.values;
-  #if defined(HPCG_WITH_BLAS)
+  #if defined(HPGMP_WITH_BLAS)
   if (std::is_same<vector_scalar_type, double>::value) {
     cblas_dscal(localLength, value, (double *)vv, 1);
   } else if (std::is_same<vector_scalar_type, float>::value) {
@@ -212,8 +213,8 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
   assert(w.localLength >= localLength);
   scalar_src * vv = v.values;
   scalar_dst * wv = w.values;
-#if (!defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)) | defined(HPCG_DEBUG)
-  #if defined(HPCG_WITH_BLAS)
+#if (!defined(HPGMP_WITH_CUDA) & !defined(HPGMP_WITH_HIP)) | defined(HPGMP_DEBUG)
+  #if defined(HPGMP_WITH_BLAS)
   if (std::is_same<scalar_src, scalar_dst>::value) {
     if (std::is_same<scalar_src, double>::value) {
       cblas_dcopy(localLength, (const double *)vv, 1, (double *)wv, 1);
@@ -227,30 +228,30 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
   }
 #endif
 
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   if (std::is_same<scalar_src, scalar_dst>::value) {
-    #ifdef HPCG_DEBUG
-    HPCG_fout << " CopyVector ( Unit-precision )" << std::endl;
+    #ifdef HPGMP_DEBUG
+    HPGMP_fout << " CopyVector ( Unit-precision )" << std::endl;
     #endif
-    #if defined(HPCG_WITH_CUDA)
+    #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(w.d_values, v.d_values, localLength*sizeof(scalar_src), cudaMemcpyDeviceToDevice)) {
       printf( " CopyVector :: Failed to memcpy d_x\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (hipSuccess != hipMemcpy(w.d_values, v.d_values, localLength*sizeof(scalar_src), hipMemcpyDeviceToDevice)) {
       printf( " CopyVector :: Failed to memcpy d_x\n" );
     }
     #endif
   } else {
-    #ifdef HPCG_DEBUG
-    HPCG_vout << " CopyVector :: Mixed-precision not supported" << std::endl;
+    #ifdef HPGMP_DEBUG
+    HPGMP_vout << " CopyVector :: Mixed-precision not supported" << std::endl;
     #endif
     // Copy input vector to Host
-    #if defined(HPCG_WITH_CUDA)
+    #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(vv, v.d_values, localLength*sizeof(scalar_src), cudaMemcpyDeviceToHost)) {
       printf( " CopyVector :: Failed to memcpy d_v\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (hipSuccess != hipMemcpy(vv, v.d_values, localLength*sizeof(scalar_src), hipMemcpyDeviceToHost)) {
       printf( " CopyVector :: Failed to memcpy d_v\n" );
     }
@@ -260,11 +261,11 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
     for (int i=0; i<localLength; ++i) wv[i] = vv[i];
 
     // Copy output vector to Device
-    #if defined(HPCG_WITH_CUDA)
+    #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(w.d_values, wv, localLength*sizeof(scalar_dst), cudaMemcpyHostToDevice)) {
       printf( " CopyVector :: Failed to memcpy d_w\n" );
     }
-    #elif defined(HPCG_WITH_HIP)
+    #elif defined(HPGMP_WITH_HIP)
     if (hipSuccess != hipMemcpy(w.d_values, wv, localLength*sizeof(scalar_dst), hipMemcpyHostToDevice)) {
       printf( " CopyVector :: Failed to memcpy d_w\n" );
     }
@@ -284,10 +285,10 @@ template<class Vector_type>
 inline void DeleteVector(Vector_type & v) {
 
   delete [] v.values;
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   cudaFree(v.d_values);
   cublasDestroy(v.handle);
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   hipFree(v.d_values);
   rocblas_destroy_handle(v.handle);
   #endif

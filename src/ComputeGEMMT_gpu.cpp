@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,11 +16,11 @@
 /*!
  @file ComputeGEMMT_gpu.cpp
 
- HPCG routine for computing GEMM transpose (dot-products)
+ HPGMP routine for computing GEMM transpose (dot-products)
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include "Utils_MPI.hpp"
 #endif
 
@@ -44,7 +45,7 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
   scalarC_type * const d_Cv = C.d_values;
 
   double t0; TICK();
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   // Perform GEMM on device
   if (std::is_same<scalarC_type, double>::value) {
     if (CUBLAS_STATUS_SUCCESS != cublasDgemm(A.handle, CUBLAS_OP_T, CUBLAS_OP_N,
@@ -70,7 +71,7 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
   if (cudaSuccess != cudaMemcpy(Cv, d_Cv, m*n*sizeof(scalarC_type), cudaMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_C\n" );
   }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   // Perform GEMM on device
   if (std::is_same<scalarC_type, double>::value) {
     if (rocblas_status_success != rocblas_dgemm(A.handle,
@@ -102,7 +103,7 @@ int ComputeGEMMT_ref(const local_int_t m, const local_int_t n, const local_int_t
   }
   #endif
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   int size; // Number of MPI processes
   MPI_Comm_size(A.comm, &size);

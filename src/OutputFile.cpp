@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -55,7 +56,7 @@ OutputFile::add(const string & key_arg, int value_arg) {
   descendants.push_back(allocKeyVal(key_arg, ss.str()));
 }
 
-#ifndef HPCG_NO_LONG_LONG
+#ifndef HPGMP_NO_LONG_LONG
 
 void
 OutputFile::add(const string & key_arg, long long value_arg) {

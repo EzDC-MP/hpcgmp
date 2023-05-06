@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,10 +16,10 @@
 /*!
  @file GenerateProblem.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
 #include <omp.h>
 #endif
 
@@ -61,7 +62,7 @@ void GenerateNonsymCoarseProblem(const SparseMatrix_type & Af) {
 
   // Use a parallel loop to do initial assignment:
   // distributes the physical placement of arrays of pointers across the memory system
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
   #pragma omp parallel for
 #endif
   for (local_int_t i=0; i< localNumberOfRows; ++i) {
@@ -70,7 +71,7 @@ void GenerateNonsymCoarseProblem(const SparseMatrix_type & Af) {
 
 
   // TODO:  This triply nested loop could be flattened or use nested parallelism
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
   #pragma omp parallel for
 #endif
   for (local_int_t izc=0; izc<nzc; ++izc) {

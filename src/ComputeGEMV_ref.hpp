@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file ComputeGEMV_ref.hpp
 
- HPCG routine for computing GEMV (vector-update)
+ HPGMP routine for computing GEMV (vector-update)
  */
 
 #ifndef COMPUTE_GEMV_REF_HPP

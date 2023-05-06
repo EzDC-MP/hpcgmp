@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file MGData.hpp
 
- HPCG data structure
+ HPGMP data structure
  */
 
 #ifndef MGDATA_HPP
@@ -45,14 +46,14 @@ public:
   size_t buffer_size_P;
   void* buffer_R;
   void* buffer_P;
-  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+  #if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   // to store the restrictiion as CRS matrix on device
   int *d_row_ptr;
   int *d_col_idx;
   SC  *d_nzvals;   //!< values of matrix entries
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   cusparseMatDescr_t descrR;
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   rocsparse_spmat_descr descrR;
 
   // to store transpose

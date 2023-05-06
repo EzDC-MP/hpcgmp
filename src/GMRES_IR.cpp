@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -134,26 +135,26 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   Vector_type & p_hi = data.p; // Direction vector (in MPI mode ncol>=nrow)
   Vector_type & Ap_hi = data.Ap;
 
-  if (!doPreconditioning && A.geom->rank==0) HPCG_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
+  if (!doPreconditioning && A.geom->rank==0) HPGMP_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
 
   int print_freq = 1;
   if (print_freq>50) print_freq=50;
   if (print_freq<1)  print_freq=1;
   if (verbose && A.geom->rank==0) {
-    HPCG_fout << std::endl << " Running GMRES_IR(" << restart_length
+    HPGMP_fout << std::endl << " Running GMRES_IR(" << restart_length
                            << ") with max-iters = " << max_iter
                            << ", tol = " << tolerance
                            << " and restart = " << restart_length
                            << (doPreconditioning ? " with precond" : " without precond")
                            << ", nrow = " << nrow << std::endl;
     if (std::is_same<scalar_type2, double>::value) 
-      HPCG_fout << " Inner-Iter precision : double" << std::endl;
+      HPGMP_fout << " Inner-Iter precision : double" << std::endl;
     if (std::is_same<scalar_type2, float>::value) 
-      HPCG_fout << " Inner-Iter precision : float" << std::endl;
+      HPGMP_fout << " Inner-Iter precision : float" << std::endl;
     if (std::is_same<project_type, double>::value) 
-      HPCG_fout << " Projection precision : double" << std::endl;
+      HPGMP_fout << " Projection precision : double" << std::endl;
     if (std::is_same<project_type, float>::value) 
-      HPCG_fout << " Projection precision : float" << std::endl;
+      HPGMP_fout << " Projection precision : float" << std::endl;
   }
   double flops = 0.0;
   double flops_gmg  = 0.0;
@@ -180,25 +181,25 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     normr = normr_hi;
 
     // Convergence check
-    #define HPCG_NUMERIC_CHECK
-    #ifdef HPCG_NUMERIC_CHECK
+    #define HPGMP_NUMERIC_CHECK
+    #ifdef HPGMP_NUMERIC_CHECK
     project_type ortho_err (0.0);
     #endif
     if (verbose && A.geom->rank==0) {
-      HPCG_fout << "GMRES_IR Residual at the start of restart cycle = "
+      HPGMP_fout << "GMRES_IR Residual at the start of restart cycle = "
                 << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi
                 << ", H(0,0) = " << normr << std::endl;
-      HPCG_fout << "GMRES_IR Iteration = "<< 0 << " (" << niters << ")   Scaled Computed Residual = "
+      HPGMP_fout << "GMRES_IR Iteration = "<< 0 << " (" << niters << ")   Scaled Computed Residual = "
                 << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi;
-      #ifdef HPCG_NUMERIC_CHECK
-      HPCG_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
-      HPCG_fout << "  Ortho Error = " << 0.0;
+      #ifdef HPGMP_NUMERIC_CHECK
+      HPGMP_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
+      HPGMP_fout << "  Ortho Error = " << 0.0;
       #endif
-      HPCG_fout << std::endl;
+      HPGMP_fout << std::endl;
     }
     if (normr_hi/normr0_hi <= tolerance) { // Use "<=" to exit when res=zero (continuing will cause NaN)
       converged = true;
-      if (verbose && A.geom->rank==0) HPCG_fout << " > GMRES_IR converged " << std::endl;
+      if (verbose && A.geom->rank==0) HPGMP_fout << " > GMRES_IR converged " << std::endl;
       break;
     }
 
@@ -294,8 +295,8 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       TOCK(t6); // Ortho time
       SetMatrixValue(H, k, k-1, beta);
       #if 0
-      for (int i = 0; i <= k; ++i) HPCG_fout << " + h[" << i << "] = " << GetMatrixValue(H, i, k-1) << std::endl;
-      HPCG_fout << std::endl;
+      for (int i = 0; i <= k; ++i) HPGMP_fout << " + h[" << i << "] = " << GetMatrixValue(H, i, k-1) << std::endl;
+      HPGMP_fout << std::endl;
       #endif
 
       // Given's rotation
@@ -332,7 +333,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
       normr = std::abs(v2);
       if (verbose && (k%print_freq == 0 || k+1 == restart_length)) {
-        #ifdef HPCG_NUMERIC_CHECK
+        #ifdef HPGMP_NUMERIC_CHECK
         {
           // compute current approximation
           CopyVector(x_hi, p_hi);                                 // using p_hi for x_hi
@@ -367,20 +368,20 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
               error_i = std::abs(error_i);
               ortho_err = (error_i > ortho_err ? error_i : ortho_err);
               //if (std::is_same<scalar_type, double>::value && std::is_same<project_type, float>::value && doPreconditioning) {
-              //if (verbose && A.geom->rank==0 && k == restart_length) HPCG_fout << " " << (i == j ? h.values[i]-one_pr : h.values[i]);
+              //if (verbose && A.geom->rank==0 && k == restart_length) HPGMP_fout << " " << (i == j ? h.values[i]-one_pr : h.values[i]);
               //}
             } 
           }
         }
-        #endif // HPCG_NUMERIC_CHECK
+        #endif // HPGMP_NUMERIC_CHECK
         if (verbose && A.geom->rank==0) {
-          HPCG_fout << "GMRES_IR Iteration = "<< k << " (" << niters << ")   Scaled Computed Residual = "
+          HPGMP_fout << "GMRES_IR Iteration = "<< k << " (" << niters << ")   Scaled Computed Residual = "
                     << normr << " / " << normr0 << " = " << normr/normr0;
-          #ifdef HPCG_NUMERIC_CHECK
-          HPCG_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
-          HPCG_fout << "  Ortho Error = " << ortho_err;
+          #ifdef HPGMP_NUMERIC_CHECK
+          HPGMP_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
+          HPGMP_fout << "  Ortho Error = " << ortho_err;
           #endif
-          HPCG_fout << std::endl;
+          HPGMP_fout << std::endl;
         }
       }
       niters ++;
@@ -389,7 +390,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
     // prepare to restart
     if (verbose && A.geom->rank==0)
-      HPCG_fout << "GMRES_IR restart: k = "<< k << " (" << niters << ")" << std::endl;
+      HPGMP_fout << "GMRES_IR restart: k = "<< k << " (" << niters << ")" << std::endl;
     // > update x
     ComputeTRSM(k-1, one_pr, H, t);
     if (doPreconditioning) {
@@ -446,17 +447,17 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   }
   double flops_tot = flops + flops_gmg + flops_spmv + flops_orth;
   if (verbose && A.geom->rank==0) {
-    HPCG_fout << " > nnz(A)  : " << A.totalNumberOfNonzeros << std::endl;
-    HPCG_fout << " > nnz(MG) : " << A.totalNumberOfMGNonzeros << " (" << numSpMVs_MG << ")" << std::endl;
-    HPCG_fout << " > SpMV : " << (flops_spmv / 1000000000.0) << " / " << t3 << " = "
-                              << (flops_spmv / 1000000000.0) / t3 << " Gflop/s" << std::endl;
-    HPCG_fout << " > GMG  : " << (flops_gmg  / 1000000000.0) << " / " << t5 << " = "
-                              << (flops_gmg  / 1000000000.0) / t5 << " Gflop/s" << std::endl;
-    HPCG_fout << " > Orth : " << (flops_orth / 1000000000.0) << " / " << t6 << " = "
-                              << (flops_orth / 1000000000.0) / t6 << " Gflop/s" << std::endl;
-    HPCG_fout << " > Total: " << (flops_tot  / 1000000000.0) << " / " << tt << " = "
-                              << (flops_tot  / 1000000000.0) / tt << " Gflop/s" << std::endl;
-    HPCG_fout << std::endl;
+    HPGMP_fout << " > nnz(A)  : " << A.totalNumberOfNonzeros << std::endl;
+    HPGMP_fout << " > nnz(MG) : " << A.totalNumberOfMGNonzeros << " (" << numSpMVs_MG << ")" << std::endl;
+    HPGMP_fout << " > SpMV : " << (flops_spmv / 1000000000.0) << " / " << t3 << " = "
+                               << (flops_spmv / 1000000000.0) / t3 << " Gflop/s" << std::endl;
+    HPGMP_fout << " > GMG  : " << (flops_gmg  / 1000000000.0) << " / " << t5 << " = "
+                               << (flops_gmg  / 1000000000.0) / t5 << " Gflop/s" << std::endl;
+    HPGMP_fout << " > Orth : " << (flops_orth / 1000000000.0) << " / " << t6 << " = "
+                               << (flops_orth / 1000000000.0) / t6 << " Gflop/s" << std::endl;
+    HPGMP_fout << " > Total: " << (flops_tot  / 1000000000.0) << " / " << tt << " = "
+                               << (flops_tot  / 1000000000.0) / tt << " Gflop/s" << std::endl;
+    HPGMP_fout << std::endl;
   }
   if (test_data.flops != NULL) {
     test_data.flops[0] += flops_tot;

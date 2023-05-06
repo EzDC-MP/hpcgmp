@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file TestGMRES.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 // Changelog
@@ -79,7 +80,7 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
   if (test_diagonal_exaggeration) {
     // Modify the matrix diagonal to greatly exaggerate diagonal values.
     // CG should converge in about 10 iterations for this problem, regardless of problem size
-    if (A.geom->rank==0) HPCG_fout << std::endl << " ** applying diagonal exaggeration ** " << std::endl << std::endl;
+    if (A.geom->rank==0) HPGMP_fout << std::endl << " ** applying diagonal exaggeration ** " << std::endl << std::endl;
     for (local_int_t i=0; i< A.localNumberOfRows; ++i) {
       global_int_t globalRowID = A.localToGlobalMap[i];
       if (globalRowID<9) {
@@ -97,7 +98,7 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
     ReplaceMatrixDiagonal(A, exaggeratedDiagA);
     ReplaceMatrixDiagonal(A_lo, exagDiagA2);//TODO probably some funny casting here... need to do properly.
   } else {
-    if (A.geom->rank==0) HPCG_fout << std::endl << " ** skippping diagonal exaggeration ** " << std::endl << std::endl;
+    if (A.geom->rank==0) HPGMP_fout << std::endl << " ** skippping diagonal exaggeration ** " << std::endl << std::endl;
   }
 
   int niters = 0;
@@ -125,24 +126,24 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
       ZeroVector(x); // Zero out x
 
       if (A.geom->rank==0) {
-        HPCG_fout << "Calling GMRES (all double) for testing: " << endl;
+        HPGMP_fout << "Calling GMRES (all double) for testing: " << endl;
       }
       double flops = test_data.flops[0];
       double time_tic = mytimer();
       int ierr = GMRES(A, data, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, k==1, verbose, test_data);
       double time_solve = mytimer() - time_tic;
       flops = test_data.flops[0] - flops;
-      if (ierr) HPCG_fout << "Error in call to GMRES: " << ierr << ".\n" << endl;
+      if (ierr) HPGMP_fout << "Error in call to GMRES: " << ierr << ".\n" << endl;
       if (A.geom->rank==0) {
-        HPCG_fout << " [" << i << "] Number of GMRES Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
-        HPCG_fout << " Time     " << time_solve << " seconds." << endl;
-        HPCG_fout << " Gflop/s  " << flops/1000000000.0 << "/" << time_solve << " = " << (flops/1000000000.0)/time_solve 
+        HPGMP_fout << " [" << i << "] Number of GMRES Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
+        HPGMP_fout << " Time     " << time_solve << " seconds." << endl;
+        HPGMP_fout << " Gflop/s  " << flops/1000000000.0 << "/" << time_solve << " = " << (flops/1000000000.0)/time_solve 
                   << " (n = " << A.totalNumberOfRows << ")" << endl;
-        HPCG_fout << " Time/itr " << time_solve / niters << endl;
+        HPGMP_fout << " Time/itr " << time_solve / niters << endl;
         if (normr/normr0 <= tolerance) {
-          HPCG_fout << " ** PASS (normr = " << normr << " / " << normr0 << " = " << normr/normr0 << ", tol = " << tolerance << ") ** " << endl;
+          HPGMP_fout << " ** PASS (normr = " << normr << " / " << normr0 << " = " << normr/normr0 << ", tol = " << tolerance << ") ** " << endl;
         } else {
-          HPCG_fout << " ** FAIL (normr = " << normr << " / " << normr0 << " = " << normr/normr0 << ", tol = " << tolerance << ") ** " << endl;
+          HPGMP_fout << " ** FAIL (normr = " << normr << " / " << normr0 << " = " << normr/normr0 << ", tol = " << tolerance << ") ** " << endl;
         }
       }
     }
@@ -159,24 +160,24 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
       ZeroVector(x); // Zero out x
 
       if (A.geom->rank==0) {
-        HPCG_fout << "Calling GMRES-IR for testing: " << endl;
+        HPGMP_fout << "Calling GMRES-IR for testing: " << endl;
       }
       double flops = test_data.flops[0];
       double time_tic = mytimer();
       int ierr = GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, k, verbose, test_data);
       double time_solve = mytimer() - time_tic;
       flops = test_data.flops[0] - flops;
-      if (ierr) HPCG_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
+      if (ierr) HPGMP_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
       if (A.geom->rank==0) {
-        HPCG_fout << "Call [" << i << "] Number of GMRES-IR Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
-        HPCG_fout << " Time     " << time_solve << " seconds." << endl;
-        HPCG_fout << " Gflop/s  " << flops/1000000000.0 << "/" << time_solve << " = " << (flops/1000000000.0)/time_solve 
+        HPGMP_fout << "Call [" << i << "] Number of GMRES-IR Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
+        HPGMP_fout << " Time     " << time_solve << " seconds." << endl;
+        HPGMP_fout << " Gflop/s  " << flops/1000000000.0 << "/" << time_solve << " = " << (flops/1000000000.0)/time_solve 
                   << " (n = " << A.totalNumberOfRows << ")" << endl;
-        HPCG_fout << " Time/itr " << time_solve / niters << endl;
+        HPGMP_fout << " Time/itr " << time_solve / niters << endl;
         if (normr/normr0 <= tolerance) {
-          HPCG_fout << " ** PASS (normr = " << normr << " / " << normr0 << " = " << normr/normr0 << ", tol = " << tolerance << ") ** " << endl;
+          HPGMP_fout << " ** PASS (normr = " << normr << " / " << normr0 << " = " << normr/normr0 << ", tol = " << tolerance << ") ** " << endl;
         } else {
-          HPCG_fout << " ** FAIL (normr = " << normr << " / " << normr0 << " = " << normr/normr0 << ", tol = " << tolerance << ") ** " << endl;
+          HPGMP_fout << " ** FAIL (normr = " << normr << " / " << normr0 << " = " << normr/normr0 << ", tol = " << tolerance << ") ** " << endl;
         }
       }
     }

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file TestGMRES.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 // Changelog
@@ -85,7 +86,7 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   int restart_length = test_data.restart_length;
   scalar_type tolerance = test_data.tolerance;
   if (A.geom->rank == 0 && verbose) {
-    HPCG_fout << endl << " >> In Validate GMRES( tol = " << tolerance << " and restart = " << restart_length << " ) <<" << endl;
+    HPGMP_fout << endl << " >> In Validate GMRES( tol = " << tolerance << " and restart = " << restart_length << " ) <<" << endl;
   }
 
 
@@ -107,11 +108,11 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     test_data.refResNorm  = refResNorm;
   }
   if (verbose && A.geom->rank==0) {
-    HPCG_fout << "  Reference Iteration time  " << refSolveTime << " seconds." << endl;
-    HPCG_fout << "  Reference Iteration count " << refNumIters << endl;
+    HPGMP_fout << "  Reference Iteration time  " << refSolveTime << " seconds." << endl;
+    HPGMP_fout << "  Reference Iteration count " << refNumIters << endl;
   }
   if (A.geom->rank == 0 && refResNorm/refResNorm0 > tolerance) {
-    HPCG_fout << " ref GMRES did not converege: normr = " << refResNorm << " / " << refResNorm0 << " = " << refResNorm/refResNorm0 << "(tol = " << tolerance << ")" << endl;
+    HPGMP_fout << " ref GMRES did not converege: normr = " << refResNorm << " / " << refResNorm0 << " = " << refResNorm/refResNorm0 << "(tol = " << tolerance << ")" << endl;
   }
 
 
@@ -134,13 +135,13 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     test_data.optResNorm  = optResNorm;
   }
   if (verbose && A.geom->rank==0) {
-    HPCG_fout << "  Optimized Iteration time  " << optSolveTime << " seconds." << endl;
-    HPCG_fout << "  Optimized Iteration count " << optNumIters << endl;
+    HPGMP_fout << "  Optimized Iteration time  " << optSolveTime << " seconds." << endl;
+    HPGMP_fout << "  Optimized Iteration count " << optNumIters << endl;
   }
   if (optResNorm/optResNorm0 > tolerance) {
     fail = 1;
     if (A.geom->rank == 0) {
-      HPCG_fout << " opt GMRES did not converege: normr = " << optResNorm << " / " << optResNorm0 << " = " << optResNorm/optResNorm0 << "(tol = " << tolerance << ")" << endl;
+      HPGMP_fout << " opt GMRES did not converege: normr = " << optResNorm << " / " << optResNorm0 << " = " << optResNorm/optResNorm0 << "(tol = " << tolerance << ")" << endl;
     }
   }
 
@@ -158,7 +159,7 @@ int ValidGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
   if (verbose && A.geom->rank==0) {
     total_validation_time = (mytimer() - total_validation_time);
-    HPCG_fout << " Total validation time : " << total_validation_time << " seconds." << endl;
+    HPGMP_fout << " Total validation time : " << total_validation_time << " seconds." << endl;
   }
   return fail;
 }

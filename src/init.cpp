@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -12,11 +13,11 @@
 // ***************************************************
 //@HEADER
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #endif
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
 #include <omp.h>
 #endif
 
@@ -41,8 +42,8 @@ const char* NULLDEVICE="/dev/null";
 #include "ReadHpcgDat.hpp"
 
 
-std::ofstream HPCG_fout; //!< output file stream for logging activities during HPCG run
-std::ofstream HPCG_vout; //!< output file stream for verbose logging activities during HPCG run
+std::ofstream HPGMP_fout; //!< output file stream for logging activities during HPGMP run
+std::ofstream HPGMP_vout; //!< output file stream for verbose logging activities during HPGMP run
 
 static int
 startswith(const char * s, const char * prefix) {
@@ -53,16 +54,16 @@ startswith(const char * s, const char * prefix) {
 }
 
 int
-HPCG_Init(int * argc_p, char ** *argv_p) {
+HPGMP_Init(int * argc_p, char ** *argv_p) {
   return 0;
 }
 
 
 
 /*!
-  Initializes an HPCG run by obtaining problem parameters (from a file or
+  Initializes an HPGMP run by obtaining problem parameters (from a file or
   command line) and then broadcasts them to all nodes. It also initializes
-  login I/O streams that are used throughout the HPCG run. Only MPI rank 0
+  login I/O streams that are used throughout the HPGMP run. Only MPI rank 0
   performs I/O operations.
 
   The function assumes that MPI has already been initialized for MPI runs.
@@ -73,10 +74,10 @@ HPCG_Init(int * argc_p, char ** *argv_p) {
 
   @return returns 0 upon success and non-zero otherwise
 
-  @see HPCG_Finalize
+  @see HPGMP_Finalize
 */
 int
-HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm) {
+HPGMP_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPGMP_Params & params, comm_type comm) {
   int argc = *argc_p;
   char ** argv = *argv_p;
   char fname[80];
@@ -85,7 +86,7 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
   time_t rawtime;
   tm * ptm;
   const int nparams = (sizeof cparams) / (sizeof cparams[0]);
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   bool broadcastParams = false; // Make true if parameters read from file.
 #endif
   iparams = (int *)malloc(sizeof(int) * nparams);
@@ -109,7 +110,7 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
   if (iparams[3]) rt = 0; // If --rt was specified, we already have the runtime, so don't read it from file
   if (! iparams[0] && ! iparams[1] && ! iparams[2]) { /* no geometry arguments on the command line */
     ReadHpcgDat(iparams, rt, iparams+7);
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
     broadcastParams = true;
 #endif
   }
@@ -126,7 +127,7 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
   }
 
 // Broadcast values of iparams to all MPI processes
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   if (broadcastParams) {
     MPI_Bcast( iparams, nparams, MPI_INT, 0, comm );
   }
@@ -145,7 +146,7 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
   params.npy = iparams[8];
   params.npz = iparams[9];
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   MPI_Comm_rank( comm, &params.comm_rank );
   MPI_Comm_size( comm, &params.comm_size );
 #else
@@ -153,7 +154,7 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
   params.comm_size = 1;
 #endif
 
-#ifdef HPCG_NO_OPENMP
+#ifdef HPGMP_NO_OPENMP
   params.numThreads = 1;
 #else
   #pragma omp parallel
@@ -163,23 +164,23 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
 
   time ( &rawtime );
   ptm = localtime(&rawtime);
-  HPCG_fout.close();
+  HPGMP_fout.close();
   if (0 == params.comm_rank) {
     sprintf( fname, "%shpgmp%04d%02d%02dT%02d%02d%02d.txt", title,
         1900 + ptm->tm_year, ptm->tm_mon+1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec );
-    HPCG_fout.open(fname);
-    #if defined(HPCG_DETAILED_PRINT)
-    HPCG_vout.open(fname);
+    HPGMP_fout.open(fname);
+    #if defined(HPGMP_DETAILED_PRINT)
+    HPGMP_vout.open(fname);
     #else
-    HPCG_vout.open(NULLDEVICE);
+    HPGMP_vout.open(NULLDEVICE);
     #endif
   } else {
-#if defined(HPCG_DEBUG) || defined(HPCG_DETAILED_DEBUG)
+#if defined(HPGMP_DEBUG) || defined(HPGMP_DETAILED_DEBUG)
     sprintf( fname, "%shpgmp%04d%02d%02dT%02d%02d%02d_%d.txt", title,
         1900 + ptm->tm_year, ptm->tm_mon+1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec, params.comm_rank );
-    HPCG_fout.open(fname);
+    HPGMP_fout.open(fname);
 #else
-    HPCG_fout.open(NULLDEVICE);
+    HPGMP_fout.open(NULLDEVICE);
 #endif
   }
   free( iparams );
@@ -188,6 +189,6 @@ HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params &
 }
 
 int
-HPCG_Init_Params(int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm) {
-  return HPCG_Init_Params("", argc_p, argv_p, params, comm);
+HPGMP_Init_Params(int * argc_p, char ** *argv_p, HPGMP_Params & params, comm_type comm) {
+  return HPGMP_Init_Params("", argc_p, argv_p, params, comm);
 }

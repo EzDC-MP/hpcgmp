@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file GenerateGeometry.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 #include <cmath>
@@ -25,7 +26,7 @@
 #include "ComputeOptimalShapeXYZ.hpp"
 #include "GenerateGeometry.hpp"
 
-#ifdef HPCG_DEBUG
+#ifdef HPGMP_DEBUG
 #include <fstream>
 #include "hpgmp.hpp"
 using std::endl;
@@ -87,9 +88,9 @@ void GenerateGeometry(int size, int rank, int numThreads,
   int ipy = (rank-ipz*npx*npy)/npx;
   int ipx = rank%npx;
 
-#ifdef HPCG_DEBUG
+#ifdef HPGMP_DEBUG
   if (rank==0)
-    HPCG_fout   << "size = "<< size << endl
+    HPGMP_fout   << "size = "<< size << endl
         << "nx  = " << nx << endl
         << "ny  = " << ny << endl
         << "nz  = " << nz << endl
@@ -97,7 +98,7 @@ void GenerateGeometry(int size, int rank, int numThreads,
         << "npy = " << npy << endl
         << "npz = " << npz << endl;
 
-  HPCG_fout    << "For rank = " << rank << endl
+  HPGMP_fout    << "For rank = " << rank << endl
       << "ipx = " << ipx << endl
       << "ipy = " << ipy << endl
       << "ipz = " << ipz << endl;

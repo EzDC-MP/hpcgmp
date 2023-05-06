@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -78,7 +79,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
   global_int_t Nrow = A.totalNumberOfRows;
   int print_freq = 1;
   if (verbose && A.geom->rank==0) {
-    HPCG_fout << std::endl << " Running GMRES(" << restart_length
+    HPGMP_fout << std::endl << " Running GMRES(" << restart_length
                            << ") with max-iters = " << max_iter
                            << ", tol = " << tolerance
                            << " and restart = " << restart_length
@@ -87,12 +88,12 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
                            << " on ( " << A.geom->npx << " x " << A.geom->npy << " x " << A.geom->npz
                            << " ) MPI grid "
                            << std::endl;
-    HPCG_fout << std::flush;
+    HPGMP_fout << std::flush;
   }
   normr = 0.0;
   scalar_type alpha = zero, beta = zero;
 
-//#ifndef HPCG_NO_MPI
+//#ifndef HPGMP_NO_MPI
 //  double t6 = 0.0;
 //#endif
   Vector_type & r = data.r; // Residual vector
@@ -117,7 +118,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
   InitializeMatrix(ss, restart_length+1, 1);
   InitializeMultiVector(Q, nrow, restart_length+1, A.comm);
 
-  if (!doPreconditioning && A.geom->rank==0) HPCG_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
+  if (!doPreconditioning && A.geom->rank==0) HPGMP_fout << "WARNING: PERFORMING UNPRECONDITIONED ITERATIONS" << std::endl;
 
   double flops = 0.0;
   double flops_gmg  = 0.0;
@@ -141,12 +142,12 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     // Record initial residual for convergence testing
     if (niters == 0) normr0 = normr;
     if (verbose && A.geom->rank==0) {
-      HPCG_fout << "GMRES Residual at the start of restart cycle = "<< normr
+      HPGMP_fout << "GMRES Residual at the start of restart cycle = "<< normr
                 << ", " << normr/normr0 << std::endl;
     }
     if (normr/normr0 <= tolerance) { // Use "<=" to exit when res=zero (continuing will cause NaN)
       converged = true;
-      if (verbose && A.geom->rank==0) HPCG_fout << " > GMRES converged " << std::endl;
+      if (verbose && A.geom->rank==0) HPGMP_fout << " > GMRES converged " << std::endl;
     }
 
     // do forward GS instead of symmetric GS
@@ -259,16 +260,16 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
 
       normr = std::abs(v2);
       if (verbose && A.geom->rank==0 && (k%print_freq == 0 || k+1 == restart_length)) {
-        HPCG_fout << "GMRES Iteration = "<< k << " (" << niters << ")   Scaled Residual = "
+        HPGMP_fout << "GMRES Iteration = "<< k << " (" << niters << ")   Scaled Residual = "
                   << normr << " / " << normr0 << " = " << normr/normr0 << std::endl;
-        //HPCG_fout << "Flop count : GMG = " << flops_gmg << " SpMV = " << flops_spmv << " Ortho = " << flops_orth << std::endl;
+        //HPGMP_fout << "Flop count : GMG = " << flops_gmg << " SpMV = " << flops_spmv << " Ortho = " << flops_orth << std::endl;
       }
       niters ++;
       k ++;
     } // end of restart-cycle
     // prepare to restart
     if (verbose && A.geom->rank==0) {
-      HPCG_fout << "GMRES restart: k = "<< k << " (" << niters << ")" << std::endl;
+      HPGMP_fout << "GMRES restart: k = "<< k << " (" << niters << ")" << std::endl;
     }
     // > update x
     ComputeTRSM(k-1, one, H, t);
@@ -307,22 +308,22 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     test_data.times_comp[1] += t1_comp; // dot-product time
     test_data.times_comm[1] += t1_comm; // dot-product time
   }
-//#ifndef HPCG_NO_MPI
+//#ifndef HPGMP_NO_MPI
 //  times[6] += t6; // exchange halo time
 //#endif
   double flops_tot = flops + flops_gmg + flops_spmv + flops_orth;
   if (verbose && A.geom->rank==0) {
-    HPCG_fout << " > nnz(A)  : " << A.totalNumberOfNonzeros << std::endl;
-    HPCG_fout << " > nnz(MG) : " << A.totalNumberOfMGNonzeros << " (" << numSpMVs_MG << ")" << std::endl;
-    HPCG_fout << " > SpMV : " << (flops_spmv / 1000000000.0) << " / " << t3 << " = "
+    HPGMP_fout << " > nnz(A)  : " << A.totalNumberOfNonzeros << std::endl;
+    HPGMP_fout << " > nnz(MG) : " << A.totalNumberOfMGNonzeros << " (" << numSpMVs_MG << ")" << std::endl;
+    HPGMP_fout << " > SpMV : " << (flops_spmv / 1000000000.0) << " / " << t3 << " = "
                               << (flops_spmv / 1000000000.0) / t3 << " Gflop/s" << std::endl;
-    HPCG_fout << " > GMG  : " << (flops_gmg  / 1000000000.0) << " / " << t5 << " = "
+    HPGMP_fout << " > GMG  : " << (flops_gmg  / 1000000000.0) << " / " << t5 << " = "
                               << (flops_gmg  / 1000000000.0) / t5 << " Gflop/s" << std::endl;
-    HPCG_fout << " > Orth : " << (flops_orth / 1000000000.0) << " / " << t6 << " = "
+    HPGMP_fout << " > Orth : " << (flops_orth / 1000000000.0) << " / " << t6 << " = "
                               << (flops_orth / 1000000000.0) / t6 << " Gflop/s" << std::endl;
-    HPCG_fout << " > Total: " << (flops_tot  / 1000000000.0) << " / " << tt << " = "
+    HPGMP_fout << " > Total: " << (flops_tot  / 1000000000.0) << " / " << tt << " = "
                               << (flops_tot  / 1000000000.0) / tt << " Gflop/s" << std::endl;
-    HPCG_fout << std::endl;
+    HPGMP_fout << std::endl;
   }
   if (test_data.flops != NULL) {
     test_data.flops[0] += flops_tot;

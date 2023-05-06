@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,17 +16,17 @@
 /*!
  @file ComputeSPMV_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)
+#if !defined(HPGMP_WITH_CUDA) & !defined(HPGMP_WITH_HIP)
 
 #include "ComputeSPMV_ref.hpp"
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include "ExchangeHalo.hpp"
 #endif
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
  #include <omp.h>
 #endif
 #include <cassert>
@@ -56,13 +57,13 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   scalar_type * const xv = x.values;
   scalar_type * const yv = y.values;
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   if (A.geom->size > 1) {
     ExchangeHalo(A, x);
   }
 #endif
 
-  #ifndef HPCG_NO_OPENMP
+  #ifndef HPGMP_NO_OPENMP
   #pragma omp parallel for
   #endif
   for (local_int_t i=0; i< nrow; i++)  {

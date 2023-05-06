@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file YAML_Doc.hpp
 
- HPCG YAML classes
+ HPGMP YAML classes
  */
 
 // Changelog
@@ -30,12 +31,12 @@
 #include <string>
 #include "YAML_Element.hpp"
 
-//! The YAML_Doc class for the uniform collecting and reporting of performance data for HPCG
+//! The YAML_Doc class for the uniform collecting and reporting of performance data for HPGMP
 
 /*!
 
 The YAML_Doc class works in conjunction with the YAML_Element class to facilitate easy collecting and reporting of YAML-formatted
-data that can be then registered with the HPCG results collection website.
+data that can be then registered with the HPGMP results collection website.
 
 \code
 

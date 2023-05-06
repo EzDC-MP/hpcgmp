@@ -1,6 +1,6 @@
 #HEADER
-#  -- High Performance Conjugate Gradient Benchmark (HPCG)
-#     HPCG - 3.1 - March 28, 2019
+#  -- High Performance Generalized minimal residual - Mixed-Precision (HPGMP)
+#     HPGMP - 3.1 - March 28, 2019
 
 #     Michael A. Heroux
 #     Scalable Algorithms Group, Computing Research Division
@@ -67,7 +67,7 @@ RM           = /bin/rm -f
 TOUCH        = touch
 #
 # ----------------------------------------------------------------------
-# - HPCG Directory Structure / HPCG library ------------------------------
+# - HPGMP Directory Structure / HPGMP library ------------------------------
 # ----------------------------------------------------------------------
 #
 TOPdir       = .
@@ -88,37 +88,37 @@ MPlib        =
 #
 #
 # ----------------------------------------------------------------------
-# - HPCG includes / libraries / specifics -------------------------------
+# - HPGMP includes / libraries / specifics -------------------------------
 # ----------------------------------------------------------------------
 #
-HPCG_INCLUDES = -I$(INCdir) -I$(INCdir)/$(arch) $(MPinc)
-HPCG_LIBS     =
+HPGMP_INCLUDES = -I$(INCdir) -I$(INCdir)/$(arch) $(MPinc)
+HPGMP_LIBS     =
 #
 # - Compile time options -----------------------------------------------
 #
-# -DHPCG_NO_MPI	        Define to disable MPI
-# -DHPCG_NO_OPENMP	Define to disable OPENMP
-# -DHPCG_CONTIGUOUS_ARRAYS Define to have sparse matrix arrays long and contiguous
-# -DHPCG_DEBUG       	Define to enable debugging output
-# -DHPCG_DETAILED_DEBUG Define to enable very detailed debugging output
+# -DHPGMP_NO_MPI	        Define to disable MPI
+# -DHPGMP_NO_OPENMP	Define to disable OPENMP
+# -DHPGMP_CONTIGUOUS_ARRAYS Define to have sparse matrix arrays long and contiguous
+# -DHPGMP_DEBUG       	Define to enable debugging output
+# -DHPGMP_DETAILED_DEBUG Define to enable very detailed debugging output
 #
-# By default HPCG will:
+# By default HPGMP will:
 #    *) Build with MPI enabled.
 #    *) Build with OpenMP enabled.
 #    *) Not generate debugging output.
 #
-HPCG_OPTS     = -DHPCG_NO_MPI
+HPGMP_OPTS     = -DHPGMP_NO_MPI
 #
 # ----------------------------------------------------------------------
 #
-HPCG_DEFS     = $(HPCG_OPTS) $(HPCG_INCLUDES)
+HPGMP_DEFS     = $(HPGMP_OPTS) $(HPGMP_INCLUDES)
 #
 # ----------------------------------------------------------------------
 # - Compilers / linkers - Optimization flags ---------------------------
 # ----------------------------------------------------------------------
 #
 CXX          = icpc
-CXXFLAGS     = $(HPCG_DEFS) -O3 -openmp -mavx
+CXXFLAGS     = $(HPGMP_DEFS) -O3 -openmp -mavx
 #
 LINKER       = $(CXX)
 LINKFLAGS    = $(CXXFLAGS)

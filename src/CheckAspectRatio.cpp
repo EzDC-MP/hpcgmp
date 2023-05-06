@@ -1,7 +1,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -14,12 +15,12 @@
 /*!
  @file CheckAspectRatio.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 #include <algorithm>
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 #endif
 
@@ -33,14 +34,14 @@ CheckAspectRatio(double smallest_ratio, int x, int y, int z, const char *what, b
 
   if (current_ratio < smallest_ratio) { // ratio of the smallest to the largest
     if (DoIo) {
-      HPCG_fout << "The " << what << " sizes (" << x << "," << y << "," << z <<
+      HPGMP_fout << "The " << what << " sizes (" << x << "," << y << "," << z <<
         ") are invalid because the ratio min(x,y,z)/max(x,y,z)=" << current_ratio <<
         " is too small (at least " << smallest_ratio << " is required)." << std::endl;
-      HPCG_fout << "The shape should resemble a 3D cube. Please adjust and try again." << std::endl;
-      HPCG_fout.flush();
+      HPGMP_fout << "The shape should resemble a 3D cube. Please adjust and try again." << std::endl;
+      HPGMP_fout.flush();
     }
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
     MPI_Abort(MPI_COMM_WORLD, 127);
 #endif
 

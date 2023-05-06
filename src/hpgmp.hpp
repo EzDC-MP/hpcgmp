@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,19 +16,19 @@
 /*!
  @file hpgmp.hpp
 
- HPCG data structures and functions
+ HPGMP data structures and functions
  */
 
-#ifndef HPCG_HPP
-#define HPCG_HPP
+#ifndef HPGMP_HPP
+#define HPGMP_HPP
 
 #include <fstream>
 #include "Geometry.hpp"
 
-extern std::ofstream HPCG_fout;
-extern std::ofstream HPCG_vout;
+extern std::ofstream HPGMP_fout;
+extern std::ofstream HPGMP_vout;
 
-struct HPCG_Params_STRUCT {
+struct HPGMP_Params_STRUCT {
   int comm_size; //!< Number of MPI processes in MPI_COMM_WORLD
   int comm_rank; //!< This process' MPI rank in the range [0 to comm_size - 1]
   int numThreads; //!< This process' number of threads
@@ -43,19 +44,19 @@ struct HPCG_Params_STRUCT {
   local_int_t zu; //!< nz for processors in the z dimension with value greater than pz
 };
 /*!
-  HPCG_Params is a shorthand for HPCG_Params_STRUCT
+  HPGMP_Params is a shorthand for HPGMP_Params_STRUCT
  */
-typedef HPCG_Params_STRUCT HPCG_Params;
-#ifdef HPCG_NO_MPI
+typedef HPGMP_Params_STRUCT HPGMP_Params;
+#ifdef HPGMP_NO_MPI
   typedef int comm_type;
 #else
   #include "mpi.h"
   typedef MPI_Comm comm_type;
 #endif
 
-extern int HPCG_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm);
-extern int HPCG_Init_Params(int * argc_p, char ** *argv_p, HPCG_Params & params, comm_type comm);
-extern int HPCG_Init(int * argc_p, char ** *argv_p);
-extern int HPCG_Finalize(void);
+extern int HPGMP_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPGMP_Params & params, comm_type comm);
+extern int HPGMP_Init_Params(int * argc_p, char ** *argv_p, HPGMP_Params & params, comm_type comm);
+extern int HPGMP_Init(int * argc_p, char ** *argv_p);
+extern int HPGMP_Finalize(void);
 
-#endif // HPCG_HPP
+#endif // HPGMP_HPP

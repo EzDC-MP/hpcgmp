@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file SparseMatrix.hpp
 
- HPCG data structures for the sparse matrix
+ HPGMP data structures for the sparse matrix
  */
 
 #ifndef SPARSEMATRIX_HPP
@@ -37,7 +38,7 @@ typedef std::map< global_int_t, local_int_t > GlobalToLocalMap;
 using GlobalToLocalMap = std::unordered_map< global_int_t, local_int_t >;
 #endif
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include <mpi.h>
 #endif
 
@@ -77,7 +78,7 @@ public:
 
   // communicator
   comm_type comm;
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   local_int_t numberOfExternalValues; //!< number of entries that are external to this process
   int numberOfSendNeighbors; //!< number of neighboring processes that will be send local data
   local_int_t totalToBeSent; //!< total number of entries to be sent
@@ -87,11 +88,11 @@ public:
   local_int_t * sendLength; //!< lenghts of messages sent to neighboring processes
   SC * sendBuffer; //!< send buffer for non-blocking sends
 #endif
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
-  #if defined(HPCG_WITH_CUDA)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
+  #if defined(HPGMP_WITH_CUDA)
   cusparseHandle_t cusparseHandle;
   cusparseMatDescr_t descrA;
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   rocsparse_handle rocsparseHandle;
   rocsparse_spmat_descr descrA;
   #endif
@@ -105,7 +106,7 @@ public:
 
   // to store the lower-triangular matrix on device
   local_int_t nnzL;
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   cusparseMatDescr_t descrL;
   #if (CUDA_VERSION >= 11000)
   void* buffer_L;
@@ -113,7 +114,7 @@ public:
   #else
   cusparseSolveAnalysisInfo_t infoL;
   #endif
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   rocsparse_spmat_descr descrL;
   size_t buffer_size_L;
   void* buffer_L;
@@ -123,9 +124,9 @@ public:
   SC  *d_Lnzvals;   //!< values of matrix entries
   // to store the strictly upper-triangular matrix on device
   local_int_t nnzU;
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   cusparseMatDescr_t descrU;
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   rocsparse_spmat_descr descrU;
   #endif
   size_t buffer_size_U;
@@ -173,7 +174,7 @@ inline void InitializeSparseMatrix(SparseMatrix_type & A, Geometry * geom, comm_
   A.isGemvOptimized       = true;
 
   A.comm = comm;
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   A.numberOfExternalValues = 0;
   A.numberOfSendNeighbors = 0;
   A.totalToBeSent = 0;
@@ -226,7 +227,7 @@ inline void ReplaceMatrixDiagonal(SparseMatrix_type & A, Vector_type & diagonal)
 template <class SparseMatrix_type>
 inline void DeleteMatrix(SparseMatrix_type & A) {
 
-#ifndef HPCG_CONTIGUOUS_ARRAYS
+#ifndef HPGMP_CONTIGUOUS_ARRAYS
   for (local_int_t i = 0; i< A.localNumberOfRows; ++i) {
     delete [] A.matrixValues[i];
     delete [] A.mtxIndG[i];
@@ -244,7 +245,7 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
   if (A.matrixValues)          delete [] A.matrixValues;
   if (A.matrixDiagonal)        delete [] A.matrixDiagonal;
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   if (A.elementsToSend)        delete [] A.elementsToSend;
   if (A.neighbors)             delete [] A.neighbors;
   if (A.receiveLength)         delete [] A.receiveLength;
@@ -270,7 +271,7 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
     A.mgData = 0;
   }
 
-#ifdef HPCG_WITH_CUDA
+#ifdef HPGMP_WITH_CUDA
   cudaFree (A.d_row_ptr);
   cudaFree (A.d_col_idx);
   cudaFree (A.d_nzvals);

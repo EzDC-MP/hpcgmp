@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file Vector.hpp
 
- HPCG data structures for dense vectors
+ HPGMP data structures for dense vectors
  */
 
 #ifndef MULTIVECTOR_HPP
@@ -37,11 +38,11 @@ public:
 
   // communicator
   comm_type comm;
-  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+  #if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   SC * d_values;   //!< array of values
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   cublasHandle_t handle;
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   rocblas_handle handle;
   #endif
   #endif
@@ -68,14 +69,14 @@ inline void InitializeMultiVector(MultiVector_type & V, local_int_t localLength,
   V.n = n;
   V.values = new scalar_type[localLength * n];
   V.comm = comm;
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   if (CUBLAS_STATUS_SUCCESS != cublasCreate(&V.handle)) {
     printf( " InitializeVector :: Failed to create Handle\n" );
   }
   if (cudaSuccess != cudaMalloc ((void**)&V.d_values, (localLength*n)*sizeof(scalar_type))) {
     printf( " InitializeVector :: Failed to allocate d_values\n" );
   }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   if (rocblas_status_success != rocblas_create_handle(&V.handle)) {
     printf( " InitializeMultiVector :: Failed to create Handle\n" );
   }
@@ -114,7 +115,7 @@ inline void GetMultiVector(MultiVector_type & V, local_int_t j1, local_int_t j2,
   Vj.localLength = V.localLength;
   Vj.values = &V.values[V.localLength*j1];
   Vj.comm = V.comm;
-  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+  #if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   Vj.d_values = &V.d_values[V.localLength*j1];
   Vj.handle = V.handle;
   #endif
@@ -129,7 +130,7 @@ inline void GetVector(MultiVector_type & V, local_int_t j, Vector_type & vj) {
   vj.localLength = V.localLength;
   vj.values = &V.values[V.localLength*j];
   vj.comm = V.comm;
-  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+  #if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   vj.d_values = &V.d_values[V.localLength*j];
   vj.handle = V.handle;
   #endif
@@ -146,10 +147,10 @@ inline void DeleteMultiVector(MultiVector_type & V) {
 
   delete [] V.values;
   V.localLength = 0;
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   cudaFree (V.d_values);
   cublasDestroy(V.handle);
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   hipFree(V.d_values);
   rocblas_destroy_handle(V.handle);
   #endif

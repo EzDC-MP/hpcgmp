@@ -6,7 +6,7 @@ arch = UNKNOWN
 setup_file = setup/Make.$(arch)
 include $(setup_file)
 
-HPCG_DEPS = src/ComputeResidual.o \
+HPGMP_DEPS = src/ComputeResidual.o \
          src/ExchangeHalo.o src/GenerateGeometry.o \
          src/CheckProblem.o \
 	 src/OptimizeProblem.o src/ReadHpcgDat.o src/ReportResults.o \
@@ -35,14 +35,14 @@ HPCG_DEPS = src/ComputeResidual.o \
          src/GenerateNonsymProblem.o src/GenerateNonsymProblem_v1_ref.o \
          src/GenerateNonsymCoarseProblem.o 
 
-bin/xhpgmp: src/main_hpgmp.o $(HPCG_DEPS)
-	$(LINKER) $(LINKFLAGS) src/main_hpgmp.o $(HPCG_DEPS) -o bin/xhpgmp $(HPCG_LIBS)
+bin/xhpgmp: src/main_hpgmp.o $(HPGMP_DEPS)
+	$(LINKER) $(LINKFLAGS) src/main_hpgmp.o $(HPGMP_DEPS) -o bin/xhpgmp $(HPGMP_LIBS)
 
-bin/xhpgmp_time: src/main_time.o $(HPCG_DEPS)
-	$(LINKER) $(LINKFLAGS) src/main_time.o $(HPCG_DEPS) -o bin/xhpgmp_time $(HPCG_LIBS)
+bin/xhpgmp_time: src/main_time.o $(HPGMP_DEPS)
+	$(LINKER) $(LINKFLAGS) src/main_time.o $(HPGMP_DEPS) -o bin/xhpgmp_time $(HPGMP_LIBS)
 
 clean:
-	rm -f $(HPCG_DEPS) \
+	rm -f $(HPGMP_DEPS) \
 	bin/xhpgmp src/main_hpgmp.o \
 	bin/xhpgmp_time src/main_time.o
 

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file ComputeGEMVT.hpp
 
- HPCG data structures for dense vectors
+ HPGMP data structures for dense vectors
  */
 
 #ifndef COMPUTE_GEMVT_HPP

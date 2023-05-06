@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -18,14 +19,14 @@
 #include "DataTypes.hpp"
 
 /*!
-  Closes the I/O stream used for logging information throughout the HPCG run.
+  Closes the I/O stream used for logging information throughout the HPGMP run.
 
   @return returns 0 upon success and non-zero otherwise
 
-  @see HPCG_Init
+  @see HPGMP_Init
 */
 int
-HPCG_Finalize(void) {
-  HPCG_fout.close();
+HPGMP_Finalize(void) {
+  HPGMP_fout.close();
   return 0;
 }

@@ -2,7 +2,7 @@
 #include <cmath>
 #include <cstdlib>
 
-#ifdef HPCG_CUBIC_RADICAL_SEARCH
+#ifdef HPGMP_CUBIC_RADICAL_SEARCH
 #include <algorithm>
 #endif
 #include <map>
@@ -10,7 +10,7 @@
 #include "ComputeOptimalShapeXYZ.hpp"
 #include "MixedBaseCounter.hpp"
 
-#ifdef HPCG_CUBIC_RADICAL_SEARCH
+#ifdef HPGMP_CUBIC_RADICAL_SEARCH
 static int
 min3(int a, int b, int c) {
   return std::min(a, std::min(b, c));
@@ -92,7 +92,7 @@ pow_i(int x, int p) {
 
 void
 ComputeOptimalShapeXYZ(int xyz, int & x, int & y, int & z) {
-#ifdef HPCG_CUBIC_RADICAL_SEARCH
+#ifdef HPGMP_CUBIC_RADICAL_SEARCH
   cubic_radical_search( xyz, x, y, z);
 #else
   std::map<int, int> factors;

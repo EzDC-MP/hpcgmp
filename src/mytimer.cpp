@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -20,16 +21,16 @@
 
 /////////////////////////////////////////////////////////////////////////
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
 #include <mpi.h>
 
 double mytimer(void) {
   return MPI_Wtime();
 }
 
-#elif !defined(HPCG_NO_OPENMP)
+#elif !defined(HPGMP_NO_OPENMP)
 
-// If this routine is compiled with HPCG_NO_MPI defined and not compiled with HPCG_NO_OPENMP then use the OpenMP timer
+// If this routine is compiled with HPGMP_NO_MPI defined and not compiled with HPGMP_NO_OPENMP then use the OpenMP timer
 #include <omp.h>
 double mytimer(void) {
   return omp_get_wtime();
@@ -54,14 +55,14 @@ double mytimer(void) {
 
 #endif
 
-#if defined(HPCG_USE_FENCE)
- #if defined(HPCG_WITH_CUDA)
+#if defined(HPGMP_USE_FENCE)
+ #if defined(HPGMP_WITH_CUDA)
   #include <cuda_runtime.h>
   #include "cublas_v2.h"
   void fence() {
     cudaDeviceSynchronize();
   }
- #elif defined(HPCG_WITH_HIP)
+ #elif defined(HPGMP_WITH_HIP)
   #include "hip/hip_runtime.h"
   void fence() {
     hipDeviceSynchronize();

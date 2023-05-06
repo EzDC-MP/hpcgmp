@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,15 +16,15 @@
 /*!
  @file ComputeWAXPBY_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)
+#if !defined(HPGMP_WITH_CUDA) & !defined(HPGMP_WITH_HIP)
 
 #include "ComputeWAXPBY_ref.hpp"
 #include "hpgmp.hpp"
 #include <cassert>
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
  #include <omp.h>
 #endif
 
@@ -65,17 +66,17 @@ int ComputeWAXPBY_ref(const local_int_t n,
   scalarW_type * const wv = w.values;
 
   if (alpha==1.0) {
-    #ifndef HPCG_NO_OPENMP
+    #ifndef HPGMP_NO_OPENMP
     #pragma omp parallel for
     #endif
     for (local_int_t i=0; i<n; i++) wv[i] = xv[i] + beta * yv[i];
   } else if (beta==1.0) {
-    #ifndef HPCG_NO_OPENMP
+    #ifndef HPGMP_NO_OPENMP
     #pragma omp parallel for
     #endif
     for (local_int_t i=0; i<n; i++) wv[i] = alpha * xv[i] + yv[i];
   } else  {
-    #ifndef HPCG_NO_OPENMP
+    #ifndef HPGMP_NO_OPENMP
     #pragma omp parallel for
     #endif
     for (local_int_t i=0; i<n; i++) wv[i] = alpha * xv[i] + beta * yv[i];

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file YAML_Element.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 #include <iostream>
@@ -69,7 +70,7 @@ YAML_Element * YAML_Element::add(const std::string & key_arg, int value_arg) {
   return element;
 }
 
-#ifndef HPCG_NO_LONG_LONG
+#ifndef HPGMP_NO_LONG_LONG
 
 /*!
   Add an element to the vector
@@ -175,7 +176,7 @@ string YAML_Element::convert_int_to_string(int value_arg) {
   return strm.str();
 }
 
-#ifndef HPCG_NO_LONG_LONG
+#ifndef HPGMP_NO_LONG_LONG
 
 /*!
   Converts a "long long" integer value to a string.

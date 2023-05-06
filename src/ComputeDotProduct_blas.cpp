@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,12 +16,12 @@
 /*!
  @file ComputeDotProduct_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if defined(HPCG_WITH_BLAS)
+#if defined(HPGMP_WITH_BLAS)
 
 #include "cblas.h"
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include <mpi.h>
  #include "mytimer.hpp"
  #include "Utils_MPI.hpp"
@@ -28,7 +29,7 @@
 #include "ComputeDotProduct_ref.hpp"
 #include "hpgmp.hpp"
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
  #include <omp.h>
 #endif
 #include <cassert>
@@ -66,7 +67,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
     local_result = cblas_sdot(n, (float*)xv, 1, (float*)yv, 1);
   }
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
   double t0 = mytimer();

@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file Vector.hpp
 
- HPCG data structures for dense vectors
+ HPGMP data structures for dense vectors
  */
 
 #ifndef SERIAL_DENSE_MATRIX_HPP
@@ -39,7 +40,7 @@ public:
   local_int_t n_0;      //!< original number of columns
 
   SC * values;          //!< array of values
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
   SC * d_values;        //!< array of values
 #endif
   // aux for profile
@@ -66,11 +67,11 @@ inline void InitializeMatrix(SerialDenseMatrix_type & A, local_int_t m, local_in
   A.m = A.m_0 = m;
   A.n = A.n_0 = n;
   A.values = new scalar_type[m*n];
-#ifdef HPCG_WITH_CUDA
+#ifdef HPGMP_WITH_CUDA
   if (cudaSuccess != cudaMalloc ((void**)&A.d_values, m*n*sizeof(scalar_type))) {
     printf( " InitializeVector :: Failed to allocate d_values\n" );
   }
-#elif defined(HPCG_WITH_HIP)
+#elif defined(HPGMP_WITH_HIP)
   if (hipSuccess != hipMalloc ((void**)&A.d_values, m*n*sizeof(scalar_type))) {
     printf( " InitializeVector :: Failed to allocate d_values\n" );
   }

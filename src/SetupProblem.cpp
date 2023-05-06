@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,7 +16,7 @@
 /*!
  @file GenerateProblem.cpp
 
- HPCG routine
+ HPGMP routine
  */
 
 #include "hpgmp.hpp"
@@ -48,8 +49,8 @@ void SetupProblem(const char *title, int argc, char ** argv, comm_type comm, int
                   Geometry * geom, SparseMatrix_type & A, GMRESData_type & data, SparseMatrix_type2 & A2, GMRESData_type2 & data2,
                   Vector_type & b, Vector_type & x, TestGMRESData_type & test_data) {
 
-  HPCG_Params params;
-  HPCG_Init_Params(title, &argc, &argv, params, comm);
+  HPGMP_Params params;
+  HPGMP_Init_Params(title, &argc, &argv, params, comm);
   int size = params.comm_size; // Number of MPI processes
   int rank = params.comm_rank; // My process ID
   test_data.runningTime = params.runningTime;
@@ -90,8 +91,8 @@ void SetupProblem(const char *title, int argc, char ** argv, comm_type comm, int
   test_data.OptimizeTime = opt_time;
 
   if (verbose && A.geom->rank==0) {
-    HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
-    HPCG_fout << " Optimize Time     " << opt_time << " seconds." << endl;
+    HPGMP_fout << " Setup    Time     " << setup_time << " seconds." << endl;
+    HPGMP_fout << " Optimize Time     " << opt_time << " seconds." << endl;
   }
 
   //DeleteVector(xexact);

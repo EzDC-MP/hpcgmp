@@ -2,7 +2,8 @@
 //@HEADER
 // ***************************************************
 //
-// HPCG: High Performance Conjugate Gradient Benchmark
+// HPGMP: High Performance Generalized minimal residual
+//        - Mixed-Precision
 //
 // Contact:
 // Michael A. Heroux ( maherou@sandia.gov)
@@ -15,16 +16,16 @@
 /*!
  @file ComputeDotProduct_ref.cpp
 
- HPCG routine
+ HPGMP routine
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPGMP_WITH_CUDA) | defined(HPGMP_WITH_HIP)
 
-#ifndef HPCG_NO_OPENMP
+#ifndef HPGMP_NO_OPENMP
  #include <omp.h>
 #endif
 #include <cassert>
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
  #include <mpi.h>
  #include "mytimer.hpp"
  #include "Utils_MPI.hpp"
@@ -58,7 +59,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
 
   output_scalar_type local_result (0.0);
 
-#if defined(HPCG_DEBUG)
+#if defined(HPGMP_DEBUG)
   input_scalar_type * xv = x.values;
   input_scalar_type * yv = y.values;
   if (yv==xv) {
@@ -72,10 +73,10 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   input_scalar_type* d_x = x.d_values;
   input_scalar_type* d_y = y.d_values;
 
-  #ifdef HPCG_DEBUG
+  #ifdef HPGMP_DEBUG
   output_scalar_type local_tmp = local_result;
   #endif
-  #if defined(HPCG_WITH_CUDA)
+  #if defined(HPGMP_WITH_CUDA)
   // Compute dot on Nvidia GPU
   cublasHandle_t handle = x.handle;
   if (std::is_same<input_scalar_type, double>::value) {
@@ -91,7 +92,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
     }
     local_result = float_result;
   }
-  #elif defined(HPCG_WITH_HIP)
+  #elif defined(HPGMP_WITH_HIP)
   // Compute dot on AMD GPU
   rocblas_handle handle = x.handle;
   if (std::is_same<input_scalar_type, double>::value) {
@@ -109,7 +110,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   }
   #endif
 
-#ifndef HPCG_NO_MPI
+#ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   int size; // Number of MPI processes
   MPI_Comm_size(x.comm, &size);
@@ -125,13 +126,13 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   }
   time_allreduce += mytimer() - t0;
 
-  #if defined(HPCG_WITH_CUDA) & defined(HPCG_DEBUG)
+  #if defined(HPGMP_WITH_CUDA) & defined(HPGMP_DEBUG)
   output_scalar_type global_tmp (0.0);
   MPI_Allreduce(&local_tmp, &global_tmp, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
   int rank = 0;
   MPI_Comm_rank(x.comm, &rank);
   if (rank == 0) {
-    HPCG_fout << rank << " : DotProduct(" << n << "): error = " << global_tmp-global_result << " (dot=" << global_result << ")" << std::endl;
+    HPGMP_fout << rank << " : DotProduct(" << n << "): error = " << global_tmp-global_result << " (dot=" << global_result << ")" << std::endl;
   }
   #endif
 #else
