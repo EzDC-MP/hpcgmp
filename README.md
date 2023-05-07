@@ -2,7 +2,7 @@
 # High Performance Generalized minimal residual - Mixed-Precision (HPG-MxP) Benchmark
 ######################################################################################
 
-Ichitaro Yamazaki, Jennifer Loe, Christian Glusa, Sivasankaran Rajamanickam
+Ichitaro Yamazaki, Jennifer Loe, Christian Glusa, Sivasankaran Rajamanickam,
 Piotr Luszczek, and Jack Dongarra
 
 Revision: 1.0
