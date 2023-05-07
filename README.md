@@ -46,7 +46,7 @@ See the file `INSTALL` in this directory.
 HPG-MxP can be run in just a few minutes from start to finish.  However, official
 runs must be at least 1800 seconds (30 minutes) as reported in the output file.
 The Quick Path option is an exception for machines that are in production mode
-prior to broad availability of an optimized version of HPGMP 3.0 for a given platform.
+prior to broad availability of an optimized version of HPGMP for a given platform.
 In this situation (which should be confirmed by sending a note to the HPGMP Benchmark
 owners) the Quick Path option can be invoked by setting the run time parameter equal
 to 0 (zero).
