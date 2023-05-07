@@ -12,7 +12,7 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/CheckProblem.o \
 	    src/MixedBaseCounter.o \
 	    src/OptimizeProblem.o \
-	    src/ReadHpcgDat.o \
+	    src/ReadHpgmpDat.o \
 	    src/ReportResults.o \
 	    src/SetupHalo.o \
 	    src/SetupHalo_ref.o \
@@ -114,7 +114,7 @@ src/MixedBaseCounter.o: HPGMP_SRC_PATH/src/MixedBaseCounter.cpp HPGMP_SRC_PATH/s
 src/OptimizeProblem.o: HPGMP_SRC_PATH/src/OptimizeProblem.cpp HPGMP_SRC_PATH/src/OptimizeProblem.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPGMP_SRC_PATH/src $< -o $@
 
-src/ReadHpcgDat.o: HPGMP_SRC_PATH/src/ReadHpcgDat.cpp HPGMP_SRC_PATH/src/ReadHpcgDat.hpp $(PRIMARY_HEADERS)
+src/ReadHpgmpDat.o: HPGMP_SRC_PATH/src/ReadHpgmpDat.cpp HPGMP_SRC_PATH/src/ReadHpgmpDat.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPGMP_SRC_PATH/src $< -o $@
 
 src/ReportResults.o: HPGMP_SRC_PATH/src/ReportResults.cpp HPGMP_SRC_PATH/src/ReportResults.hpp $(PRIMARY_HEADERS)

@@ -2,7 +2,7 @@
 
 arch=UNKNOWN
 
-VERSION = 3.1
+VERSION = 0.1
 
 UNKNOWN:
 	@echo
@@ -16,9 +16,9 @@ GNUTAR = gtar
 
 dist:
 	@echo Packaging for version $(VERSION)
-	ln -s -f . hpcg-$(VERSION)
-	grep :0: /etc/group | sed -e 's/:.*//' | xargs -I '{}' $(GNUTAR) --owner=root --group='{}' -cvhof hpcg-$(VERSION).tar hpcg-$(VERSION)/src/*.[ch]pp hpcg-$(VERSION)/[BCHIQRTV]* hpcg-$(VERSION)/bin/hpcg.dat hpcg-$(VERSION)/setup/Make.* hpcg-$(VERSION)/configure hpcg-$(VERSION)/Makefile hpcg-$(VERSION)/Makefile.ext hpcg-$(VERSION)/tools/hpcg.dox
-	gzip -v --best hpcg-$(VERSION).tar
-	rm -f hpcg-$(VERSION)
+	ln -s -f . hpgmp-$(VERSION)
+	grep :0: /etc/group | sed -e 's/:.*//' | xargs -I '{}' $(GNUTAR) --owner=root --group='{}' -cvhof hpgmp-$(VERSION).tar hpgmp-$(VERSION)/src/*.[ch]pp hpgmp-$(VERSION)/[BCHIQRTV]* hpgmp-$(VERSION)/bin/hpgmp.dat hpgmp-$(VERSION)/setup/Make.* hpgmp-$(VERSION)/configure hpgmp-$(VERSION)/Makefile hpgmp-$(VERSION)/Makefile.ext hpgmp-$(VERSION)/tools/hpgmp.dox
+	gzip -v --best hpgmp-$(VERSION).tar
+	rm -f hpgmp-$(VERSION)
 
 .PHONY: UNKNOWN dist

@@ -1,8 +1,9 @@
 #HEADER
 #  -- High Performance Generalized minimal residual - Mixed-Precision (HPGMP)
-#     HPGMP - 3.1 - March 28, 2019
+#     HPGMP - 0.1 - May 5, 2023
 
-#     Michael A. Heroux
+#     Ichitaro Yamazaki
+#     Sivasankaran Rajamanickam
 #     Scalable Algorithms Group, Computing Research Division
 #     Sandia National Laboratories, Albuquerque, NM
 #

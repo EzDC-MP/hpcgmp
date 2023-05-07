@@ -16,7 +16,7 @@
 
 #include <cstdio>
 
-#include "ReadHpcgDat.hpp"
+#include "ReadHpgmpDat.hpp"
 
 static int
 SkipUntilEol(FILE *stream) {
@@ -41,39 +41,38 @@ SkipUntilEol(FILE *stream) {
 }
 
 int
-ReadHpcgDat(int *localDimensions, int *secondsPerRun, int *localProcDimensions) {
-  //printf( " >> ReadHpcgDat <<\n" );;
-  FILE * hpcgStream = fopen("hpcg.dat", "r");
+ReadHpgmpDat(int *localDimensions, int *secondsPerRun, int *localProcDimensions) {
+  FILE * hpgmpStream = fopen("hpgmp.dat", "r");
 
-  if (! hpcgStream)
+  if (! hpgmpStream)
     return -1;
 
-  SkipUntilEol(hpcgStream); // skip the first line
+  SkipUntilEol(hpgmpStream); // skip the first line
 
-  SkipUntilEol(hpcgStream); // skip the second line
+  SkipUntilEol(hpgmpStream); // skip the second line
 
   for (int i = 0; i < 3; ++i) {
-    if (fscanf(hpcgStream, "%d", localDimensions+i) != 1 || localDimensions[i] < 16)
+    if (fscanf(hpgmpStream, "%d", localDimensions+i) != 1 || localDimensions[i] < 16)
     {
       localDimensions[i] = 16;
     }
   }
 
-  SkipUntilEol( hpcgStream ); // skip the rest of the second line
+  SkipUntilEol( hpgmpStream ); // skip the rest of the second line
 
   if (secondsPerRun!=0) { // Only read number of seconds if the pointer is non-zero
-    if (fscanf(hpcgStream, "%d", secondsPerRun) != 1 || secondsPerRun[0] < 0)
+    if (fscanf(hpgmpStream, "%d", secondsPerRun) != 1 || secondsPerRun[0] < 0)
       secondsPerRun[0] = 30 * 60; // 30 minutes
   }
 
-  SkipUntilEol( hpcgStream ); // skip the rest of the third line
+  SkipUntilEol( hpgmpStream ); // skip the rest of the third line
 
   for (int i = 0; i < 3; ++i)
     // the user didn't specify (or values are invalid) process dimensions
-    if (fscanf(hpcgStream, "%d", localProcDimensions+i) != 1 || localProcDimensions[i] < 1)
+    if (fscanf(hpgmpStream, "%d", localProcDimensions+i) != 1 || localProcDimensions[i] < 1)
       localProcDimensions[i] = 0; // value 0 means: "not specified" and it will be fixed later
 
-  fclose(hpcgStream);
+  fclose(hpgmpStream);
 
   return 0;
 }

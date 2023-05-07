@@ -12,19 +12,19 @@ Clone from GitHub
 The official HPGMP repository is on GitHub.com.  You may fork the
 repository from here::
 
-https://github.com/hpcg-benchmark/hpcg
+https://github.com/hpgmp-benchmark/hpgmp
 
 ===================
 Download and Unpack (only if you did not clone from GitHub.com)
 ===================
 
-Retrieve the tar-gzip file, from http://hpcg-benchmark.org
+Retrieve the tar-gzip file, from http://hpgmp-benchmark.org
 
 then uncompress it with::
 
-    gunzip hpcg.tar.gz; tar -xvf hpcg.tar
+    gunzip hpgmp.tar.gz; tar -xvf hpgmp.tar
 
-this  will create  an ``hpcg`` directory, that  we call  the top-level
+this  will create  an ``hpgmp`` directory, that  we call  the top-level
 directory in the text below.
 
 
@@ -103,14 +103,14 @@ Next, go this new directory and use the ``configure`` script to create
 the build infrastructure::
 
     cd build
-    /path/to/hpcg/configure <arch>
+    /path/to/hpgmp/configure <arch>
 
 Notice that you have to give an absolute or relative path to the
 ``configure`` shell script so that the location of the source files can
 be discovered automatically.
 
 <arch> is the suffix of the setup file you created in the directory
-hpcg/setup.  Sample setup files are found in the hpcg/setup directory.
+hpgmp/setup.  Sample setup files are found in the hpgmp/setup directory.
 
 ----------------------------
 Configuration based on CMake
@@ -167,7 +167,7 @@ For in-source builds, while in the top-level directory, simply type::
 For the out-of-source builds, go to the ``build`` directory and type
 ``make``.
 
-In both cases, the executable called ``xhpcg`` should be created in the
+In both cases, the executable called ``xhpgmp`` should be created in the
 ``bin`` directory.
 
 Building after CMake-based configuration depends on which build tool was
@@ -183,7 +183,7 @@ As an example, let's use a Linux cluster and create a file called
 directory.
 
 For in-source build, we type ``make setup/Make.Linux`` which creates the
-executable file called ``bin/xhpcg``.
+executable file called ``bin/xhpgmp``.
 
 For out-of-source build, we create the build directory called
 ``build_Linux`` and go to that directory::
@@ -193,10 +193,10 @@ For out-of-source build, we create the build directory called
 
 Then, while in the ``build_Linux`` directory we type::
 
-    /path/to/hpcg/configure Linux
+    /path/to/hpgmp/configure Linux
     make
 
-This creates the executable file ``bin/xhpcg``.
+This creates the executable file ``bin/xhpgmp``.
 
 
 ====
@@ -206,20 +206,20 @@ Test
 For a quick check, go to the ``bin`` directory and run the HPGMP
 executable as follows::
 
-    mpirun -np 8 xhpcg
+    mpirun -np 8 xhpgmp
 
-Note that this will use the default ``hpcg.dat`` file. If you'd like to
+Note that this will use the default ``hpgmp.dat`` file. If you'd like to
 change the size of local dimensions of the problem to ``NX=32``,
 ``NY=24``, ``NZ=16`` then run the following::
 
-    mpirun -np 8 xhpcg 32 24 16
+    mpirun -np 8 xhpgmp 32 24 16
 
 You can also specific size and runtime parameters using ``--nx``,
 ``--ny``, ``--nz``, ``--rt``.  For example, for specifying the local
 grid dimensions to be NX=NY=NZ=16, and the timed phase execution limit
 of 30 minutes (1800 seconds) you can use
 
-    mpirun -np 4 xhpcg --nx=16 --rt=1800
+    mpirun -np 4 xhpgmp --nx=16 --rt=1800
 
 
 ======
@@ -227,7 +227,7 @@ Tuning
 ======
 
 Most of the performance  parameters can be tuned by modifying the input
-file ``hpcg.dat``. See the file ``TUNING`` in the top-level directory.
+file ``hpgmp.dat``. See the file ``TUNING`` in the top-level directory.
 
 
 ====================
@@ -275,5 +275,5 @@ By default HPGMP will::
 Further information
 ===================
 
-Check out  the website http://hpcg-benchmark.org/ for the latest
+Check out  the website http://hpgmp-benchmark.org/ for the latest
 information.

@@ -23,7 +23,7 @@ add_executable( xhpgmp src/main_hpgmp.cpp
     src/GMRES.cpp src/GMRES_IR.cpp src/TestGMRES.cpp
     src/ComputeResidual.cpp src/ExchangeHalo.cpp src/GenerateGeometry.cpp
     src/GenerateNonsymProblem.cpp src/GenerateNonsymProblem_v1_ref.cpp src/CheckProblem.cpp
-    src/OptimizeProblem.cpp src/ReadHpcgDat.cpp src/ReportResults.cpp
+    src/OptimizeProblem.cpp src/ReadHpgmpDat.cpp src/ReportResults.cpp
     src/SetupHalo.cpp src/SetupHalo_ref.cpp
     src/SetupMatrix.cpp src/SetupProblem.cpp
     src/ValidGMRES.cpp src/BenchGMRES.cpp
@@ -50,7 +50,7 @@ add_executable( xhpgmp_time src/main_time.cpp
     src/GMRES.cpp src/GMRES_IR.cpp src/TestGMRES.cpp
     src/ComputeResidual.cpp src/ExchangeHalo.cpp src/GenerateGeometry.cpp
     src/GenerateNonsymProblem.cpp src/GenerateNonsymProblem_v1_ref.cpp src/CheckProblem.cpp
-    src/OptimizeProblem.cpp src/ReadHpcgDat.cpp src/ReportResults.cpp
+    src/OptimizeProblem.cpp src/ReadHpgmpDat.cpp src/ReportResults.cpp
     src/SetupHalo.cpp src/SetupHalo_ref.cpp
     src/SetupMatrix.cpp src/SetupProblem.cpp
     src/ValidGMRES.cpp src/BenchGMRES.cpp

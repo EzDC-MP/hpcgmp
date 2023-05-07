@@ -40,7 +40,7 @@ const char* NULLDEVICE="/dev/null";
 #include "DataTypes.hpp"
 #include "Utils_MPI.hpp"
 
-#include "ReadHpcgDat.hpp"
+#include "ReadHpgmpDat.hpp"
 
 
 std::ofstream HPGMP_fout; //!< output file stream for logging activities during HPGMP run
@@ -110,7 +110,7 @@ HPGMP_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPGMP_Params
   int * rt  = iparams+3;  // Assume runtime was not specified and will be read from the hpcg.dat file
   if (iparams[3]) rt = 0; // If --rt was specified, we already have the runtime, so don't read it from file
   if (! iparams[0] && ! iparams[1] && ! iparams[2]) { /* no geometry arguments on the command line */
-    ReadHpcgDat(iparams, rt, iparams+7);
+    ReadHpgmpDat(iparams, rt, iparams+7);
 #ifndef HPGMP_NO_MPI
     broadcastParams = true;
 #endif

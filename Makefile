@@ -9,7 +9,7 @@ include $(setup_file)
 HPGMP_DEPS = src/ComputeResidual.o \
          src/ExchangeHalo.o src/GenerateGeometry.o \
          src/CheckProblem.o \
-	 src/OptimizeProblem.o src/ReadHpcgDat.o src/ReportResults.o \
+	 src/OptimizeProblem.o src/ReadHpgmpDat.o src/ReportResults.o \
 	 src/SetupHalo.o src/SetupHalo_ref.o src/WriteProblem.o \
          src/YAML_Doc.o src/YAML_Element.o \
          src/ComputeDotProduct.o src/ComputeDotProduct_ref.o \

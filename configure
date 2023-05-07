@@ -41,9 +41,9 @@ do
   fi
 done
 
-# copy hpcg.dat if it doesn't exist
-if test ! -f bin/hpcg.dat ; then
-  cp ${src_path}/bin/hpcg.dat bin/hpcg.dat
+# copy hpgmp.dat if it doesn't exist
+if test ! -f bin/hpgmp.dat ; then
+  cp ${src_path}/bin/hpgmp.dat bin/hpgmp.dat
 fi
 
 # copy the architecture setup file

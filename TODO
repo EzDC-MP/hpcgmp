@@ -1,6 +1,6 @@
 =====================================================================================
  High Performance Generalized minimal residual - Mixed-Precision (HPG-MxP) Benchmark
- HPG-MxP - 1.0 - May 5, 2023
+ HPG-MxP - 0.1 - May 5, 2023
 =====================================================================================
 
 - Add support for derived MPI Communicators (other than MPI_COMM_WORLD)
