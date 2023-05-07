@@ -170,8 +170,8 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
     double fnbytesPerEquation = fnbytes/fnrow;
 
     // Instantiate YAML document
-    OutputFile doc("HPGMP-Benchmark", "1.1");
-    doc.add("Release date", "March 28, 2019");
+    OutputFile doc("HPGMP-Benchmark", "0.1");
+    doc.add("Release date", "May 5, 2023");
 
     doc.add("Machine Summary","");
     doc.get("Machine Summary")->add("Distributed Processes",A.geom->size);
