@@ -460,10 +460,18 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       rocsparse_dnvec_descr vecX, vecY; 
       rocsparse_create_dnvec_descr(&vecX, ncol, (void*)curLevelMatrix->x.d_values, rocsparse_compute_type);
       rocsparse_create_dnvec_descr(&vecY, nrow, (void*)curLevelMatrix->y.d_values, rocsparse_compute_type);
-      rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
-                     &one, curLevelMatrix->descrA, vecX, &zero, vecY, 
-                     rocsparse_compute_type, rocsparse_spmv_alg_default,
-                     &curLevelMatrix->buffer_size_A, curLevelMatrix->buffer_A);
+      #if ROCM_VERSION >= 50400
+      rocsparse_spmv_ex
+      #else
+      rocsparse_spmv
+      #endif
+          (curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
+           &one, curLevelMatrix->descrA, vecX, &zero, vecY, 
+           rocsparse_compute_type, rocsparse_spmv_alg_default,
+	   #if ROCM_VERSION >= 50400
+           rocsparse_spmv_stage_buffer_size,
+           #endif
+           &curLevelMatrix->buffer_size_A, curLevelMatrix->buffer_A);
       if (curLevelMatrix->buffer_size_A <= 0) curLevelMatrix->buffer_size_A = 1;
       hipMalloc(&curLevelMatrix->buffer_A, curLevelMatrix->buffer_size_A);
 
@@ -504,10 +512,18 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       curLevelMatrix->buffer_U = nullptr;
       rocsparse_create_dnvec_descr(&vecX, ncol, (void*)curLevelMatrix->x.d_values, rocsparse_compute_type);
       rocsparse_create_dnvec_descr(&vecY, nrow, (void*)curLevelMatrix->y.d_values, rocsparse_compute_type);
-      rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
-                     &alpha, curLevelMatrix->descrU, vecX, &beta, vecY, 
-                     rocsparse_compute_type, rocsparse_spmv_alg_default,
-                     &curLevelMatrix->buffer_size_U, curLevelMatrix->buffer_U);
+      #if ROCM_VERSION >= 50400
+      rocsparse_spmv_ex
+      #else
+      rocsparse_spmv
+      #endif
+          (curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
+           &alpha, curLevelMatrix->descrU, vecX, &beta, vecY, 
+           rocsparse_compute_type, rocsparse_spmv_alg_default,
+	   #if ROCM_VERSION >= 50400
+           rocsparse_spmv_stage_buffer_size,
+           #endif
+           &curLevelMatrix->buffer_size_U, curLevelMatrix->buffer_U);
       if (curLevelMatrix->buffer_size_U <= 0) curLevelMatrix->buffer_size_U = 1;
       hipMalloc(&curLevelMatrix->buffer_U, curLevelMatrix->buffer_size_U);
       #endif
@@ -641,10 +657,18 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         curLevelMatrix->mgData->buffer_R = nullptr;
         rocsparse_create_dnvec_descr(&vecX, nrow, (void*)curLevelMatrix->x.d_values, rocsparse_compute_type);
         rocsparse_create_dnvec_descr(&vecY, nc,   (void*)curLevelMatrix->y.d_values, rocsparse_compute_type);
-        rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
-                       &one, curLevelMatrix->mgData->descrR, vecX, &one, vecY, 
-                       rocsparse_compute_type, rocsparse_spmv_alg_default,
-                       &curLevelMatrix->mgData->buffer_size_R, curLevelMatrix->mgData->buffer_R);
+	#if ROCM_VERSION >= 50400
+        rocsparse_spmv_ex
+        #else
+        rocsparse_spmv
+        #endif
+            (curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
+             &one, curLevelMatrix->mgData->descrR, vecX, &one, vecY, 
+             rocsparse_compute_type, rocsparse_spmv_alg_default,
+	     #if ROCM_VERSION >= 50400
+             rocsparse_spmv_stage_buffer_size,
+             #endif
+             &curLevelMatrix->mgData->buffer_size_R, curLevelMatrix->mgData->buffer_R);
         if (curLevelMatrix->mgData->buffer_size_R <= 0) curLevelMatrix->mgData->buffer_size_R = 1;
         hipMalloc(&curLevelMatrix->mgData->buffer_R, curLevelMatrix->mgData->buffer_size_R);
         //
@@ -653,10 +677,18 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
                                    rocsparse_indextype_i32, rocsparse_indextype_i32, rocsparse_index_base_zero, rocsparse_compute_type);
         curLevelMatrix->mgData->buffer_size_P = 0;
         curLevelMatrix->mgData->buffer_P = nullptr;
-        rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
-                       &one, curLevelMatrix->mgData->descrP, vecY, &one, vecX, 
-                       rocsparse_compute_type, rocsparse_spmv_alg_default,
-                       &curLevelMatrix->mgData->buffer_size_P, curLevelMatrix->mgData->buffer_P);
+	#if ROCM_VERSION >= 50400
+        rocsparse_spmv_ex
+        #else
+        rocsparse_spmv
+        #endif
+            (curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
+             &one, curLevelMatrix->mgData->descrP, vecY, &one, vecX, 
+             rocsparse_compute_type, rocsparse_spmv_alg_default,
+	     #if ROCM_VERSION >= 50400
+             rocsparse_spmv_stage_buffer_size,
+             #endif
+             &curLevelMatrix->mgData->buffer_size_P, curLevelMatrix->mgData->buffer_P);
         if (curLevelMatrix->mgData->buffer_size_P <= 0) curLevelMatrix->mgData->buffer_size_P = 1;
         hipMalloc(&curLevelMatrix->mgData->buffer_P, curLevelMatrix->mgData->buffer_size_P);
         #endif

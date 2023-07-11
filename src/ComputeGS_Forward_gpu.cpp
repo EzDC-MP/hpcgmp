@@ -203,10 +203,19 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   rocsparse_create_dnvec_descr(&vecX, ncol, (void*)d_xv, rocsparse_compute_type);
   rocsparse_create_dnvec_descr(&vecY, nrow, (void*)d_bv, rocsparse_compute_type);
   TICK();
-  if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
-                                                 &mone, A.descrU, vecX, &one, vecY,
-                                                 rocsparse_compute_type, rocsparse_spmv_alg_default,
-                                                 &buffer_size, A.buffer_U)) {
+  if (rocsparse_status_success !=
+      #if ROCM_VERSION >= 50400
+      rocsparse_spmv_ex
+      #else
+      rocsparse_spmv
+      #endif
+          (A.rocsparseHandle, rocsparse_operation_none,
+           &mone, A.descrU, vecX, &one, vecY,
+           rocsparse_compute_type, rocsparse_spmv_alg_default,
+           #if ROCM_VERSION >= 50400
+	   rocsparse_spmv_stage_compute,
+           #endif
+           &buffer_size, A.buffer_U)) {
     printf( " Failed rocsparse_spmv\n" );
   }
   TOCK(x.time1);

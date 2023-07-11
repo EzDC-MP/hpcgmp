@@ -31,6 +31,7 @@
 #ifndef HPGMP_NO_MPI
  #include "ExchangeHalo.hpp"
 #endif
+#include "mytimer.hpp"
 
 #if defined(HPGMP_DEBUG) & !defined(HPGMP_NO_MPI)
  #include <mpi.h>
@@ -71,8 +72,10 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   scalar_type * const d_xv = x.d_values;
   scalar_type * const d_yv = y.d_values;
 
+  double t0 = 0.0, time1 = 0.0, time2 = 0.0;
 #ifndef HPGMP_NO_MPI
   if (A.geom->size > 1) {
+    TICK();
     #ifdef HPGMP_WITH_CUDA
     // Copy local part of X to HOST CPU
     if (cudaSuccess != cudaMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
@@ -83,10 +86,14 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
       printf( " Failed to memcpy d_y\n" );
     }
     #endif
+    TOCK(time1);
 
+    TICK();
     ExchangeHalo(A, x);
+    TOCK(time2);
 
     // copy non-local part of X to device (after Halo exchange)
+    TICK();
     #if defined(HPGMP_WITH_CUDA)
     if (cudaSuccess != cudaMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
       printf( " Failed to memcpy d_x\n" );
@@ -96,6 +103,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
       printf( " Failed to memcpy d_x\n" );
     }
     #endif
+    TOCK(time1);
   }
 #endif
 
@@ -177,10 +185,20 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   rocsparse_dnvec_descr vecX, vecY;
   rocsparse_create_dnvec_descr(&vecX, ncol, (void*)d_xv, rocsparse_compute_type);
   rocsparse_create_dnvec_descr(&vecY, nrow, (void*)d_yv, rocsparse_compute_type);
-  if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
-                                                 &one, A.descrA, vecX, &zero, vecY,
-                                                 rocsparse_compute_type, rocsparse_spmv_alg_default,
-                                                 &buffer_size, A.buffer_A)) {
+  if (rocsparse_status_success !=
+      #if ROCM_VERSION >= 50400
+      rocsparse_spmv_ex
+      #else
+      rocsparse_spmv
+      #endif
+          (A.rocsparseHandle, rocsparse_operation_none,
+           &one, A.descrA, vecX, &zero, vecY,
+           rocsparse_compute_type, rocsparse_spmv_alg_default,
+           #if ROCM_VERSION >= 50400
+	   rocsparse_spmv_stage_compute,
+           #endif
+           &buffer_size, A.buffer_A))
+  {
     printf( " Failed rocsparse_spmv\n" );
   }
   #endif
@@ -233,6 +251,7 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   free(tv);
   #endif
 
+  x.time1 = time1; x.time2 = time2;
   return 0;
 }
 

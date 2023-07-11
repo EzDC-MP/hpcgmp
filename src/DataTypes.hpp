@@ -9,6 +9,8 @@
  #include <cusparse.h>
 #elif defined(HPGMP_WITH_HIP)
  #include <hip/hip_runtime_api.h>
+ #include <rocm_version.h>
+ #define ROCM_VERSION ROCM_VERSION_MAJOR * 10000 + ROCM_VERSION_MINOR * 100 + ROCM_VERSION_PATCH
  #include <rocblas.h>
  #include <rocsparse.h>
 #endif

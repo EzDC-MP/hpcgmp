@@ -110,10 +110,19 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
   rocsparse_dnvec_descr vecX, vecY;
   rocsparse_create_dnvec_descr(&vecX, nc, (void*)d_xcv, rocsparse_compute_type);
   rocsparse_create_dnvec_descr(&vecY, n,  (void*)d_xfv, rocsparse_compute_type);
-  if (rocsparse_status_success != rocsparse_spmv(Af.rocsparseHandle, rocsparse_operation_none,
-                                                 &one, Af.mgData->descrP, vecX, &one, vecY,
-                                                 rocsparse_compute_type, rocsparse_spmv_alg_default,
-                                                 &buffer_size, Af.mgData->buffer_P)) {
+  if (rocsparse_status_success != 
+      #if ROCM_VERSION >= 50400
+      rocsparse_spmv_ex
+      #else
+      rocsparse_spmv
+      #endif
+          (Af.rocsparseHandle, rocsparse_operation_none,
+           &one, Af.mgData->descrP, vecX, &one, vecY,
+           rocsparse_compute_type, rocsparse_spmv_alg_default,
+           #if ROCM_VERSION >= 50400
+           rocsparse_spmv_stage_compute,
+           #endif
+           &buffer_size, Af.mgData->buffer_P)) {
     printf( " Failed rocsparse_spmv(%dx%d)\n",nc,n );
   }
   #endif

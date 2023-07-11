@@ -77,8 +77,8 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   typedef typename GMRESData_type2::project_type project_type;
   typedef SerialDenseMatrix<project_type> SerialDenseMatrix_type;
 
-  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
-         t7 = 0.0, t8 = 0.0, t9 = 0.0, t10 = 0.0, t11 = 0.0;
+  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t3_1 = 0.0, t3_2,
+	 t4 = 0.0, t5 = 0.0, t6 = 0.0, t7 = 0.0, t8 = 0.0, t9 = 0.0, t10 = 0.0, t11 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
 
   // vectors/matrices in scalar_type2 (lower)
@@ -169,7 +169,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     // > Compute residual vector (higher working precision)
     // p is of length ncols, copy x to p for sparse MV operation
     CopyVector(x_hi, p_hi);
-    TICK(); ComputeSPMV(A, p_hi, Ap_hi); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3); // Ap = A*p
+    TICK(); ComputeSPMV(A, p_hi, Ap_hi); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3); t3_1 += p_hi.time1; t3_2 += p_hi.time2; // Ap = A*p
     TICK(); ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow);  TOCK(t11); // r = b - Ax (x stored in p)
     TICK(); ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t11);
     normr_hi = sqrt(normr_hi);
@@ -233,7 +233,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       TOCK(t5); // Preconditioner apply time
 
       // Qk = A*z
-      TICK(); ComputeSPMV(A_lo, z, Qk); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3);
+      TICK(); ComputeSPMV(A_lo, z, Qk); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3); t3_1 += z.time1; t3_2 += z.time2;
       test_data.numOfSPCalls++;
 
       // orthogonalize z against Q(:,0:k-1), using dots
@@ -438,13 +438,15 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     test_data.times[5]  += t4;       // AllReduce time
     test_data.times[6]  += t5;       // preconditioner apply time
     test_data.times[7]  += t7;       // > SpTRSV for GS
-    test_data.times[8]  += t8;       // > SpMV for GS
-    test_data.times[9]  += t9;       // > Restrict for GS
+    test_data.times[8] += t8;        // > SpMV for GS
+    test_data.times[9] += t9;        // > Restrict for GS
     test_data.times[10] += t10;      // > Prolong for GS
     test_data.times[11] += t11;      // Vector update time
 
     test_data.times_comp[1] += t1_comp; // dot-product time
     test_data.times_comm[1] += t1_comm; // dot-product time
+    test_data.times_comm[2] += t3_1;     // > SPMV local copy
+    test_data.times_comm[3] += t3_2;     // > SPMV halo exchange
   }
   double flops_tot = flops + flops_gmg + flops_spmv + flops_orth;
   if (verbose && A.geom->rank==0) {

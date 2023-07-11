@@ -142,17 +142,35 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
   rocsparse_dnvec_descr vecX, vecY;
   rocsparse_create_dnvec_descr(&vecX, n,  (void*)d_rfv, rocsparse_compute_type);
   rocsparse_create_dnvec_descr(&vecY, nc, (void*)d_rcv, rocsparse_compute_type);
-  if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
-                                                 &one, A.mgData->descrR, vecX, &zero, vecY,
-                                                 rocsparse_compute_type, rocsparse_spmv_alg_default,
-                                                 &buffer_size, A.mgData->buffer_R)) {
+  if (rocsparse_status_success !=
+      #if ROCM_VERSION >= 50400
+      rocsparse_spmv_ex
+      #else
+      rocsparse_spmv
+      #endif
+          (A.rocsparseHandle, rocsparse_operation_none,
+           &one, A.mgData->descrR, vecX, &zero, vecY,
+           rocsparse_compute_type, rocsparse_spmv_alg_default,
+           #if ROCM_VERSION >= 50400
+           rocsparse_spmv_stage_compute,
+           #endif
+           &buffer_size, A.mgData->buffer_R)) {
     printf( " Failed rocsparse_spmv\n" );
   }
   rocsparse_create_dnvec_descr(&vecX, n, (void*)d_Axfv, rocsparse_compute_type);
-  if (rocsparse_status_success != rocsparse_spmv(A.rocsparseHandle, rocsparse_operation_none,
-                                                 &mone, A.mgData->descrR, vecX, &one, vecY,
-                                                 rocsparse_compute_type, rocsparse_spmv_alg_default,
-                                                 &buffer_size, A.mgData->buffer_R)) {
+  if (rocsparse_status_success !=
+      #if ROCM_VERSION >= 50400
+      rocsparse_spmv_ex
+      #else
+      rocsparse_spmv
+      #endif
+          (A.rocsparseHandle, rocsparse_operation_none,
+           &mone, A.mgData->descrR, vecX, &one, vecY,
+           rocsparse_compute_type, rocsparse_spmv_alg_default,
+           #if ROCM_VERSION >= 50400
+           rocsparse_spmv_stage_compute,
+           #endif
+           &buffer_size, A.mgData->buffer_R)) {
     printf( " Failed rocsparse_spmv\n" );
   }
   #endif

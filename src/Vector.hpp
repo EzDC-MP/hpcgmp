@@ -73,7 +73,6 @@ template<class Vector_type>
 inline void InitializeVector(Vector_type & v, local_int_t localLength, comm_type comm) {
   typedef typename Vector_type::scalar_type scalar_type;
   v.localLength = localLength;
-  v.values = new scalar_type[localLength];
   v.comm = comm;
   #if defined(HPGMP_WITH_CUDA)
   if (CUBLAS_STATUS_SUCCESS != cublasCreate(&v.handle)) {
@@ -86,10 +85,15 @@ inline void InitializeVector(Vector_type & v, local_int_t localLength, comm_type
   if (rocblas_status_success != rocblas_create_handle(&v.handle)) {
     printf( " InitializeVector :: Failed to create Handle\n" );
   }
+  unsigned int host_malloc_flags = hipHostMallocDefault;
+  if (hipSuccess != hipHostMalloc ((void**)&v.values, localLength*sizeof(scalar_type), host_malloc_flags)) {
+    printf( " InitializeVector :: Failed to allocate values\n" );
+  }
   if (hipSuccess != hipMalloc ((void**)&v.d_values, localLength*sizeof(scalar_type))) {
     printf( " InitializeVector :: Failed to allocate d_values\n" );
   }
   #endif
+  v.values = new scalar_type[localLength];
   v.optimizationData = 0;
   return;
 }
@@ -285,13 +289,15 @@ inline void CopyVector(const Vector_src & v, Vector_dst & w) {
 template<class Vector_type>
 inline void DeleteVector(Vector_type & v) {
 
-  delete [] v.values;
   #if defined(HPGMP_WITH_CUDA)
   cudaFree(v.d_values);
   cublasDestroy(v.handle);
   #elif defined(HPGMP_WITH_HIP)
   hipFree(v.d_values);
+  hipHostFree(v.values);
   rocblas_destroy_handle(v.handle);
+  #else
+  delete [] v.values;
   #endif
   v.localLength = 0;
   return;
