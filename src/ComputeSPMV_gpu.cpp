@@ -31,7 +31,6 @@
 #ifndef HPGMP_NO_MPI
  #include "ExchangeHalo.hpp"
 #endif
-#include "mytimer.hpp"
 
 #if defined(HPGMP_DEBUG) & !defined(HPGMP_NO_MPI)
  #include <mpi.h>
@@ -72,38 +71,11 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   scalar_type * const d_xv = x.d_values;
   scalar_type * const d_yv = y.d_values;
 
-  double t0 = 0.0, time1 = 0.0, time2 = 0.0;
 #ifndef HPGMP_NO_MPI
   if (A.geom->size > 1) {
-    TICK();
-    #ifdef HPGMP_WITH_CUDA
-    // Copy local part of X to HOST CPU
-    if (cudaSuccess != cudaMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
-      printf( " Failed to memcpy d_y\n" );
-    }
-    #elif defined(HPGMP_WITH_HIP)
-    if (hipSuccess != hipMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
-      printf( " Failed to memcpy d_y\n" );
-    }
-    #endif
-    TOCK(time1);
 
-    TICK();
     ExchangeHalo(A, x);
-    TOCK(time2);
 
-    // copy non-local part of X to device (after Halo exchange)
-    TICK();
-    #if defined(HPGMP_WITH_CUDA)
-    if (cudaSuccess != cudaMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
-      printf( " Failed to memcpy d_x\n" );
-    }
-    #elif defined(HPGMP_WITH_HIP)
-    if (hipSuccess != hipMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-      printf( " Failed to memcpy d_x\n" );
-    }
-    #endif
-    TOCK(time1);
   }
 #endif
 
@@ -251,7 +223,6 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   free(tv);
   #endif
 
-  x.time1 = time1; x.time2 = time2;
   return 0;
 }
 

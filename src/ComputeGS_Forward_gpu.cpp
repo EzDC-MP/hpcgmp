@@ -78,30 +78,15 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
   scalar_type * const d_xv = x.d_values;
 
 #ifndef HPGMP_NO_MPI
-  // Copy local part of X to HOST CPU
-  #if defined(HPGMP_WITH_CUDA)
-  if (cudaSuccess != cudaMemcpy(xv, d_xv, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  #else
-  if (hipSuccess != hipMemcpy(xv, d_xv, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  #endif
 
-  // Exchange Halo on HOST CPU
+  double time1 = x.time1;
+  double time2 = x.time2;
+
+  // Exchange Halo
   ExchangeHalo(A, x);
+  // restore timers (Exchange record comm in those)
+  x.time1 = time1; x.time2 = time2;
 
-  // Copy non-local part of X (after Halo Exchange) to device
-  #ifdef HPGMP_WITH_CUDA
-  if (cudaSuccess != cudaMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  #elif defined(HPGMP_WITH_HIP)
-  if (hipSuccess != hipMemcpy(&d_xv[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-    printf( " Failed to memcpy d_y\n" );
-  }
-  #endif
   #ifdef HPGMP_DEBUG
   if (A.geom->rank==0) {
     HPGMP_fout << A.geom->rank << " : ComputeGS(" << nrow << " x " << ncol << ") start" << std::endl;

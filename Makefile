@@ -7,8 +7,9 @@ setup_file = setup/Make.$(arch)
 include $(setup_file)
 
 HPGMP_DEPS = src/ComputeResidual.o \
-         src/ExchangeHalo.o src/GenerateGeometry.o \
          src/CheckProblem.o \
+         src/GenerateGeometry.o \
+         src/ExchangeHalo.o src/ExchangeHalo_ref.o src/ExchangeHalo_gpu.o \
 	 src/OptimizeProblem.o src/ReadHpgmpDat.o src/ReportResults.o \
 	 src/SetupHalo.o src/SetupHalo_ref.o src/WriteProblem.o \
          src/YAML_Doc.o src/YAML_Element.o \
@@ -21,7 +22,7 @@ HPGMP_DEPS = src/ComputeResidual.o \
          src/ComputeWAXPBY.o src/ComputeWAXPBY_ref.o \
          src/ComputeMG_ref.o src/ComputeMG.o \
          src/ComputeProlongation_ref.o src/ComputeRestriction_ref.o \
-	 src/ComputeOptimalShapeXYZ.o src/MixedBaseCounter.o src/CheckAspectRatio.o src/OutputFile.o \
+         src/ComputeOptimalShapeXYZ.o src/MixedBaseCounter.o src/CheckAspectRatio.o src/OutputFile.o \
          \
          src/TestGMRES.o src/BenchGMRES.o src/ValidGMRES.o \
          src/ComputeTRSM.o \

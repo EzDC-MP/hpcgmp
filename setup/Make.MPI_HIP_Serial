@@ -92,10 +92,13 @@ MPlib        =
 # - HPGMP includes / libraries / specifics -------------------------------
 # ----------------------------------------------------------------------
 #
-HPGMP_INCLUDES = -I$(INCdir) -I$(INCdir)/$(arch) $(MPinc) -I$(MPICH_DIR)/include
-HPGMP_LIBS     = -L${ROCM_PATH}/rocblas/lib -lrocblas -L${ROCM_PATH}/rocsparse/lib -lrocsparse \
-                -L$(HIP_PATH)/lib -lamdhip64 \
-                -L$(MPICH_DIR)/lib -lmpi 
+HPGMP_INCLUDES  = -I$(INCdir) -I$(INCdir)/$(arch) $(MPinc) -I$(MPICH_DIR)/include
+HPGMP_INCLUDES += -I${ROCM_PATH}/include
+HPGMP_LIBS      = -L${ROCM_PATH}/rocblas/lib -lrocblas -L${ROCM_PATH}/rocsparse/lib -lrocsparse \
+                 -L${HIP_PATH}/lib -lamdhip64 \
+                 -L${MPICH_DIR}/lib -lmpi \
+                 -L${CRAY_BINUTILS_VERSION}/cce/x86_64/lib -lu -lf -lfi
+
 #
 # - Compile time options -----------------------------------------------
 #
@@ -110,7 +113,14 @@ HPGMP_LIBS     = -L${ROCM_PATH}/rocblas/lib -lrocblas -L${ROCM_PATH}/rocsparse/l
 #    *) Build with OpenMP enabled.
 #    *) Not generate debugging output.
 #
-HPGMP_OPTS     = -DHPGMP_NO_OPENMP -DHPGMP_WITH_HIP
+HPGMP_OPTS     = -DHPGMP_NO_OPENMP -DHPGMP_WITH_HIP -DHPGMP_USE_GPU_AWARE_MPI
+HPGMP_OPTS    += -DHPGMP_USE_FENCE
+
+# GPU aware MPI
+HPGMP_LIBS     += ${CRAY_XPMEM_POST_LINK_OPTS} -lxpmem \
+                  ${PE_MPICH_GTL_DIR_amd_gfx90a} ${PE_MPICH_GTL_LIBS_amd_gfx90a}
+HPGMP_OPTS     += --offload-arch=gfx90a
+
 #
 # ----------------------------------------------------------------------
 #

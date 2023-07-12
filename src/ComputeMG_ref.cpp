@@ -48,6 +48,7 @@ int ComputeMG_ref(const SparseMatrix_type & A, const Vector_type & r, Vector_typ
   assert(x.localLength==A.localNumberOfColumns); // Make sure x contain space for halo values
 
   // initialize x to zero
+  double t0 = 0.0;
   ZeroVector(x);
 
   int ierr = 0;
@@ -61,8 +62,10 @@ int ComputeMG_ref(const SparseMatrix_type & A, const Vector_type & r, Vector_typ
     if (ierr!=0) return ierr;
 
     // Compute residual vector
-    double t0 = 0.0; TICK();
+    TICK();
+    double time1 = x.time1, time2 = x.time2;
     ierr = ComputeSPMV_ref(A, x, *A.mgData->Axf); if (ierr!=0) return ierr;
+    x.time1 = time1; x.time2 = time2;
     TOCK(x.time1);
 
     // Restriction operation

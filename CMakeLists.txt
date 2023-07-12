@@ -21,7 +21,8 @@ option(HPGMP_ENABLE_OPENMP "Enable OpenMP support" OFF)
 
 add_executable( xhpgmp src/main_hpgmp.cpp
     src/GMRES.cpp src/GMRES_IR.cpp src/TestGMRES.cpp
-    src/ComputeResidual.cpp src/ExchangeHalo.cpp src/GenerateGeometry.cpp
+    src/ComputeResidual.cpp src/GenerateGeometry.cpp
+    src/ExchangeHalo.cpp src/ExchangeHalo_ref.cpp src/ExchangeHalo_gpu.cpp
     src/GenerateNonsymProblem.cpp src/GenerateNonsymProblem_v1_ref.cpp src/CheckProblem.cpp
     src/OptimizeProblem.cpp src/ReadHpgmpDat.cpp src/ReportResults.cpp
     src/SetupHalo.cpp src/SetupHalo_ref.cpp
@@ -48,7 +49,8 @@ add_executable( xhpgmp src/main_hpgmp.cpp
 
 add_executable( xhpgmp_time src/main_time.cpp
     src/GMRES.cpp src/GMRES_IR.cpp src/TestGMRES.cpp
-    src/ComputeResidual.cpp src/ExchangeHalo.cpp src/GenerateGeometry.cpp
+    src/ComputeResidual.cpp src/GenerateGeometry.cpp
+    src/ExchangeHalo.cpp src/ExchangeHalo_ref.cpp src/ExchangeHalo_gpu.cpp
     src/GenerateNonsymProblem.cpp src/GenerateNonsymProblem_v1_ref.cpp src/CheckProblem.cpp
     src/OptimizeProblem.cpp src/ReadHpgmpDat.cpp src/ReportResults.cpp
     src/SetupHalo.cpp src/SetupHalo_ref.cpp

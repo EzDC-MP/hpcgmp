@@ -438,8 +438,8 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     test_data.times[5]  += t4;       // AllReduce time
     test_data.times[6]  += t5;       // preconditioner apply time
     test_data.times[7]  += t7;       // > SpTRSV for GS
-    test_data.times[8] += t8;        // > SpMV for GS
-    test_data.times[9] += t9;        // > Restrict for GS
+    test_data.times[8]  += t8;       // > SpMV for GS
+    test_data.times[9]  += t9;       // > Restrict for GS
     test_data.times[10] += t10;      // > Prolong for GS
     test_data.times[11] += t11;      // Vector update time
 
