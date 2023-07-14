@@ -37,6 +37,7 @@
  */
 
 
+#if defined(HPGMP_WITH_HIP)
 __global__ void sHaloGather(int totalToBeSent, float *d_x, float *d_sendBuffer, int *d_elementsToSend) {
   int i = threadIdx.x + blockIdx.x*blockDim.x;
   if (i < totalToBeSent) {
@@ -49,6 +50,7 @@ __global__ void dHaloGather(int totalToBeSent, double *d_x, double *d_sendBuffer
     d_sendBuffer[i] = d_x[d_elementsToSend[i]];
   }
 }
+#endif
 
 template<class SparseMatrix_type, class Vector_type>
 void ExchangeHalo_ref(const SparseMatrix_type & A, Vector_type & x) {
@@ -111,11 +113,12 @@ void ExchangeHalo_ref(const SparseMatrix_type & A, Vector_type & x) {
   // Fill up send buffer
   //
   TICK();
-#if 1
+#if defined(HPGMP_WITH_HIP) // Only with HIP for now
   scalar_type * d_sendBuffer = A.d_sendBuffer;
 
   int num_threads = (totalToBeSent < 256 ? totalToBeSent : 256);
   int num_blocks = (totalToBeSent+num_threads-1)/num_threads;
+  #if defined(HPGMP_WITH_HIP)
   dim3 blocks(num_blocks, 1, 1);
   dim3 threads(num_threads, 1, 1);
   if (std::is_same<scalar_type, float>::value) {
@@ -139,6 +142,7 @@ void ExchangeHalo_ref(const SparseMatrix_type & A, Vector_type & x) {
   if (hipSuccess != hipMemcpy(sendBuffer, A.d_sendBuffer, totalToBeSent*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
     printf( " Failed to memcpy d_y\n" );
   }
+  #endif
   #endif
 #else
   // Copy local part of X to HOST CPU
@@ -165,7 +169,7 @@ void ExchangeHalo_ref(const SparseMatrix_type & A, Vector_type & x) {
   // TODO: Thread this loop
   for (int i = 0; i < num_neighbors; i++) {
     local_int_t n_send = sendLength[i];
-    #ifdef HPGMP_USE_GPU_AWARE_MPI
+    #if defined(HPGMP_USE_GPU_AWARE_MPI) & defined(HPGMP_WITH_HIP)
     MPI_Send(d_sendBuffer, n_send, MPI_SCALAR_TYPE, neighbors[i], MPI_MY_TAG, A.comm);
     #else
     MPI_Send(sendBuffer, n_send, MPI_SCALAR_TYPE, neighbors[i], MPI_MY_TAG, A.comm);
@@ -186,9 +190,9 @@ void ExchangeHalo_ref(const SparseMatrix_type & A, Vector_type & x) {
   }
   TOCK(time2);
 
-  #ifndef HPGMP_USE_GPU_AWARE_MPI
+  #if !defined(HPGMP_USE_GPU_AWARE_MPI) | !defined(HPGMP_WITH_HIP)
   TICK();
-  #ifdef HPGMP_WITH_CUDA
+  #if defined(HPGMP_WITH_CUDA)
   if (cudaSuccess != cudaMemcpy(&d_xv[localNumberOfRows], &xv[localNumberOfRows], (localNumberOfCols-localNumberOfRows)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
     printf( " Failed to memcpy d_y\n" );
   }

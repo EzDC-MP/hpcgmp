@@ -143,8 +143,11 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     // Record initial residual for convergence testing
     if (niters == 0) normr0 = normr;
     if (verbose && A.geom->rank==0) {
-      HPGMP_fout << "GMRES Residual at the start of restart cycle = "<< normr
-                << ", " << normr/normr0 << std::endl;
+      HPGMP_fout << "GMRES Residual at the start of restart cycle = "<< normr << " / " << normr0
+                << " = " << normr/normr0 << std::endl;
+    }
+    if (IS_NAN(normr)) {
+      break;
     }
     if (normr/normr0 <= tolerance) { // Use "<=" to exit when res=zero (continuing will cause NaN)
       converged = true;
@@ -339,7 +342,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
   DeleteDenseMatrix(ss);
   DeleteMultiVector(Q);
 
-  return 0;
+  return ((converged && !IS_NAN(normr)) ? 0 : 1);
 }
 
 

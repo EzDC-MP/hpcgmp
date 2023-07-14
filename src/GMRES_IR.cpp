@@ -198,6 +198,9 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       #endif
       HPGMP_fout << std::endl;
     }
+    if (IS_NAN(normr)) {
+      break;
+    }
     if (normr_hi/normr0_hi <= tolerance) { // Use "<=" to exit when res=zero (continuing will cause NaN)
       converged = true;
       if (verbose && A.geom->rank==0) HPGMP_fout << " > GMRES_IR converged " << std::endl;
@@ -217,7 +220,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     // Start restart cycle
     global_int_t k = 1;
     SetMatrixValue(t, 0, 0, normr);
-    while (k <= restart_length && normr/normr0 > tolerance) { // Use ">" to exit when res=zero (continuing will cause NaN)
+    while (k <= restart_length && normr/normr0 > tolerance && !IS_NAN(normr)) { // Use ">" to exit when res=zero (continuing will cause NaN)
       GetVector(Q, k-1, Qkm1);
       GetVector(Q, k,   Qk);
 
@@ -475,7 +478,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   DeleteDenseMatrix(ss);
   DeleteMultiVector(Q);
 
-  return 0;
+  return ((converged && !IS_NAN(normr)) ? 0 : 1);
 }
 
 
