@@ -146,12 +146,14 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_nzvals),  nnz*sizeof(SC))) {
         printf( " Failed to allocate A.d_nzvals(nnz=%lld)\n",nnz );
       }
+      #ifndef HPGMP_NO_MPI
       if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_sendBuffer), totalToBeSent*sizeof(SC))) {
         printf( " Failed to allocate A.d_sendBuffer(totalToBeSent=%lld)\n",totalToBeSent );
       }
       if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_elementsToSend), totalToBeSent*sizeof(local_int_t))) {
         printf( " Failed to allocate A.d_elementsToSend(totalToBeSent=%lld)\n",totalToBeSent );
       }
+      #endif
 
 
       if (cudaSuccess != cudaMemcpy(curLevelMatrix->d_row_ptr, h_row_ptr, (nrow+1)*sizeof(int), cudaMemcpyHostToDevice)) {
@@ -163,9 +165,11 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (cudaSuccess != cudaMemcpy(curLevelMatrix->d_nzvals,  h_nzvals,  nnz*sizeof(SC),  cudaMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_nzvals\n" );
       }
+      #ifndef HPGMP_NO_MPI
       if (cudaSuccess != cudaMemcpy(curLevelMatrix->d_elementsToSend, curLevelMatrix->elementsToSend, totalToBeSent*sizeof(local_int_t), cudaMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_elementsToSend\n" );
       }
+      #endif
       // free matrix on host
       free(h_row_ptr);
       free(h_col_ind);
@@ -180,12 +184,14 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_nzvals),  nnz*sizeof(SC))) {
         printf( " Failed to allocate A.d_nzvals(nnz=%lld)\n",nnz );
       }
+      #ifndef HPGMP_NO_MPI
       if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_sendBuffer),  nnz*sizeof(SC))) {
         printf( " Failed to allocate A.d_sendBuffer(totalToBeSent=%lld)\n",totalToBeSent );
       }
       if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_elementsToSend), totalToBeSent*sizeof(local_int_t))) {
         printf( " Failed to allocate A.d_elementsToSend(totalToBeSent=%lld)\n",totalToBeSent );
       }
+      #endif
 
       if (hipSuccess != hipMemcpy(curLevelMatrix->d_row_ptr, h_row_ptr, (nrow+1)*sizeof(int), hipMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_row_ptr\n" );
@@ -196,9 +202,11 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (hipSuccess != hipMemcpy(curLevelMatrix->d_nzvals,  h_nzvals,  nnz*sizeof(SC), hipMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_nzvals\n" );
       }
+      #ifndef HPGMP_NO_MPI
       if (hipSuccess != hipMemcpy(curLevelMatrix->d_elementsToSend, curLevelMatrix->elementsToSend, totalToBeSent*sizeof(local_int_t), hipMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_elementsToSend\n" );
       }
+      #endif
       // free matrix on host
       free(h_row_ptr);
       free(h_col_ind);
