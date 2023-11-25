@@ -64,11 +64,7 @@ int main(int argc, char * argv[]) {
     }
 
 #if defined(KOKKOS_HALF_T_IS_FLOAT)
-  #if KOKKOS_HALF_T_IS_FLOAT
-  std::cout << " > " <<sizeof(Kokkos::Experimental::half_t) << std::endl;
-  #else
   std::cout << " + " <<sizeof(Kokkos::Experimental::half_t) << std::endl;
-  #endif
 #else
   std::cout << " x " <<sizeof(Kokkos::Experimental::half_t) << std::endl;
 #endif

@@ -68,7 +68,7 @@ void GenerateNonsymProblem< SparseMatrix<double>, Vector<double> >(SparseMatrix<
 template
 void GenerateNonsymProblem< SparseMatrix<float>, Vector<float> >(SparseMatrix<float>&, Vector<float>*, Vector<float>*, Vector<float>*, bool);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 void GenerateNonsymProblem< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t>&, Vector<half_t>*, Vector<half_t>*, Vector<half_t>*, bool);
 #endif
@@ -77,7 +77,7 @@ void GenerateNonsymProblem< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<
 template
 void GenerateNonsymProblem< SparseMatrix<float>, Vector<double> >(SparseMatrix<float>&, Vector<double>*, Vector<double>*, Vector<double>*, bool);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 void GenerateNonsymProblem< SparseMatrix<half_t>, Vector<double> >(SparseMatrix<half_t>&, Vector<double>*, Vector<double>*, Vector<double>*, bool);
 

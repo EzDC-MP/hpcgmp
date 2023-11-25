@@ -7,7 +7,8 @@ setup_file = setup/Make.$(arch)
 include $(setup_file)
 
 HPCG_DEPS = src/ComputeResidual.o \
-         src/ExchangeHalo.o src/GenerateGeometry.o \
+         src/GenerateGeometry.o \
+	 src/ExchangeHalo.o src/ExchangeHalo_ref.o src/ExchangeHalo_gpu.o \
          src/CheckProblem.o \
 	 src/OptimizeProblem.o src/ReadHpcgDat.o src/ReportResults.o \
 	 src/SetupHalo.o src/SetupHalo_ref.o src/WriteProblem.o \

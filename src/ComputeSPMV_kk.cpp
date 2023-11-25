@@ -17,16 +17,12 @@
 
  HPCG routine
  */
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if 0//defined(HPCG_WITH_KOKKOSKERNELS) // KK seems to have some overhead
 
 #include "ComputeSPMV_ref.hpp"
 
 #ifndef HPCG_NO_MPI
 #include "ExchangeHalo.hpp"
-#endif
-
-#ifndef HPCG_NO_OPENMP
- #include <omp.h>
 #endif
 #include <cassert>
 
@@ -59,29 +55,8 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
 
 #ifndef HPCG_NO_MPI
   if (A.geom->size > 1) {
-    #ifdef HPCG_WITH_CUDA
-    // Copy local part of X to HOST CPU
-    if (cudaSuccess != cudaMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), cudaMemcpyDeviceToHost)) {
-      printf( " Failed to memcpy d_y\n" );
-    }
-    #elif defined(HPCG_WITH_HIP)
-    if (hipSuccess != hipMemcpy(xv, x.d_values, nrow*sizeof(scalar_type), hipMemcpyDeviceToHost)) {
-      printf( " Failed to memcpy d_y\n" );
-    }
-    #endif
-
+    // Exchange Halo
     ExchangeHalo(A, x);
-
-    // copy non-local part of X to device (after Halo exchange)
-    #if defined(HPCG_WITH_CUDA)
-    if (cudaSuccess != cudaMemcpy(&x.d_values[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), cudaMemcpyHostToDevice)) {
-      printf( " Failed to memcpy d_x\n" );
-    }
-    #elif defined(HPCG_WITH_HIP)
-    if (hipSuccess != hipMemcpy(&x.d_values[nrow], &xv[nrow], (ncol-nrow)*sizeof(scalar_type), hipMemcpyHostToDevice)) {
-      printf( " Failed to memcpy d_x\n" );
-    }
-    #endif
   }
 #endif
 
@@ -113,6 +88,34 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
   #endif
 #else
   {
+    const scalar_type one  (1.0);
+    const scalar_type zero (0.0);
+#if 1
+    rocsparse_datatype rocsparse_compute_type = rocsparse_datatype_f64_r;
+    if (std::is_same<scalar_type, float>::value) {
+      rocsparse_compute_type = rocsparse_datatype_f32_r;
+    }
+    size_t buffer_size = A.buffer_size_A;
+    rocsparse_dnvec_descr vecX, vecY;
+    rocsparse_create_dnvec_descr(&vecX, ncol, (void*)x.d_values, rocsparse_compute_type);
+    rocsparse_create_dnvec_descr(&vecY, nrow, (void*)y.d_values, rocsparse_compute_type);
+    if (rocsparse_status_success !=
+        #if ROCM_VERSION >= 50400
+        rocsparse_spmv_ex
+        #else
+        rocsparse_spmv
+        #endif
+            (A.rocsparseHandle, rocsparse_operation_none,
+             &one, A.descrA, vecX, &zero, vecY,
+             rocsparse_compute_type, rocsparse_spmv_alg_default,
+             #if ROCM_VERSION >= 50400
+             rocsparse_spmv_stage_compute,
+             #endif
+             &buffer_size, A.buffer_A))
+    {
+      printf( " Failed rocsparse_spmv\n" );
+    }
+#else
     const int nnzA = A.localNumberOfNonzeros;
     using execution_space = typename SparseMatrix_type::execution_space;
     using VectorView = Kokkos::View<scalar_type *, Kokkos::LayoutLeft, execution_space>;
@@ -134,9 +137,8 @@ int ComputeSPMV_ref(const SparseMatrix_type & A, Vector_type & x, Vector_type & 
     typename SparseMatrix_type::StaticGraphView static_graph(colidx_view, rowptr_view);
     typename SparseMatrix_type::CrsMatView A_view("CrsMatrix", ncol, values_view, static_graph);
 
-    const scalar_type one  (1.0);
-    const scalar_type zero (0.0);
     KokkosSparse::spmv(KokkosSparse::NoTranspose, one, A_view, x_view, zero, y_view);
+#endif
   }
 #endif
   return 0;
@@ -153,7 +155,7 @@ int ComputeSPMV_ref< SparseMatrix<double>, Vector<double> >(const SparseMatrix<d
 template
 int ComputeSPMV_ref< SparseMatrix<float>, Vector<float> >(const SparseMatrix<float> &, Vector<float>&, Vector<float>&);
 
-#if !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeSPMV_ref< SparseMatrix<half_t>, Vector<half_t> >(const SparseMatrix<half_t> &, Vector<half_t>&, Vector<half_t>&);
 

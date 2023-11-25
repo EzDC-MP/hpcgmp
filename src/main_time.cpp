@@ -67,12 +67,16 @@ typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
 
 #ifdef HPCG_WITH_KOKKOSKERNELS
-//typedef float scalar_type2;
-typedef Kokkos::Experimental::half_t scalar_type2;
-typedef float project_type;
+  #if defined(KOKKOS_HALF_T_IS_FLOAT)
+  typedef float scalar_type2;
+  #else
+  //typedef float scalar_type2;
+  typedef Kokkos::Experimental::half_t scalar_type2;
+  #endif
+  typedef float project_type;
 #else
-typedef float scalar_type2;
-typedef float project_type;
+  typedef float scalar_type2;
+  typedef float project_type;
 #endif
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
@@ -112,7 +116,7 @@ int main(int argc, char * argv[]) {
   if (rank == 0) HPCG_fout << "With MPI " << endl;
 #endif
 #ifdef HPCG_WITH_KOKKOSKERNELS
-  #if KOKKOS_HALF_T_IS_FLOAT
+  #if defined(KOKKOS_HALF_T_IS_FLOAT)
   if (rank == 0) HPCG_fout << "With KK (Half is float = " << sizeof(half_t) << " bytes)" << endl;
   #else
   if (rank == 0) HPCG_fout << "With KK (Half is FP16 = " << sizeof(half_t) << " bytes)" << endl;
@@ -120,6 +124,8 @@ int main(int argc, char * argv[]) {
 #endif
 #ifdef HPCG_WITH_CUDA
   if (rank == 0) HPCG_fout << "With Cuda " << endl;
+#elif defined(HPCG_WITH_HIP)
+  if (rank == 0) HPCG_fout << "With Hip " << endl;
 #endif
   if (rank == 0) HPCG_fout << endl;
 
@@ -186,7 +192,7 @@ int main(int argc, char * argv[]) {
   t7 = mytimer() - t7;
   times[7] = t7;
 
-  if (A.geom->rank==0) {
+  if (rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
   }
@@ -237,7 +243,7 @@ int main(int argc, char * argv[]) {
   OptimizeProblem(A2, data, b, x, xexact);
   t7 = mytimer() - t7;
 
-  if (A.geom->rank==0) {
+  if (rank==0) {
     HPCG_fout << " Setup    Time     " << setup_time << " seconds." << endl;
     HPCG_fout << " Optimize Time     " << t7 << " seconds." << endl;
   }

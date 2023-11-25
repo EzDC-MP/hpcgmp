@@ -119,7 +119,15 @@ void SetupHalo_ref(SparseMatrix_type & A) {
 #endif
 
   // Build the arrays and lists needed by the ExchangeHalo function.
+  #if defined(HPCG_WITH_HIP)
+  unsigned int host_malloc_flags = hipHostMallocDefault;
+  scalar_type * sendBuffer;
+  if (hipSuccess != hipHostMalloc ((void**)&sendBuffer, totalToBeSent*sizeof(scalar_type), host_malloc_flags)) {
+    printf( " InitializeVector :: Failed to allocate values\n" );
+  }
+  #else
   scalar_type * sendBuffer = new scalar_type[totalToBeSent];
+  #endif
   local_int_t * elementsToSend = new local_int_t[totalToBeSent];
   int * neighbors = new int[sendList.size()];
   local_int_t * receiveLength = new local_int_t[receiveList.size()];
@@ -194,7 +202,7 @@ void SetupHalo_ref< SparseMatrix<double> >(SparseMatrix<double>&);
 template
 void SetupHalo_ref< SparseMatrix<float> >(SparseMatrix<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 void SetupHalo_ref< SparseMatrix<half_t> >(SparseMatrix<half_t>&);
 #endif

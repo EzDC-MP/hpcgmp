@@ -45,7 +45,7 @@ template
 int ComputeGEMMT< MultiVector<float>, SerialDenseMatrix<float> >
   (const int, const int, const int, const float, MultiVector<float> const&, MultiVector<float> const&, const float, SerialDenseMatrix<float> &, bool&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeGEMMT< MultiVector<half_t>, SerialDenseMatrix<half_t> >
   (int, int, int, half_t, MultiVector<half_t> const&, MultiVector<half_t> const&, const half_t, SerialDenseMatrix<half_t> &, bool&);

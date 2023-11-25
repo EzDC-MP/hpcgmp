@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP)
+#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_KOKKOSKERNELS)
 
 #ifndef HPCG_NO_OPENMP
 #include <omp.h>

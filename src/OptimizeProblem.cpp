@@ -131,6 +131,7 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         nnz += cur_nnz;
         h_row_ptr[i+1] = nnz;
       }
+      const global_int_t totalToBeSent = curLevelMatrix->totalToBeSent;
 
       // copy CSR(A) to device
       #if defined(HPCG_WITH_CUDA)
@@ -143,6 +144,17 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_nzvals),  nnz*sizeof(SC))) {
         printf( " Failed to allocate A.d_nzvals(nnz=%lld)\n",nnz );
       }
+      #ifndef HPCG_NO_MPI
+      if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_sendBuffer), totalToBeSent*sizeof(SC))) {
+        printf( " Failed to allocate A.d_sendBuffer(totalToBeSent=%lld)\n",totalToBeSent );
+      }
+      if (cudaSuccess != cudaMalloc ((void**)&(curLevelMatrix->d_elementsToSend), totalToBeSent*sizeof(local_int_t))) {
+        printf( " Failed to allocate A.d_elementsToSend(totalToBeSent=%lld)\n",totalToBeSent );
+      }
+      if (cudaSuccess != cudaMemcpy(curLevelMatrix->d_elementsToSend, curLevelMatrix->elementsToSend, totalToBeSent*sizeof(local_int_t), cudaMemcpyHostToDevice)) {
+        printf( " Failed to memcpy A.d_elementsToSend\n" );
+      }
+      #endif
 
       if (cudaSuccess != cudaMemcpy(curLevelMatrix->d_row_ptr, h_row_ptr, (nrow+1)*sizeof(int), cudaMemcpyHostToDevice)) {
         printf( " Failed to memcpy A.d_row_ptr\n" );
@@ -158,25 +170,27 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       free(h_col_ind);
       free(h_nzvals);
       #elif defined(HPCG_WITH_HIP)
-      if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_row_ptr), (nrow+1)*sizeof(int))) {
-        printf( " Failed to allocate A.d_row_ptr(nrow=%d)\n",nrow );
-      }
-      if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_col_idx), nnz*sizeof(int))) {
-        printf( " Failed to allocate A.d_col_idx(nnz=%lld)\n",nnz );
-      }
-      if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_nzvals),  nnz*sizeof(SC))) {
-        printf( " Failed to allocate A.d_nzvals(nnz=%lld)\n",nnz );
-      }
+      GpuErrorCheck(hipMalloc ((void**)&(curLevelMatrix->d_row_ptr), (nrow+1)*sizeof(int)),
+                    (" Failed to allocate A.d_row_ptr(nrow="+std::to_string(nrow)+")\n").c_str());
+      GpuErrorCheck(hipMalloc ((void**)&(curLevelMatrix->d_col_idx), nnz*sizeof(int)),
+                    (" Failed to allocate A.d_col_idx(nnz="+std::to_string(nnz)+")\n").c_str());
+      GpuErrorCheck(hipMalloc ((void**)&(curLevelMatrix->d_nzvals),  nnz*sizeof(SC)),
+                    (" Failed to allocate A.d_nzvals(nnz="+std::to_string(nnz)+")\n").c_str());
+      #ifndef HPCG_NO_MPI
+      GpuErrorCheck(hipMalloc ((void**)&(curLevelMatrix->d_sendBuffer),  nnz*sizeof(SC)),
+                    (" Failed to allocate A.d_sendBuffer(totalToBeSent="+std::to_string(totalToBeSent)+")\n").c_str());
+      GpuErrorCheck(hipMalloc ((void**)&(curLevelMatrix->d_elementsToSend), totalToBeSent*sizeof(local_int_t)),
+                    (" Failed to allocate A.d_elementsToSend(totalToBeSent="+std::to_string(totalToBeSent)+")\n").c_str());
+      #endif
 
-      if (hipSuccess != hipMemcpy(curLevelMatrix->d_row_ptr, h_row_ptr, (nrow+1)*sizeof(int), hipMemcpyHostToDevice)) {
-        printf( " Failed to memcpy A.d_row_ptr\n" );
-      }
-      if (hipSuccess != hipMemcpy(curLevelMatrix->d_col_idx, h_col_ind, nnz*sizeof(int), hipMemcpyHostToDevice)) {
-        printf( " Failed to memcpy A.d_col_idx\n" );
-      }
-      if (hipSuccess != hipMemcpy(curLevelMatrix->d_nzvals,  h_nzvals,  nnz*sizeof(SC), hipMemcpyHostToDevice)) {
-        printf( " Failed to memcpy A.d_nzvals\n" );
-      }
+      GpuErrorCheck(hipMemcpy(curLevelMatrix->d_row_ptr, h_row_ptr, (nrow+1)*sizeof(int), hipMemcpyHostToDevice),
+                    " Failed to memcpy A.d_row_ptr\n");
+      GpuErrorCheck(hipMemcpy(curLevelMatrix->d_col_idx, h_col_ind, nnz*sizeof(int), hipMemcpyHostToDevice),
+                    " Failed to memcpy A.d_col_idx\n");
+      GpuErrorCheck(hipMemcpy(curLevelMatrix->d_nzvals,  h_nzvals,  nnz*sizeof(SC), hipMemcpyHostToDevice),
+                    " Failed to memcpy A.d_nzvals\n");
+      GpuErrorCheck(hipMemcpy(curLevelMatrix->d_elementsToSend, curLevelMatrix->elementsToSend, totalToBeSent*sizeof(local_int_t), hipMemcpyHostToDevice),
+                    " Failed to memcpy A.d_elementsToSend\n");
       // free matrix on host
       free(h_row_ptr);
       free(h_col_ind);
@@ -276,25 +290,19 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         printf( " Failed to memcpy A.d_Lrow_ptr\n" );
       }
       #elif defined(HPCG_WITH_HIP)
-      if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_Lrow_ptr), (nrow+1)*sizeof(int))) {
-        printf( " Failed to allocate A.d_Lrow_ptr\n" );
-      }
-      if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_Lcol_idx), nnzL*sizeof(int))) {
-        printf( " Failed to allocate A.d_Lcol_idx\n" );
-      }
-      if (hipSuccess != hipMalloc ((void**)&(curLevelMatrix->d_Lnzvals),  nnzL*sizeof(SC))) {
-        printf( " Failed to allocate A.d_Lrow_ptr\n" );
-      }
+      GpuErrorCheck(hipMalloc ((void**)&(curLevelMatrix->d_Lrow_ptr), (nrow+1)*sizeof(int)),
+                               " Failed to allocate A.d_Lrow_ptr\n" );
+      GpuErrorCheck(hipMalloc ((void**)&(curLevelMatrix->d_Lcol_idx), nnzL*sizeof(int)),
+                               " Failed to allocate A.d_Lcol_idx\n" );
+      GpuErrorCheck(hipMalloc ((void**)&(curLevelMatrix->d_Lnzvals),  nnzL*sizeof(SC)),
+                               " Failed to allocate A.d_Lrow_ptr\n" );
 
-      if (hipSuccess != hipMemcpy(curLevelMatrix->d_Lrow_ptr, h_Lrow_ptr, (nrow+1)*sizeof(int), hipMemcpyHostToDevice)) {
-        printf( " Failed to memcpy A.d_Lrow_ptr\n" );
-      }
-      if (hipSuccess != hipMemcpy(curLevelMatrix->d_Lcol_idx, h_Lcol_ind, nnzL*sizeof(int), hipMemcpyHostToDevice)) {
-        printf( " Failed to memcpy A.d_Lcol_idx\n" );
-      }
-      if (hipSuccess != hipMemcpy(curLevelMatrix->d_Lnzvals,  h_Lnzvals,  nnzL*sizeof(SC),  hipMemcpyHostToDevice)) {
-        printf( " Failed to memcpy A.d_Lrow_ptr\n" );
-      }
+      GpuErrorCheck(hipMemcpy(curLevelMatrix->d_Lrow_ptr, h_Lrow_ptr, (nrow+1)*sizeof(int), hipMemcpyHostToDevice),
+                              " Failed to memcpy A.d_Lrow_ptr\n" );
+      GpuErrorCheck(hipMemcpy(curLevelMatrix->d_Lcol_idx, h_Lcol_ind, nnzL*sizeof(int), hipMemcpyHostToDevice),
+                              " Failed to memcpy A.d_Lcol_idx\n" );
+      GpuErrorCheck(hipMemcpy(curLevelMatrix->d_Lnzvals,  h_Lnzvals,  nnzL*sizeof(SC),  hipMemcpyHostToDevice),
+                              " Failed to memcpy A.d_Lrow_ptr\n" );
       #endif
 
       // copy CSR(U) to device
@@ -517,12 +525,16 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       rocsparse_dnvec_descr vecX, vecY; 
       rocsparse_create_dnvec_descr(&vecX, ncol, (void*)curLevelMatrix->x.d_values, rocsparse_compute_type);
       rocsparse_create_dnvec_descr(&vecY, nrow, (void*)curLevelMatrix->y.d_values, rocsparse_compute_type);
-      rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
-                     &one, curLevelMatrix->descrA, vecX, &zero, vecY, 
-                     rocsparse_compute_type, rocsparse_spmv_alg_default,
-                     &curLevelMatrix->buffer_size_A, curLevelMatrix->buffer_A);
+      if (rocsparse_status_success != rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
+                                                     &one, curLevelMatrix->descrA, vecX, &zero, vecY, 
+                                                     rocsparse_compute_type, rocsparse_spmv_alg_default,
+                                                     &curLevelMatrix->buffer_size_A, curLevelMatrix->buffer_A)) {
+        printf( " Failed to rocsparse_spmv for buffer_size\n" );
+      }
       if (curLevelMatrix->buffer_size_A <= 0) curLevelMatrix->buffer_size_A = 1;
-      hipMalloc(&curLevelMatrix->buffer_A, curLevelMatrix->buffer_size_A);
+      if (hipSuccess != hipMalloc(&curLevelMatrix->buffer_A, curLevelMatrix->buffer_size_A)) {
+        printf( " Failed to allocate buffer_A\n" );
+      }
 
       // -------------------------
       // run analysis for triangular solve
@@ -541,7 +553,9 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         printf( " Failed rocsparse_spsv(buffer size, stat = %d)\n",spsv_stat );
       }
       //if (curLevelMatrix->buffer_size_L <= 0) curLevelMatrix->buffer_size_L = 1;
-      hipMalloc(&curLevelMatrix->buffer_L, curLevelMatrix->buffer_size_L);
+      if (hipSuccess != hipMalloc(&curLevelMatrix->buffer_L, curLevelMatrix->buffer_size_L)) {
+        printf( " Failed to allocate buffer_L\n" );
+      }
       spsv_stat = rocsparse_spsv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
                                  &one, curLevelMatrix->descrL, vecY, vecY, rocsparse_compute_type, 
                                  rocsparse_spsv_alg_default, rocsparse_spsv_stage_preprocess,
@@ -561,12 +575,16 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
       curLevelMatrix->buffer_U = nullptr;
       rocsparse_create_dnvec_descr(&vecX, ncol, (void*)curLevelMatrix->x.d_values, rocsparse_compute_type);
       rocsparse_create_dnvec_descr(&vecY, nrow, (void*)curLevelMatrix->y.d_values, rocsparse_compute_type);
-      rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
-                     &alpha, curLevelMatrix->descrU, vecX, &beta, vecY, 
-                     rocsparse_compute_type, rocsparse_spmv_alg_default,
-                     &curLevelMatrix->buffer_size_U, curLevelMatrix->buffer_U);
+      if (rocsparse_status_success != rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
+                                                     &alpha, curLevelMatrix->descrU, vecX, &beta, vecY, 
+                                                     rocsparse_compute_type, rocsparse_spmv_alg_default,
+                                                     &curLevelMatrix->buffer_size_U, curLevelMatrix->buffer_U)) {
+        printf( " Failed to rocsparse_spmv for buffer_size\n" );
+      }
       if (curLevelMatrix->buffer_size_U <= 0) curLevelMatrix->buffer_size_U = 1;
-      hipMalloc(&curLevelMatrix->buffer_U, curLevelMatrix->buffer_size_U);
+      if (hipSuccess != hipMalloc(&curLevelMatrix->buffer_U, curLevelMatrix->buffer_size_U)) {
+        printf( " Failed to allocate buffer_U\n" );
+      }
       #endif
 
       #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
@@ -698,24 +716,32 @@ int OptimizeProblem(SparseMatrix_type & A, GMRESData_type & data, Vector_type & 
         curLevelMatrix->mgData->buffer_R = nullptr;
         rocsparse_create_dnvec_descr(&vecX, nrow, (void*)curLevelMatrix->x.d_values, rocsparse_compute_type);
         rocsparse_create_dnvec_descr(&vecY, nc,   (void*)curLevelMatrix->y.d_values, rocsparse_compute_type);
-        rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
-                       &one, curLevelMatrix->mgData->descrR, vecX, &one, vecY, 
-                       rocsparse_compute_type, rocsparse_spmv_alg_default,
-                       &curLevelMatrix->mgData->buffer_size_R, curLevelMatrix->mgData->buffer_R);
+        if (rocsparse_status_success != rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
+                                                       &one, curLevelMatrix->mgData->descrR, vecX, &one, vecY, 
+                                                       rocsparse_compute_type, rocsparse_spmv_alg_default,
+                                                       &curLevelMatrix->mgData->buffer_size_R, curLevelMatrix->mgData->buffer_R)) {
+          printf( " Failed to rocsparse_spmv for buffer_size\n" );
+        }
         if (curLevelMatrix->mgData->buffer_size_R <= 0) curLevelMatrix->mgData->buffer_size_R = 1;
-        hipMalloc(&curLevelMatrix->mgData->buffer_R, curLevelMatrix->mgData->buffer_size_R);
+        if (hipSuccess != hipMalloc(&curLevelMatrix->mgData->buffer_R, curLevelMatrix->mgData->buffer_size_R)) {
+          printf( " Failed to allocate buffer_R\n" );
+        }
         //
         rocsparse_create_csr_descr(&(curLevelMatrix->mgData->descrP), nrow, nc, nc,
                                    curLevelMatrix->mgData->d_tran_row_ptr, curLevelMatrix->mgData->d_tran_col_idx, curLevelMatrix->mgData->d_tran_nzvals,
                                    rocsparse_indextype_i32, rocsparse_indextype_i32, rocsparse_index_base_zero, rocsparse_compute_type);
         curLevelMatrix->mgData->buffer_size_P = 0;
         curLevelMatrix->mgData->buffer_P = nullptr;
-        rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
-                       &one, curLevelMatrix->mgData->descrP, vecY, &one, vecX, 
-                       rocsparse_compute_type, rocsparse_spmv_alg_default,
-                       &curLevelMatrix->mgData->buffer_size_P, curLevelMatrix->mgData->buffer_P);
+        if (rocsparse_status_success != rocsparse_spmv(curLevelMatrix->rocsparseHandle, rocsparse_operation_none,
+                                                       &one, curLevelMatrix->mgData->descrP, vecY, &one, vecX, 
+                                                       rocsparse_compute_type, rocsparse_spmv_alg_default,
+                                                       &curLevelMatrix->mgData->buffer_size_P, curLevelMatrix->mgData->buffer_P)) {
+          printf( " Failed to rocsparse_spmv for buffer_size\n" );
+        }
         if (curLevelMatrix->mgData->buffer_size_P <= 0) curLevelMatrix->mgData->buffer_size_P = 1;
-        hipMalloc(&curLevelMatrix->mgData->buffer_P, curLevelMatrix->mgData->buffer_size_P);
+        if (hipSuccess != hipMalloc(&curLevelMatrix->mgData->buffer_P, curLevelMatrix->mgData->buffer_size_P)) {
+          printf( " Failed to allocate buffer_P\n" );
+        }
         #endif
 
         // free matrix on host
@@ -786,7 +812,7 @@ template
 int OptimizeProblem< SparseMatrix<float>, GMRESData<double>, Vector<double> >
   (SparseMatrix<float>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int OptimizeProblem< SparseMatrix<half_t>, GMRESData<double>, Vector<double> >
   (SparseMatrix<half_t>&, GMRESData<double>&, Vector<double>&, Vector<double>&, Vector<double>&);

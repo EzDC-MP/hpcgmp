@@ -17,7 +17,7 @@
 
  HPCG routine for computing GEMV (vector-update)
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_BLAS)
+#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_BLAS) & !defined(HPCG_WITH_KOKKOSKERNELS)
 
 #include "ComputeGEMV_ref.hpp"
 #include "hpgmp.hpp"

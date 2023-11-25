@@ -82,6 +82,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
   double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t4 = 0.0, t5 = 0.0, t6 = 0.0,
          t7 = 0.0, t8 = 0.0, t9 = 0.0, t10 = 0.0, t11 = 0.0;
+  double t3_1 = 0.0, t3_2 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
 
   // vectors/matrices in scalar_type2 (lower)
@@ -120,7 +121,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   InitializeMatrix(cs, restart_length+1, 1);
   InitializeMatrix(ss, restart_length+1, 1);
   InitializeMultiVector(Q, nrow, restart_length+1, A.comm);
-  #define SINGLEREDUCE_GMRES_IR
+  //#define SINGLEREDUCE_GMRES_IR
   #ifdef SINGLEREDUCE_GMRES_IR
   MultiVector_type2 V;
   SerialDenseMatrix_type T;
@@ -180,7 +181,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     // > Compute residual vector (higher working precision)
     // p is of length ncols, copy x to p for sparse MV operation
     CopyVector(x_hi, p_hi);
-    TICK(); ComputeSPMV(A, p_hi, Ap_hi); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3); // Ap = A*p
+    TICK(); ComputeSPMV(A, p_hi, Ap_hi); flops_spmv += (2*A.totalNumberOfNonzeros); TOCK(t3); t3_1 += p_hi.time1; t3_2 += p_hi.time2; // Ap = A*p
     TICK(); ComputeWAXPBY(nrow, one_hi, b_hi, -one_hi, Ap_hi, r_hi, A.isWaxpbyOptimized); flops += (itwo*Nrow);  TOCK(t11); // r = b - Ax (x stored in p)
     TICK(); ComputeDotProduct(nrow, r_hi, r_hi, normr_hi, t4, A.isDotProductOptimized); flops += (itwo*Nrow); TOCK(t11);
     #ifdef HPCG_WITH_KOKKOSKERNELS
@@ -197,7 +198,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     normr = normr_hi;
 
     // Convergence check
-    #define HPCG_NUMERIC_CHECK
+    //#define HPCG_NUMERIC_CHECK
     #ifdef HPCG_NUMERIC_CHECK
     project_type ortho_err (0.0);
     #endif
@@ -253,7 +254,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
       // orthogonalize z against Q(:,0:k-1), using dots
       bool use_mgs = false;
-      bool renormalize = true;
+      bool renormalize = false;
       bool single_reduce = false;
       TICK();
       if (use_mgs) {
@@ -571,6 +572,8 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
 
     test_data.times_comp[1] += t1_comp; // dot-product time
     test_data.times_comm[1] += t1_comm; // dot-product time
+    test_data.times_comm[2] += t3_1;     // > SPMV local copy
+    test_data.times_comm[3] += t3_2;     // > SPMV halo exchange
   }
   double flops_tot = flops + flops_gmg + flops_spmv + flops_orth;
   if (verbose && A.geom->rank==0) {
@@ -628,7 +631,7 @@ int GMRES_IR< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRE
    Vector<double> const&, Vector<double>&, const int, const int, double, int&, double&, double&, bool, bool,
    TestGMRESData<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int GMRES_IR< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t, half_t>, Vector<double>, TestGMRESData<double> >
   (SparseMatrix<double> const&, SparseMatrix<half_t> const&, GMRESData<double>&, GMRESData<half_t>&,

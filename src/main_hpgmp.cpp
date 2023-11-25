@@ -58,14 +58,18 @@ typedef SparseMatrix<scalar_type> SparseMatrix_type;
 typedef GMRESData<scalar_type> GMRESData_type;
 
 #if defined(HPCG_WITH_KOKKOSKERNELS)
-//using scalar_type2 = float;
-using scalar_type2 = Kokkos::Experimental::half_t;
+ #if defined(KOKKOS_HALF_T_IS_FLOAT)
+ using scalar_type2 = float;
+ #else
+ using scalar_type2 = Kokkos::Experimental::half_t;
+ //using scalar_type2 = float;
+ #endif
 
-using project_type = float;
-//using project_type = double;
+ using project_type = float;
+ //using project_type = double;
 #else
-using scalar_type2 = float;
-using project_type = float;
+ using scalar_type2 = float;
+ using project_type = float;
 #endif
 typedef Vector<scalar_type2> Vector_type2;
 typedef SparseMatrix<scalar_type2> SparseMatrix_type2;
@@ -138,7 +142,7 @@ int main(int argc, char * argv[]) {
   // Validation phase //
   //////////////////////
   int global_failure = 0;
-  int restart_length = 30;
+  int restart_length = 40;
   scalar_type tolerance = 1e-9;
 
   test_data.tolerance = tolerance;

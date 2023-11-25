@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP) | defined(HPCG_WITH_KOKKOSKERNELS)
 
 #include <cassert>
 #ifndef HPCG_NO_OPENMP
@@ -93,7 +93,7 @@ int ComputeWAXPBY_ref(const local_int_t n,
   scalarY_type * const d_yv = y.d_values;
   scalarW_type * const d_wv = w.d_values;
 
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  #if 0 //defined(HPCG_WITH_KOKKOSKERNELS)
   {
     using execution_space = Kokkos::DefaultExecutionSpace;
     Kokkos::View<scalarX_type *, Kokkos::LayoutLeft, execution_space> x_view(d_xv, n);
@@ -102,12 +102,13 @@ int ComputeWAXPBY_ref(const local_int_t n,
 
     // w = alpha*x + beta*y (note: w may be x)
     //Kokkos::deep_copy(w_view, y_view);
-    const scalarW_type one  (1.0);
-    const scalarW_type zero (0.0);
+    //const scalarW_type one  (1.0);
+    //const scalarW_type zero (0.0);
     {
-      KokkosBlas::axpby(alpha, x_view, zero, w_view);
+      //KokkosBlas::axpby(alpha, x_view, zero, w_view);
+      KokkosBlas::scal(w_view, alpha, x_view);
     }
-    KokkosBlas::axpby(beta, y_view, one, w_view);
+    KokkosBlas::axpy(beta, y_view, w_view);
   }
   #else
   // Only uniform-precision supported
@@ -268,7 +269,7 @@ int ComputeWAXPBY_ref< Vector<double>, Vector<double>, Vector<double> >(int, dou
 template
 int ComputeWAXPBY_ref< Vector<float>, Vector<float>, Vector<float> >(int, float, Vector<float> const&, float, Vector<float> const&, Vector<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeWAXPBY_ref< Vector<half_t>, Vector<half_t>, Vector<half_t> >(int, half_t, Vector<half_t> const&, half_t, Vector<half_t> const&, Vector<half_t>&);
 #endif
@@ -277,7 +278,7 @@ int ComputeWAXPBY_ref< Vector<half_t>, Vector<half_t>, Vector<half_t> >(int, hal
 template
 int ComputeWAXPBY_ref< Vector<double>, Vector<float>, Vector<double> >(int, double, Vector<double> const&, float, Vector<float> const&, Vector<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeWAXPBY_ref< Vector<double>, Vector<half_t>, Vector<double> >(int, double, Vector<double> const&, half_t, Vector<half_t> const&, Vector<double>&);
 #endif

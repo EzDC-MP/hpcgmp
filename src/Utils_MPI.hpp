@@ -1,7 +1,7 @@
 //This file should contain MPI utils only!!
 
-#ifndef HPGMP_UTILS_HPP
-#define HPGMP_UTILS_HPP
+#ifndef HPCG_UTILS_HPP
+#define HPCG_UTILS_HPP
 
 #ifndef HPCG_NO_MPI
 #include <mpi.h>
@@ -45,14 +45,14 @@ public:
   }
 };
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 //! Specialization for T = half
 template<>
 class MpiTypeTraits<half_t> {
 public:
   //! MPI_Datatype corresponding to the type T.
   static MPI_Datatype getType () {
-    return HPGMP_MPI_HALF;
+    return HPCG_MPI_HALF;
   }
   static MPI_Op getSumOp () {
     return MPI_SUM_HALF;

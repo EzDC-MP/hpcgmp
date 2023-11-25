@@ -17,7 +17,7 @@
 
  HPCG routine for computing GEMV transpose (dot-products)
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP) | defined(HPCG_WITH_KOKKOSKERNELS)
 
 #ifndef HPCG_NO_MPI
  #include "Utils_MPI.hpp"
@@ -179,7 +179,7 @@ template
 int ComputeGEMVT_ref< MultiVector<float>, Vector<float>, SerialDenseMatrix<float> >
   (int, int, float, MultiVector<float> const&, Vector<float> const&, float, SerialDenseMatrix<float> &);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int ComputeGEMVT_ref< MultiVector<half_t>, Vector<half_t>, SerialDenseMatrix<half_t> >
   (int, int, half_t, MultiVector<half_t> const&, Vector<half_t> const&, half_t, SerialDenseMatrix<half_t> &);

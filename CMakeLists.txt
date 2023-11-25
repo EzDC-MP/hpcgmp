@@ -21,7 +21,8 @@ option(HPCG_ENABLE_OPENMP "Enable OpenMP support" OFF)
 
 add_executable( xhpgmp src/main_hpgmp.cpp
     src/GMRES.cpp src/GMRES_IR.cpp src/TestGMRES.cpp
-    src/ComputeResidual.cpp src/ExchangeHalo.cpp src/GenerateGeometry.cpp
+    src/ComputeResidual.cpp src/GenerateGeometry.cpp
+    src/ExchangeHalo.cpp src/ExchangeHalo_ref.cpp src/ExchangeHalo_gpu.cpp
     src/GenerateNonsymProblem.cpp src/GenerateNonsymProblem_v1_ref.cpp src/CheckProblem.cpp
     src/OptimizeProblem.cpp src/ReadHpcgDat.cpp src/ReportResults.cpp
     src/SetupHalo.cpp src/SetupHalo_ref.cpp
@@ -48,7 +49,8 @@ add_executable( xhpgmp src/main_hpgmp.cpp
 
 add_executable( xhpgmp_time src/main_time.cpp
     src/GMRES.cpp src/GMRES_IR.cpp src/TestGMRES.cpp
-    src/ComputeResidual.cpp src/ExchangeHalo.cpp src/GenerateGeometry.cpp
+    src/ComputeResidual.cpp src/GenerateGeometry.cpp
+    src/ExchangeHalo.cpp src/ExchangeHalo_ref.cpp src/ExchangeHalo_gpu.cpp
     src/GenerateNonsymProblem.cpp src/GenerateNonsymProblem_v1_ref.cpp src/CheckProblem.cpp
     src/OptimizeProblem.cpp src/ReadHpcgDat.cpp src/ReportResults.cpp
     src/SetupHalo.cpp src/SetupHalo_ref.cpp
@@ -73,8 +75,6 @@ add_executable( xhpgmp_time src/main_time.cpp
     src/ComputeOptimalShapeXYZ.cpp src/MixedBaseCounter.cpp
     src/CheckAspectRatio.cpp src/OutputFile.cpp)
 
-add_executable( xtest_gemm src/main_gemm.cpp)
-
 if (HPCG_ENABLE_CONTIGUOUS_ARRAYS)
     target_compile_definitions(xhpgmp PRIVATE HPCG_CONTIGUOUS_ARRAYS)
 endif ()
@@ -98,17 +98,14 @@ if (HPCG_ENABLE_MPI)
     find_package(MPI REQUIRED)
     target_link_libraries(xhpgmp ${MPI_CXX_LIBRARIES})
     target_link_libraries(xhpgmp_time ${MPI_CXX_LIBRARIES})
-    target_link_libraries(xtest_gemm ${MPI_CXX_LIBRARIES})
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_MPI)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_MPI)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_MPI)
 endif ()
 
 if (NOT HPCG_ENABLE_LONG_LONG)
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_LONG_LONG)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_LONG_LONG)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_LONG_LONG)
 endif ()
 
 if (HPCG_ENABLE_OPENMP)
@@ -116,11 +113,9 @@ if (HPCG_ENABLE_OPENMP)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     target_link_libraries(xhpgmp ${OpenMP_CXX_LIBRARIES})
     target_link_libraries(xhpgmp_time ${OpenMP_CXX_LIBRARIES})
-    target_link_libraries(xtest_gemm ${OpenMP_CXX_LIBRARIES})
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_OPENMP)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_OPENMP)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_OPENMP)
 endif ()
 
 if (HPCG_ENABLE_CUDA)
@@ -132,14 +127,9 @@ if (HPCG_ENABLE_CUDA)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_CUDA)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_USE_FENCE)
     target_link_libraries(xhpgmp_time ${CUDA_LIBRARIES})
-
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_WITH_CUDA)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_USE_FENCE)
-    target_link_libraries(xtest_gemm ${CUDA_LIBRARIES})
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_CUDA)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_CUDA)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_CUDA)
 endif ()
 
 if (HPCG_ENABLE_HIP)
@@ -151,21 +141,15 @@ if (HPCG_ENABLE_HIP)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_HIP)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_USE_FENCE)
     target_link_libraries(xhpgmp_time ${HIP_LIBRARIES})
-
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_WITH_HIP)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_USE_FENCE)
-    target_link_libraries(xtest_gemm ${HIP_LIBRARIES})
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_HIP)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_HIP)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_HIP)
 endif ()
 
 
 if (HPCG_ENABLE_BLAS)
     target_compile_definitions(xhpgmp PRIVATE HPCG_WITH_BLAS)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_BLAS)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_WITH_BLAS)
 endif ()
 
 if (HPCG_ENABLE_KOKKOSKERNELS)
@@ -175,11 +159,7 @@ if (HPCG_ENABLE_KOKKOSKERNELS)
 
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_WITH_KOKKOSKERNELS)
     target_link_libraries(xhpgmp_time Kokkos::kokkoskernels)
-
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_WITH_KOKKOSKERNELS)
-    target_link_libraries(xtest_gemm Kokkos::kokkoskernels)
 else ()
     target_compile_definitions(xhpgmp PRIVATE HPCG_NO_KOKKOSKERNELS)
     target_compile_definitions(xhpgmp_time PRIVATE HPCG_NO_KOKKOSKERNELS)
-    target_compile_definitions(xtest_gemm PRIVATE HPCG_NO_KOKKOSKERNELS)
 endif ()

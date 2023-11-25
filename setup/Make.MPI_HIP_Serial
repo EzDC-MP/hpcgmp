@@ -93,7 +93,7 @@ MPlib        =
 #
 HPCG_INCLUDES = -I$(INCdir) -I$(INCdir)/$(arch) $(MPinc) -I$(MPICH_DIR)/include
 HPCG_LIBS     = -L${ROCM_PATH}/rocblas/lib -lrocblas -L${ROCM_PATH}/rocsparse/lib -lrocsparse \
-                -L$(HIP_PATH)/lib -lamdhip64 \
+                -L$(ROCM_PATH)/lib -lamdhip64 \
                 -L$(MPICH_DIR)/lib -lmpi 
 #
 # - Compile time options -----------------------------------------------

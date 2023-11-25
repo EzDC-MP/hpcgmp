@@ -7,6 +7,7 @@ include $(setup_file)
 
 
 HPGMP_DEPS = src/ComputeResidual.o \
+	    src/ExchangeHalo_ref.o \
 	    src/ExchangeHalo.o \
 	    src/GenerateGeometry.o \
 	    src/CheckProblem.o \
@@ -64,10 +65,12 @@ HPGMP_DEPS = src/ComputeResidual.o \
 	    src/ComputeGEMV_blas.o \
 	    src/ComputeGEMVT_blas.o \
 	    src/ComputeSPMV_ssl2.o \
-            \
+	    \
+	    src/ExchangeHalo_gpu.o \
 	    src/ComputeDotProduct_gpu.o \
 	    src/ComputeGEMV_gpu.o \
 	    src/ComputeGEMVT_gpu.o \
+	    src/ComputeGEMMT_gpu.o \
 	    src/ComputeSPMV_gpu.o \
 	    src/ComputeWAXPBY_gpu.o \
 	    src/ComputeGS_Forward_gpu.o \
@@ -153,6 +156,13 @@ src/ComputeDotProduct_ref.o: HPCG_SRC_PATH/src/ComputeDotProduct_ref.cpp HPCG_SR
 
 src/ComputeDotProduct_blas.o: HPCG_SRC_PATH/src/ComputeDotProduct_blas.cpp HPCG_SRC_PATH/src/ComputeDotProduct_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@
+
+
+src/ExchangeHalo_ref.o: HPGMP_SRC_PATH/src/ExchangeHalo_ref.cpp HPGMP_SRC_PATH/src/ExchangeHalo_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPGMP_SRC_PATH/src $< -o $@
+
+src/ExchangeHalo_gpu.o: HPGMP_SRC_PATH/src/ExchangeHalo_gpu.cpp HPGMP_SRC_PATH/src/ExchangeHalo_ref.hpp $(PRIMARY_HEADERS)
+	$(CXX) -c $(CXXFLAGS) -IHPGMP_SRC_PATH/src $< -o $@
 
 src/ComputeDotProduct_gpu.o: HPCG_SRC_PATH/src/ComputeDotProduct_gpu.cpp HPCG_SRC_PATH/src/ComputeDotProduct_ref.hpp $(PRIMARY_HEADERS)
 	$(CXX) -c $(CXXFLAGS) -IHPCG_SRC_PATH/src $< -o $@

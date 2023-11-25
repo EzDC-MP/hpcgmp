@@ -86,6 +86,10 @@ public:
   local_int_t * receiveLength; //!< lenghts of messages received from neighboring processes
   local_int_t * sendLength; //!< lenghts of messages sent to neighboring processes
   SC * sendBuffer; //!< send buffer for non-blocking sends
+  #if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+  local_int_t * d_elementsToSend; //!< elements to send to neighboring processes (on GPU)
+  SC * d_sendBuffer; //!< send buffer for non-blocking sends (on GPU)
+  #endif
 #endif
 #ifdef HPCG_WITH_KOKKOSKERNELS
   using execution_space = Kokkos::DefaultExecutionSpace;
@@ -276,7 +280,11 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
   if (A.neighbors)             delete [] A.neighbors;
   if (A.receiveLength)         delete [] A.receiveLength;
   if (A.sendLength)            delete [] A.sendLength;
+  #if defined(HPCG_WITH_HIP)
+  if (A.sendBuffer)            hipHostFree(A.sendBuffer);
+  #else
   if (A.sendBuffer)            delete [] A.sendBuffer;
+  #endif
 #endif
 
   /*if (A.geom!=0) {
@@ -297,10 +305,15 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
     A.mgData = 0;
   }
 
+  DeleteVector (A.x);
+  DeleteVector (A.y);
+
 #ifdef HPCG_WITH_CUDA
   cudaFree (A.d_row_ptr);
   cudaFree (A.d_col_idx);
   cudaFree (A.d_nzvals);
+  cudaFree (A.d_sendBuffer);
+  cudaFree (A.d_elementsToSend);
 
   cudaFree (A.d_Lrow_ptr);
   cudaFree (A.d_Lcol_idx);
@@ -322,6 +335,25 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
   #else
   cusparseDestroySolveAnalysisInfo(A.infoL);
   #endif
+#elif defined(HPCG_WITH_HIP)
+  hipFree (A.d_row_ptr);
+  hipFree (A.d_col_idx);
+  hipFree (A.d_nzvals);
+  hipFree (A.d_sendBuffer);
+  hipFree (A.d_elementsToSend);
+
+  hipFree (A.d_Lrow_ptr);
+  hipFree (A.d_Lcol_idx);
+  hipFree (A.d_Lnzvals);
+
+  hipFree (A.d_Urow_ptr);
+  hipFree (A.d_Ucol_idx);
+  hipFree (A.d_Unzvals);
+
+  rocsparse_destroy_handle(A.rocsparseHandle);
+  rocsparse_destroy_spmat_descr(A.descrA);
+  rocsparse_destroy_spmat_descr(A.descrL);
+  rocsparse_destroy_spmat_descr(A.descrU);
 #endif
   return;
 }

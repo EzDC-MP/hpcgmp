@@ -103,7 +103,7 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
   int niters = 0;
   scalar_type normr (0.0);
   scalar_type normr0 (0.0);
-  int restart_length = 30;
+  int restart_length = 40;
   int maxIters = 10000;
   int numberOfGmresCalls = 1;
   bool verbose = true;
@@ -232,7 +232,7 @@ template
 int TestGMRES< SparseMatrix<double>, SparseMatrix<float>, GMRESData<double>, GMRESData<float>, Vector<double>, TestGMRESData<double> >
   (SparseMatrix<double>&, SparseMatrix<float>&, GMRESData<double>&, GMRESData<float>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS) & !KOKKOS_HALF_T_IS_FLOAT // if arch does not support half, then half = float
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT) // if arch does not support half, then half = float
 template
 int TestGMRES< SparseMatrix<double>, SparseMatrix<half_t>, GMRESData<double>, GMRESData<half_t>, Vector<double>, TestGMRESData<double> >
   (SparseMatrix<double>&, SparseMatrix<half_t>&, GMRESData<double>&, GMRESData<half_t>&, Vector<double>&, Vector<double>&, bool, bool, TestGMRESData<double>&);

@@ -17,7 +17,7 @@
 
  HPCG routine for computing GEMV transpose (dot-products)
  */
-#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_BLAS)
+#if !defined(HPCG_WITH_CUDA) & !defined(HPCG_WITH_HIP) & !defined(HPCG_WITH_KOKKOSKERNELS) & !defined(HPCG_WITH_BLAS)
 
 #ifndef HPCG_NO_MPI
  #include "Utils_MPI.hpp"

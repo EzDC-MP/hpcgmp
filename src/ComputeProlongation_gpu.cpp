@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP)
+#if defined(HPCG_WITH_CUDA) | defined(HPCG_WITH_HIP) | defined(HPCG_WITH_KOKKOSKERNELS)
 
 #ifndef HPCG_NO_OPENMP
 #include <omp.h>
@@ -144,7 +144,7 @@ int ComputeProlongation_ref< SparseMatrix<double>, Vector<double> >(SparseMatrix
 template
 int ComputeProlongation_ref< SparseMatrix<float>, Vector<float> >(SparseMatrix<float> const&, Vector<float>&);
 
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT)
 template
 int ComputeProlongation_ref< SparseMatrix<half_t>, Vector<half_t> >(SparseMatrix<half_t> const&, Vector<half_t>&);
 #endif
