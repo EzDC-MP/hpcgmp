@@ -15,4 +15,6 @@
  #include <rocsparse.h>
 #endif
 
+#define IS_NAN(a) (std::isinf(a) || std::isnan(a) || !(a == a))
+
 #endif
