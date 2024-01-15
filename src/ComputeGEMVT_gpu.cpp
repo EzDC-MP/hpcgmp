@@ -77,7 +77,7 @@ int ComputeGEMVT_ref(const local_int_t m, const local_int_t n,
   scalarY_type * const d_yv = y.d_values;
 
   double t0; TICK();
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  #if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT)
   {
     using execution_space = Kokkos::DefaultExecutionSpace;
     Kokkos::View<scalarA_type **, Kokkos::LayoutLeft, execution_space> A_view(d_Av, m, n);

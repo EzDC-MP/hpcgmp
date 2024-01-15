@@ -75,7 +75,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
   #ifdef HPCG_DEBUG
   output_scalar_type local_tmp = local_result;
   #endif
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  #if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT)
   {
     using execution_space = Kokkos::DefaultExecutionSpace;
     #if 0

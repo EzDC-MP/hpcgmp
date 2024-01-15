@@ -93,7 +93,7 @@ int ComputeWAXPBY_ref(const local_int_t n,
   scalarY_type * const d_yv = y.d_values;
   scalarW_type * const d_wv = w.d_values;
 
-  #if 0 //defined(HPCG_WITH_KOKKOSKERNELS)
+  #if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT)
   {
     using execution_space = Kokkos::DefaultExecutionSpace;
     Kokkos::View<scalarX_type *, Kokkos::LayoutLeft, execution_space> x_view(d_xv, n);

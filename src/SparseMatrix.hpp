@@ -305,9 +305,6 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
     A.mgData = 0;
   }
 
-  DeleteVector (A.x);
-  DeleteVector (A.y);
-
 #ifdef HPCG_WITH_CUDA
   cudaFree (A.d_row_ptr);
   cudaFree (A.d_col_idx);
@@ -350,10 +347,16 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
   hipFree (A.d_Ucol_idx);
   hipFree (A.d_Unzvals);
 
+  DeleteVector (A.x);
+  DeleteVector (A.y);
+
   rocsparse_destroy_handle(A.rocsparseHandle);
   rocsparse_destroy_spmat_descr(A.descrA);
   rocsparse_destroy_spmat_descr(A.descrL);
   rocsparse_destroy_spmat_descr(A.descrU);
+#else
+  DeleteVector (A.x);
+  DeleteVector (A.y);
 #endif
   return;
 }

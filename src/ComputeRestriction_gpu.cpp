@@ -55,7 +55,7 @@ int ComputeRestriction_ref(const SparseMatrix_type & A, const Vector_type & rf) 
   scalar_type * d_Axfv = A.mgData->Axf->d_values;
   scalar_type * d_rfv  = rf.d_values;
   scalar_type * d_rcv  = A.mgData->rc->d_values;
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  #if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT)
   {
     typename SparseMatrix_type::RowPtrView rowptr_view(A.mgData->d_row_ptr, nc+1);
     typename SparseMatrix_type::ColIndView colidx_view(A.mgData->d_col_idx, nc);

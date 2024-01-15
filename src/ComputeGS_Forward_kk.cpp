@@ -17,7 +17,7 @@
 
  HPCG routine
  */
-#if defined(HPCG_WITH_KOKKOSKERNELS)
+#if 0//defined(HPCG_WITH_KOKKOSKERNELS)
 
 #ifndef HPCG_NO_MPI
  #include "ExchangeHalo.hpp"
@@ -169,6 +169,9 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
     VectorView r_view(r.d_values, ncol);
     VectorView x_view(x.d_values, nrow);
+    //if (A.geom->rank == 0) {
+    //  HPCG_fout << " : KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply_device(" << nrow << " x " << ncol << ")" << std::endl;
+    //}
     #else
     typename SparseMatrix_type::RowPtrView rowptr_view(A.h_row_ptr, nrow+1);
     typename SparseMatrix_type::ColIndView colidx_view(A.h_col_idx, nnzA);
@@ -176,6 +179,9 @@ int ComputeGS_Forward_ref(const SparseMatrix_type & A, const Vector_type & r, Ve
 
     VectorView r_view(r.values, ncol);
     VectorView x_view(x.values, nrow);
+    //if (A.geom->rank == 0) {
+    //  HPCG_fout << " : KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply_host(" << nrow << " x " << ncol << ")" << std::endl;
+    //}
     #endif
     TICK();
     KokkosSparse::Experimental::forward_sweep_gauss_seidel_apply

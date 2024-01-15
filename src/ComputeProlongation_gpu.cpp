@@ -51,7 +51,7 @@ int ComputeProlongation_ref(const SparseMatrix_type & Af, Vector_type & xf) {
   scalar_type * d_xfv = xf.d_values;
   scalar_type * d_xcv = Af.mgData->xc->d_values;
 
-  #if defined(HPCG_WITH_KOKKOSKERNELS)
+  #if defined(HPCG_WITH_KOKKOSKERNELS) & !defined(KOKKOS_HALF_T_IS_FLOAT)
   {
     typename SparseMatrix_type::RowPtrView rowptr_view(Af.mgData->d_row_ptr, nc+1);
     typename SparseMatrix_type::ColIndView colidx_view(Af.mgData->d_col_idx, nc);
