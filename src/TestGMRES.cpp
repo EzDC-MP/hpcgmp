@@ -101,7 +101,7 @@ int TestGMRES(SparseMatrix_type & A, SparseMatrix_type2 & A_lo, GMRESData_type &
   int niters = 0;
   scalar_type normr (0.0);
   scalar_type normr0 (0.0);
-  int restart_length = 30;
+  int restart_length = 40;
   int maxIters = 10000;
   int numberOfGmresCalls = 1;
   bool verbose = true;

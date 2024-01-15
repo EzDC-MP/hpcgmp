@@ -77,7 +77,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
   typedef typename GMRESData_type2::project_type project_type;
   typedef SerialDenseMatrix<project_type> SerialDenseMatrix_type;
 
-  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t3_1 = 0.0, t3_2,
+  double start_t = 0.0, t0 = 0.0, t1 = 0.0, t1_ = 0.0, t2 = 0.0, t3 = 0.0, t3_1 = 0.0, t3_2 = 0.0,
 	 t4 = 0.0, t5 = 0.0, t6 = 0.0, t7 = 0.0, t8 = 0.0, t9 = 0.0, t10 = 0.0, t11 = 0.0;
   double t1_comp = 0.0, t1_comm = 0.0;
 

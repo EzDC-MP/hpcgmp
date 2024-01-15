@@ -125,7 +125,7 @@ int main(int argc, char * argv[]) {
   // Validation phase //
   //////////////////////
   int global_failure = 0;
-  int restart_length = 30;
+  int restart_length = 40;
   scalar_type tolerance = 1e-9;
 
   test_data.tolerance = tolerance;
