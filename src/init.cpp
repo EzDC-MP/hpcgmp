@@ -185,7 +185,13 @@ HPGMP_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPGMP_Params
 #endif
   }
   free( iparams );
-
+  HPGMP_fout << "Initialized hpgmp with: " << std::endl 
+    << "\tparams.nx: " << params.nx << std::endl
+    << "\tparams.ny: " << params.ny << std::endl
+    << "\tparams.nz: " << params.nz << std::endl
+    << "\tparams.npx: " << params.npx << std::endl
+    << "\tparams.npy: " << params.npy << std::endl
+    << "\tparams.npz: " << params.npz << std::endl;
   return 0;
 }
 

@@ -71,13 +71,13 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
     for (local_int_t i=0; i<n; i++) local_result += xv[i]*yv[i];
   }
 
+  result = local_result;
 #ifndef HPGMP_NO_MPI
   // Use MPI's reduce function to collect all partial sums
   double t0 = mytimer();
   int size; // Number of MPI processes, My process ID
   MPI_Comm_size(x.comm, &size);
 
-  result = local_result;
   if (size > 1) {
     MPI_Datatype MPI_SCALAR_TYPE = MpiTypeTraits<scalar_type>::getType ();
     MPI_Allreduce(MPI_IN_PLACE, &result, 1, MPI_SCALAR_TYPE, MPI_SUM, x.comm);
@@ -86,7 +86,7 @@ int ComputeDotProduct_ref(const local_int_t n, const Vector_type & x, const Vect
 #else
   time_allreduce += 0.0;
 #endif
-
+  
   return 0;
 }
 

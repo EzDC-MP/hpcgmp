@@ -67,10 +67,11 @@ ReadHpgmpDat(int *localDimensions, int *secondsPerRun, int *localProcDimensions)
 
   SkipUntilEol( hpgmpStream ); // skip the rest of the third line
 
-  for (int i = 0; i < 3; ++i)
+  for (int i = 0; i < 3; ++i) { 
     // the user didn't specify (or values are invalid) process dimensions
     if (fscanf(hpgmpStream, "%d", localProcDimensions+i) != 1 || localProcDimensions[i] < 1)
       localProcDimensions[i] = 0; // value 0 means: "not specified" and it will be fixed later
+  }
 
   fclose(hpgmpStream);
 

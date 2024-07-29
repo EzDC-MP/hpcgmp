@@ -48,9 +48,9 @@ using std::endl;
 #include "BenchGMRES.hpp"
 #include "mytimer.hpp"
 
-using scalar_type =  double;
-using scalar_type2 = float;
-using project_type = float;
+using scalar_type =  double;//float;//
+using scalar_type2 = double;//float;//
+using project_type = double;//float;//
 
 typedef TestGMRESData<scalar_type> TestGMRESData_type;
 typedef Vector<scalar_type> Vector_type;
@@ -114,7 +114,7 @@ int main(int argc, char * argv[]) {
 
 
   // Use this array for collecting timing information
-  bool verbose = false;
+  bool verbose = true;
   TestGMRESData_type test_data;
   test_data.times = NULL;
   test_data.flops = NULL;
