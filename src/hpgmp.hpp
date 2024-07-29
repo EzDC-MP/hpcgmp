@@ -28,6 +28,7 @@
 
 extern std::ofstream HPGMP_fout;
 extern std::ofstream HPGMP_vout;
+extern std::ofstream HPGMP_iout; 
 
 struct HPGMP_Params_STRUCT {
   int comm_size; //!< Number of MPI processes in MPI_COMM_WORLD

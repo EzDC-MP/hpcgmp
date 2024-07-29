@@ -36,7 +36,7 @@ add_executable( xhpgmp src/main_hpgmp.cpp
     src/ComputeGEMVT.cpp src/ComputeGEMVT_ref.cpp src/ComputeGEMVT_blas.cpp src/ComputeGEMVT_gpu.cpp
     src/ComputeGEMMT.cpp src/ComputeGEMMT_ref.cpp src/ComputeGEMMT_gpu.cpp
     src/finalize.cpp src/init.cpp src/mytimer.cpp
-    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp ComputeSPMV_kahan.cpp
+    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp src/ComputeSPMV_kahan.cpp
     src/ComputeSYMGS.cpp src/ComputeSYMGS_ref.cpp
     src/ComputeGS_Forward.cpp src/ComputeGS_Forward_ref.cpp src/ComputeGS_Forward_gpu.cpp
     src/ComputeWAXPBY.cpp src/ComputeWAXPBY_ref.cpp src/ComputeWAXPBY_gpu.cpp
@@ -64,7 +64,7 @@ add_executable( xhpgmp_time src/main_time.cpp
     src/ComputeGEMVT.cpp src/ComputeGEMVT_ref.cpp src/ComputeGEMVT_blas.cpp src/ComputeGEMVT_gpu.cpp
     src/ComputeGEMMT.cpp src/ComputeGEMMT_ref.cpp src/ComputeGEMMT_gpu.cpp
     src/finalize.cpp src/init.cpp src/mytimer.cpp
-    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp ComputeSPMV_kahan.cpp
+    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp src/ComputeSPMV_kahan.cpp
     src/ComputeSYMGS.cpp src/ComputeSYMGS_ref.cpp
     src/ComputeGS_Forward.cpp src/ComputeGS_Forward_ref.cpp src/ComputeGS_Forward_gpu.cpp 
     src/ComputeWAXPBY.cpp src/ComputeWAXPBY_ref.cpp src/ComputeWAXPBY_gpu.cpp
