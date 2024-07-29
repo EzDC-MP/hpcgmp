@@ -114,7 +114,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
   // =====================================================================
   // Benchmark parameters
-  int numberOfGmresCalls = 10;
+  int numberOfGmresCalls = 1;
   int maxIters = 300;
   //double minOfficialTime = 1800; // Any official benchmark result must run at least this many seconds
   double minOfficialTime = 120; // for testing..
@@ -144,8 +144,11 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     ZeroVector(x); // Zero out x
     GMRES_IR(A, A_lo, data, data_lo, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
     if (verbose && A.geom->rank==0) {
-      HPGMP_fout << "Warm-up runs" << endl;
+      HPGMP_fout << "Warm-up runs done" << endl;
     }
+    
+    HPGMP_iout.close(); 
+    HPGMP_iout.open("iterations.csv"); //file to log iterations evolution of GMRES_IR
 
     //benchmark runs
     test_data.numOfMGCalls = 0;
@@ -183,7 +186,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
       if (ierr) HPGMP_fout << "Error in call to GMRES-IR: " << ierr << ".\n" << endl;
       if (verbose && A.geom->rank==0)
       {
-        HPGMP_fout << "Call [" << i << " / " << numberOfGmresCalls << "] Number of GMRES-IR Iterations ["
+        HPGMP_fout << "Call [" << i+1 << " / " << numberOfGmresCalls << "] Number of GMRES-IR Iterations ["
                   << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
         HPGMP_fout << " Time        " << time_toc << endl;
         HPGMP_fout << " Time/itr    " << time_toc / niters << endl;
@@ -220,7 +223,10 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
     //warmup
     ZeroVector(x); // Zero out x
     GMRES(A, data, b, x, restart_length, maxIters, tolerance, niters, normr, normr0, precond, verbose, test_data);
-
+    if (verbose && A.geom->rank==0) {
+      HPGMP_fout << "Warm-up runs done" << endl;
+    }
+    
     //benchmark runs
     time_solve_total = 0.0;
     for (int i=0; i<num_flops; i++) test_data.flops[i] = 0.0;
@@ -237,7 +243,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
 
       if (ierr) HPGMP_fout << "Error in call to GMRES: " << ierr << ".\n" << endl;
       if (verbose && A.geom->rank==0) {
-        HPGMP_fout << "Call [" << i << " / " << numberOfGmresCalls << "]";
+        HPGMP_fout << "Call [" << i+1 << " / " << numberOfGmresCalls << "]";
         HPGMP_fout << " Number of GMRES Iterations [" << niters <<"] Scaled Residual [" << normr/normr0 << "]" << endl;
         HPGMP_fout << " Time        " << time_toc << endl;
         HPGMP_fout << " Time/itr    " << time_toc / niters << endl;
