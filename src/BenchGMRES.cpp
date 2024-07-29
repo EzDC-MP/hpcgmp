@@ -123,7 +123,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   int niters = 0;
   scalar_type normr (0.0);
   scalar_type normr0 (0.0);
-  scalar_type tolerance = 0.0;
+  scalar_type tolerance = test_data.tolerance;//0.0;
   int restart_length = test_data.restart_length;
   bool precond = true;
   test_data.maxNumIters = maxIters;

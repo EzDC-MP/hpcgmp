@@ -276,10 +276,10 @@ inline void DeleteMatrix(SparseMatrix_type & A) {
     A.mgData = 0;
   }
 
-  DeleteVector (A.x);
-  DeleteVector (A.y);
 
 #ifdef HPGMP_WITH_CUDA
+  DeleteVector (A.x);
+  DeleteVector (A.y);
   cudaFree (A.d_row_ptr);
   cudaFree (A.d_col_idx);
   cudaFree (A.d_nzvals);
