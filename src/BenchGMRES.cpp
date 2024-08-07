@@ -115,7 +115,7 @@ int BenchGMRES(int argc, char **argv, comm_type comm, int numberOfMgLevels, bool
   // =====================================================================
   // Benchmark parameters
   int numberOfGmresCalls = 1;
-  int maxIters = 300;
+  int maxIters = 50;
   //double minOfficialTime = 1800; // Any official benchmark result must run at least this many seconds
   double minOfficialTime = 120; // for testing..
   test_data.minOfficialTime = minOfficialTime;
