@@ -157,6 +157,23 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
     if (std::is_same<project_type, float>::value) 
       HPGMP_fout << " Projection precision : float" << std::endl;
   }
+
+  if (verbose && A.geom->rank==0) {
+    HPGMP_iout << "#GMRES_IR(" << restart_length
+                           << ") with max-iters = " << max_iter
+                           << ", tol = " << tolerance
+                           << " and restart = " << restart_length
+                           << (doPreconditioning ? " with precond" : " without precond")
+                           << ", nrow = " << nrow << std::endl;
+    if (std::is_same<scalar_type2, double>::value) 
+      HPGMP_iout << "#Inner-Iter precision : double" << std::endl;
+    if (std::is_same<scalar_type2, float>::value) 
+      HPGMP_iout << "#Inner-Iter precision : float" << std::endl;
+    if (std::is_same<project_type, double>::value) 
+      HPGMP_iout << "#Projection precision : double" << std::endl;
+    if (std::is_same<project_type, float>::value) 
+      HPGMP_iout << "#Projection precision : float" << std::endl;
+  }
   double flops = 0.0;
   double flops_gmg  = 0.0;
   double flops_spmv = 0.0;
@@ -195,6 +212,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
       #ifdef HPGMP_NUMERIC_CHECK
       HPGMP_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
       HPGMP_fout << "  Ortho Error = " << 0.0;
+      HPGMP_iout << normr_hi/normr0_hi << std::endl;
       #endif
       HPGMP_fout << std::endl;
     }
@@ -384,6 +402,7 @@ int GMRES_IR(const SparseMatrix_type & A, const SparseMatrix_type2 & A_lo,
           #ifdef HPGMP_NUMERIC_CHECK
           HPGMP_fout << " (True Residual = " << normr_hi << " / " << normr0_hi << " = " << normr_hi/normr0_hi << ")";
           HPGMP_fout << "  Ortho Error = " << ortho_err;
+          HPGMP_iout << normr_hi/normr0_hi << std::endl;
           #endif
           HPGMP_fout << std::endl;
         }

@@ -45,6 +45,9 @@ const char* NULLDEVICE="/dev/null";
 
 std::ofstream HPGMP_fout; //!< output file stream for logging activities during HPGMP run
 std::ofstream HPGMP_vout; //!< output file stream for verbose logging activities during HPGMP run
+std::ofstream HPGMP_iout; //!< output file stream for csv iter
+                          //It should be initialized manually when needed.
+                          //HPGMP_Init_Params does NOT initialize to anything else to NULLDEVICE.
 
 static int
 startswith(const char * s, const char * prefix) {
@@ -170,6 +173,7 @@ HPGMP_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPGMP_Params
     sprintf( fname, "%shpgmp%04d%02d%02dT%02d%02d%02d.txt", title,
         1900 + ptm->tm_year, ptm->tm_mon+1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec );
     HPGMP_fout.open(fname);
+    HPGMP_iout.open(NULLDEVICE);
     #if defined(HPGMP_DETAILED_PRINT)
     HPGMP_vout.open(fname);
     #else
@@ -185,7 +189,13 @@ HPGMP_Init_Params(const char *title, int * argc_p, char ** *argv_p, HPGMP_Params
 #endif
   }
   free( iparams );
-
+  HPGMP_fout << "Initialized hpgmp with: " << std::endl 
+    << "\tparams.nx: " << params.nx << std::endl
+    << "\tparams.ny: " << params.ny << std::endl
+    << "\tparams.nz: " << params.nz << std::endl
+    << "\tparams.npx: " << params.npx << std::endl
+    << "\tparams.npy: " << params.npy << std::endl
+    << "\tparams.npz: " << params.npz << std::endl;
   return 0;
 }
 
