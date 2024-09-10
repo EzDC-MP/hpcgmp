@@ -14,21 +14,12 @@
 // ***************************************************
 //@HEADER
 
-#include <fstream>
+#ifndef COMPUTESPMV_KAHAN_HPP
+#define COMPUTESPMV_KAHAN_HPP
+#include "Vector.hpp"
+#include "SparseMatrix.hpp"
 
-#include "hpgmp.hpp"
-#include "DataTypes.hpp"
+template<class SparseMatrix_type, class Vector_type>
+int ComputeSPMV_kahan(const SparseMatrix_type & A, Vector_type & x, Vector_type & y);
 
-/*!
-  Closes the I/O stream used for logging information throughout the HPGMP run.
-
-  @return returns 0 
-  @see HPGMP_Init
-*/
-int
-HPGMP_Finalize(void) {
-  HPGMP_fout.close();
-  HPGMP_vout.close();
-  HPGMP_iout.close();
-  return 0;
-}
+#endif  // COMPUTESPMV_KAHAN_HPP

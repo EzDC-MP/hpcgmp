@@ -48,9 +48,19 @@ using std::endl;
 #include "BenchGMRES.hpp"
 #include "mytimer.hpp"
 
-using scalar_type =  double;
-using scalar_type2 = float;
-using project_type = float;
+#ifndef HPGMP_OUTER_TYPE
+  #define HPGMP_OUTER_TYPE double
+#endif
+#ifndef HPGMP_INNER_TYPE
+  #define HPGMP_INNER_TYPE double
+#endif
+#ifndef HPGMP_PROJECT_TYPE
+  #define HPGMP_PROJECT_TYPE double
+#endif
+
+using scalar_type =  HPGMP_OUTER_TYPE;
+using scalar_type2 = HPGMP_INNER_TYPE;
+using project_type = HPGMP_PROJECT_TYPE;
 
 typedef TestGMRESData<scalar_type> TestGMRESData_type;
 typedef Vector<scalar_type> Vector_type;
@@ -114,7 +124,7 @@ int main(int argc, char * argv[]) {
 
 
   // Use this array for collecting timing information
-  bool verbose = false;
+  bool verbose = true;
   TestGMRESData_type test_data;
   test_data.times = NULL;
   test_data.flops = NULL;
@@ -126,11 +136,17 @@ int main(int argc, char * argv[]) {
   //////////////////////
   int global_failure = 0;
   int restart_length = 40;
-  scalar_type tolerance = 1e-9;
+#ifndef HPGMP_TOLERANCE
+  #define HPGMP_TOLERANCE 1e-8
+#endif
+  scalar_type tolerance = HPGMP_TOLERANCE;
 
   test_data.tolerance = tolerance;
   test_data.restart_length = restart_length;
-  if (myRank < sizeValidComm) {
+#ifndef HPGMP_DO_VALIDATION
+  #define HPGMP_DO_VALIDATION true
+#endif
+  if (myRank < sizeValidComm && HPGMP_DO_VALIDATION) {
     global_failure = ValidGMRES<TestGMRESData_type, scalar_type, scalar_type2, project_type>
                          (argc, argv, validation_comm, numberOfMgLevels, verbose, test_data);
   }
@@ -140,7 +156,7 @@ int main(int argc, char * argv[]) {
   // Benchmark phase //
   /////////////////////
   {
-    bool runReference = true;
+    bool runReference = false;
     BenchGMRES<TestGMRESData_type, scalar_type, scalar_type2, project_type>
         (argc, argv, benchmark_comm, numberOfMgLevels, verbose, runReference, test_data);
 #ifndef HPGMP_NO_MPI

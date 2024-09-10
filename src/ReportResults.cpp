@@ -346,7 +346,7 @@ void ReportResults(const SparseMatrix_type & A, int numberOfMgLevels,
 
     doc.add("Final Summary","");
     bool isValidRun = (!global_failure);//&& (testsymmetry_data.count_fail==0) 
-    if (isValidRun) {
+    if (isValidRun && HPGMP_DO_VALIDATION) {
       doc.get("Final Summary")->add("HPGMP result is VALID with a GFLOP/s rating of", totalGflops);
       if (!A.isDotProductOptimized) {
         doc.get("Final Summary")->add("Reference version of ComputeDotProduct used","Performance results are most likely suboptimal");

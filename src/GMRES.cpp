@@ -144,7 +144,7 @@ int GMRES(const SparseMatrix_type & A, GMRESData_type & data, const Vector_type 
     if (niters == 0) normr0 = normr;
     if (verbose && A.geom->rank==0) {
       HPGMP_fout << "GMRES Residual at the start of restart cycle = "<< normr << " / " << normr0
-                << " = " << normr/normr0 << std::endl;
+                << " = " << normr/normr0 << " tol is: " << tolerance << std::endl;
     }
     if (IS_NAN(normr)) {
       break;

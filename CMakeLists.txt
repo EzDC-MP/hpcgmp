@@ -13,8 +13,8 @@ project( hpgmp
 #
 option(HPGMP_ENABLE_CONTIGUOUS_ARRAYS "Enable contiguous arrays for better cache pre-fetch" OFF)
 option(HPGMP_ENABLE_CUBIC_RADICAL_SEARCH "Enable faster search for optimal 3D process grid" OFF)
-option(HPGMP_ENABLE_DEBUG "Enable debug build" OFF)
-option(HPGMP_ENABLE_DETAILED_DEBUG "Enable detailed debug build" OFF)
+option(HPGMP_ENABLE_DEBUG "Enable debug build" ON)
+option(HPGMP_ENABLE_DETAILED_DEBUG "Enable detailed debug build" ON)
 option(HPGMP_ENABLE_MPI "Enable MPI support" OFF)
 option(HPGMP_ENABLE_LONG_LONG "Enable use of 'long long' type for global indices" ON)
 option(HPGMP_ENABLE_OPENMP "Enable OpenMP support" OFF)
@@ -36,7 +36,7 @@ add_executable( xhpgmp src/main_hpgmp.cpp
     src/ComputeGEMVT.cpp src/ComputeGEMVT_ref.cpp src/ComputeGEMVT_blas.cpp src/ComputeGEMVT_gpu.cpp
     src/ComputeGEMMT.cpp src/ComputeGEMMT_ref.cpp src/ComputeGEMMT_gpu.cpp
     src/finalize.cpp src/init.cpp src/mytimer.cpp
-    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp
+    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp src/ComputeSPMV_kahan.cpp
     src/ComputeSYMGS.cpp src/ComputeSYMGS_ref.cpp
     src/ComputeGS_Forward.cpp src/ComputeGS_Forward_ref.cpp src/ComputeGS_Forward_gpu.cpp
     src/ComputeWAXPBY.cpp src/ComputeWAXPBY_ref.cpp src/ComputeWAXPBY_gpu.cpp
@@ -64,7 +64,7 @@ add_executable( xhpgmp_time src/main_time.cpp
     src/ComputeGEMVT.cpp src/ComputeGEMVT_ref.cpp src/ComputeGEMVT_blas.cpp src/ComputeGEMVT_gpu.cpp
     src/ComputeGEMMT.cpp src/ComputeGEMMT_ref.cpp src/ComputeGEMMT_gpu.cpp
     src/finalize.cpp src/init.cpp src/mytimer.cpp
-    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp
+    src/ComputeSPMV.cpp src/ComputeSPMV_ref.cpp src/ComputeSPMV_gpu.cpp src/ComputeSPMV_kahan.cpp
     src/ComputeSYMGS.cpp src/ComputeSYMGS_ref.cpp
     src/ComputeGS_Forward.cpp src/ComputeGS_Forward_ref.cpp src/ComputeGS_Forward_gpu.cpp 
     src/ComputeWAXPBY.cpp src/ComputeWAXPBY_ref.cpp src/ComputeWAXPBY_gpu.cpp
@@ -89,6 +89,7 @@ if (HPGMP_ENABLE_DEBUG)
 endif ()
 
 if (HPGMP_ENABLE_DETAILED_DEBUG)
+    set(CMAKE_BUILD_TYPE Debug)
     target_compile_definitions(xhpgmp PRIVATE HPGMP_DETAILED_DEBUG)
     target_compile_definitions(xhpgmp_time PRIVATE HPGMP_DETAILED_DEBUG)
 endif ()
@@ -96,6 +97,9 @@ endif ()
 if (HPGMP_ENABLE_MPI)
     set(MPI_CXX_SKIP_MPICXX ON)
     find_package(MPI REQUIRED)
+    add_compile_options(-fpermissive)
+    target_include_directories (xhpgmp PUBLIC ${MPI_CXX_INCLUDE_DIRS})
+    target_include_directories (xhpgmp_time PUBLIC ${MPI_CXX_INCLUDE_DIRS})
     target_link_libraries(xhpgmp ${MPI_CXX_LIBRARIES})
     target_link_libraries(xhpgmp_time ${MPI_CXX_LIBRARIES})
 else ()
